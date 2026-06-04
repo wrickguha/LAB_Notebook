@@ -35,6 +35,7 @@ export default function LabNotebookPage() {
 
   const [activeFolderId, setActiveFolderId] = useState(notebookFolders[0]?.id || 'folder-1');
   const [activeEntryId, setActiveEntryId] = useState(notebookEntries[0]?.id || 'note-1');
+  const [showCabinet, setShowCabinet] = useState(true);
   const [editorMode, setEditorMode] = useState('edit'); // 'edit' | 'preview'
   const [newFolderName, setNewFolderName] = useState('');
   const [folderModalOpen, setFolderModalOpen] = useState(false);
@@ -66,6 +67,7 @@ export default function LabNotebookPage() {
     });
     setActiveEntryId(newId);
     setEditorMode('edit');
+    setShowCabinet(false);
   };
 
   // Simple Markdown & TeX Parser for Preview Mode
@@ -111,7 +113,9 @@ export default function LabNotebookPage() {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[calc(100vh-10rem)]">
       
       {/* LEFT SIDEBAR: Folder Trees & Entry Navigation */}
-      <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4">
+      <div className={`lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col justify-between space-y-4 ${
+        showCabinet ? 'flex' : 'hidden lg:flex'
+      }`}>
         <div className="space-y-4">
           <div className="flex justify-between items-center pb-2 border-b border-slate-100">
             <span className="font-bold text-slate-800 text-xs">Research Cabinets</span>
@@ -136,7 +140,12 @@ export default function LabNotebookPage() {
                     setActiveFolderId(folder.id);
                     // Automatically select first note in folder if exists
                     const fNotes = notebookEntries.filter(e => e.folderId === folder.id);
-                    if (fNotes.length > 0) setActiveEntryId(fNotes[0].id);
+                    if (fNotes.length > 0) {
+                      setActiveEntryId(fNotes[0].id);
+                      setShowCabinet(false);
+                    } else {
+                      setShowCabinet(true);
+                    }
                   }}
                   className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold tracking-wide transition-colors ${
                     isActive ? 'bg-blue-50 text-blue-650' : 'text-slate-550 hover:bg-slate-50 hover:text-slate-800'
@@ -175,7 +184,10 @@ export default function LabNotebookPage() {
                   return (
                     <button
                       key={entry.id}
-                      onClick={() => setActiveEntryId(entry.id)}
+                      onClick={() => {
+                        setActiveEntryId(entry.id);
+                        setShowCabinet(false);
+                      }}
                       className={`w-full text-left p-2.5 rounded-xl border transition-all flex flex-col gap-1.5 ${
                         isActive
                           ? 'bg-white border-blue-300 shadow-sm'
@@ -208,11 +220,20 @@ export default function LabNotebookPage() {
       </div>
 
       {/* RIGHT WORKSPACE: Notebook Editor / Preview Canvas */}
-      <div className="lg:col-span-8 flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden min-h-[500px]">
+      <div className={`lg:col-span-8 flex flex-col bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden min-h-[500px] ${
+        showCabinet ? 'hidden lg:flex' : 'flex'
+      }`}>
         {activeEntry ? (
           <>
             {/* Work Header Panel */}
             <div className="border-b border-slate-200 bg-slate-50/50 p-4 sm:p-5 space-y-4">
+              {/* Back Button for mobile */}
+              <button
+                onClick={() => setShowCabinet(true)}
+                className="lg:hidden inline-flex items-center gap-1 text-[11px] font-bold text-blue-650 hover:underline mb-1"
+              >
+                ← Back to Research Cabinets
+              </button>
               <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                 <div className="flex-1 min-w-0">
                   <input
@@ -446,6 +467,13 @@ export default function LabNotebookPage() {
           </>
         ) : (
           <div className="flex-1 flex flex-col justify-center items-center p-8 text-center text-slate-400 space-y-3">
+            {/* Back Button for mobile */}
+            <button
+              onClick={() => setShowCabinet(true)}
+              className="lg:hidden inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline mb-4"
+            >
+              ← Back to Research Cabinets
+            </button>
             <FileText className="w-10 h-10 text-slate-300" />
             <p className="text-xs">No active experiment log selected. Create a draft or pick from the cabinet.</p>
           </div>

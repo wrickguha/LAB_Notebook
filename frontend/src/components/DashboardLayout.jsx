@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
   Layers,
@@ -310,7 +311,18 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
 
         {/* Content Render Area */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50 grid-bg">
-          {children}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -8 }}
+              transition={{ duration: 0.12 }}
+              className="h-full"
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
 

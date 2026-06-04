@@ -55,11 +55,11 @@ export default function SettingsPage() {
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 min-h-[calc(100vh-10rem)]">
       
       {/* LEFT NAVIGATION PANEL */}
-      <div className="lg:col-span-3 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-col gap-1 h-fit">
-        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2 block">Control Panel</span>
+      <div className="lg:col-span-3 bg-white border border-slate-200 rounded-2xl p-4 shadow-sm flex flex-row lg:flex-col gap-1.5 h-fit overflow-x-auto lg:overflow-x-visible no-scrollbar">
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2 hidden lg:block">Control Panel</span>
         <button
           onClick={() => setActiveTab('profile')}
-          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-colors ${
+          className={`flex-shrink-0 flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-colors ${
             activeTab === 'profile' ? 'bg-blue-50 text-blue-650' : 'text-slate-550 hover:bg-slate-50 hover:text-slate-800'
           }`}
         >
@@ -68,7 +68,7 @@ export default function SettingsPage() {
         </button>
         <button
           onClick={() => setActiveTab('compliance')}
-          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-colors ${
+          className={`flex-shrink-0 flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-colors ${
             activeTab === 'compliance' ? 'bg-blue-50 text-blue-655' : 'text-slate-555 hover:bg-slate-50 hover:text-slate-800'
           }`}
         >
@@ -77,7 +77,7 @@ export default function SettingsPage() {
         </button>
         <button
           onClick={() => setActiveTab('security')}
-          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-colors ${
+          className={`flex-shrink-0 flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-colors ${
             activeTab === 'security' ? 'bg-blue-50 text-blue-655' : 'text-slate-555 hover:bg-slate-50 hover:text-slate-800'
           }`}
         >
