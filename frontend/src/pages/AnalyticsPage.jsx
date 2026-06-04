@@ -71,7 +71,7 @@ export default function AnalyticsPage() {
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl p-2 font-semibold text-slate-655"
+            className="bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl p-2 font-semibold text-slate-700 transition-all focus-ring cursor-pointer"
           >
             <option value="Month">Last 30 Days</option>
             <option value="Quarter">Last Quarter</option>
@@ -81,7 +81,7 @@ export default function AnalyticsPage() {
           <select
             value={selectedProject}
             onChange={(e) => setSelectedProject(e.target.value)}
-            className="bg-slate-50 border border-slate-200 rounded-xl p-2 font-semibold text-slate-655"
+            className="bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl p-2 font-semibold text-slate-700 transition-all focus-ring cursor-pointer"
           >
             <option value="All">All Research Branches</option>
             {projects.map(p => (

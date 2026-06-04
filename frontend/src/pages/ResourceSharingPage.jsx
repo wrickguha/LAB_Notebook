@@ -59,15 +59,15 @@ export default function ResourceSharingPage() {
         </div>
         <button
           onClick={() => setModalOpen(true)}
-          className="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-4 py-2.5 shadow transition-all active:scale-[0.98]"
+          className="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-4 py-2.5 shadow hover:shadow-md transition-all active:scale-[0.98] focus-ring cursor-pointer"
         >
           <Plus className="w-4 h-4 mr-1.5" /> Share Resource
         </button>
       </div>
 
       {/* Shared Resource Inventory */}
-      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-hidden">
-        <table className="w-full text-left border-collapse text-xs">
+      <div className="bg-white border border-slate-200 rounded-2xl shadow-sm overflow-x-auto w-full no-scrollbar">
+        <table className="w-full text-left border-collapse text-xs min-w-[700px]">
           <thead>
             <tr className="border-b border-slate-200 bg-slate-50 font-bold text-slate-500 uppercase tracking-widest text-[9px]">
               <th className="p-4">Resource Node</th>
@@ -102,7 +102,7 @@ export default function ResourceSharingPage() {
                           <select
                             value={role}
                             onChange={(e) => updateResourcePermission(res.id, name, e.target.value)}
-                            className="bg-white border border-slate-200 text-[10px] rounded p-0.5 font-bold text-blue-650 cursor-pointer focus:ring-0"
+                            className="bg-white border border-slate-200 text-[10px] rounded p-0.5 font-bold text-blue-650 cursor-pointer focus-ring"
                           >
                             <option value="Owner">Owner</option>
                             <option value="Editor">Editor</option>
@@ -140,7 +140,7 @@ export default function ResourceSharingPage() {
             >
               <div className="flex justify-between items-center border-b border-slate-150 pb-3 mb-4">
                 <h3 className="font-bold text-slate-900 text-sm">Configure Sharing Access</h3>
-                <button onClick={() => setModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-600">
+                <button onClick={() => setModalOpen(false)} className="p-1 text-slate-400 hover:text-slate-655 focus-ring rounded-lg cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -154,7 +154,7 @@ export default function ResourceSharingPage() {
                     placeholder="e.g. CRISPR Vectors DNA Sequence"
                     value={resName}
                     onChange={(e) => setResName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                   />
                 </div>
 
@@ -164,7 +164,7 @@ export default function ResourceSharingPage() {
                     <select
                       value={resType}
                       onChange={(e) => setResType(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                     >
                       <option value="Folder">Folder</option>
                       <option value="File">File</option>
@@ -176,7 +176,7 @@ export default function ResourceSharingPage() {
                     <select
                       value={resPermission}
                       onChange={(e) => setResPermission(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                     >
                       <option value="Editor">Editor</option>
                       <option value="Commenter">Commenter</option>
@@ -193,7 +193,7 @@ export default function ResourceSharingPage() {
                     placeholder="e.g. Sarah Connor"
                     value={collaboratorName}
                     onChange={(e) => setCollaboratorName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                   />
                 </div>
 
@@ -201,13 +201,13 @@ export default function ResourceSharingPage() {
                   <button
                     type="button"
                     onClick={() => setModalOpen(false)}
-                    className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-650 font-bold rounded-lg"
+                    className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-650 font-bold rounded-lg focus-ring cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow"
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow hover:shadow-md focus-ring cursor-pointer"
                   >
                     Grant Access
                   </button>

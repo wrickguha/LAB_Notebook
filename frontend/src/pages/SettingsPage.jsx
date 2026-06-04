@@ -59,7 +59,7 @@ export default function SettingsPage() {
         <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-3 mb-2 hidden lg:block">Control Panel</span>
         <button
           onClick={() => setActiveTab('profile')}
-          className={`flex-shrink-0 flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-colors ${
+          className={`flex-shrink-0 flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-colors focus-ring ${
             activeTab === 'profile' ? 'bg-blue-50 text-blue-650' : 'text-slate-550 hover:bg-slate-50 hover:text-slate-800'
           }`}
         >
@@ -68,7 +68,7 @@ export default function SettingsPage() {
         </button>
         <button
           onClick={() => setActiveTab('compliance')}
-          className={`flex-shrink-0 flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-colors ${
+          className={`flex-shrink-0 flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-colors focus-ring ${
             activeTab === 'compliance' ? 'bg-blue-50 text-blue-655' : 'text-slate-555 hover:bg-slate-50 hover:text-slate-800'
           }`}
         >
@@ -77,7 +77,7 @@ export default function SettingsPage() {
         </button>
         <button
           onClick={() => setActiveTab('security')}
-          className={`flex-shrink-0 flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-colors ${
+          className={`flex-shrink-0 flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-xs font-semibold tracking-wide transition-colors focus-ring ${
             activeTab === 'security' ? 'bg-blue-50 text-blue-655' : 'text-slate-555 hover:bg-slate-50 hover:text-slate-800'
           }`}
         >
@@ -93,59 +93,64 @@ export default function SettingsPage() {
         {activeTab === 'profile' && (
           <form onSubmit={handleSaveProfile} className="space-y-6 animate-fade-in-up">
             <div>
-              <h3 className="font-bold text-slate-850 text-sm">Investigator Profile Information</h3>
+              <h3 className="font-bold text-slate-850 text-xs sm:text-sm">Investigator Profile Information</h3>
               <p className="text-[10px] text-slate-400 mt-0.5">Edit research identity details that attach to electronic signature stamps.</p>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs text-slate-750">
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Full Name</label>
+                <label htmlFor="name-input" className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Full Name</label>
                 <input
+                  id="name-input"
                   type="text"
                   required
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Research Role</label>
+                <label htmlFor="role-input" className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Research Role</label>
                 <input
+                  id="role-input"
                   type="text"
                   required
                   value={role}
                   onChange={(e) => setRole(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Email Identity</label>
+                <label htmlFor="email-input" className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Email Identity</label>
                 <input
+                  id="email-input"
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                 />
               </div>
               <div>
-                <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Affiliated Institution</label>
+                <label htmlFor="inst-input" className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Affiliated Institution</label>
                 <input
+                  id="inst-input"
                   type="text"
                   required
                   value={institution}
                   onChange={(e) => setInstitution(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                 />
               </div>
               <div className="sm:col-span-2">
-                <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Laboratory Division</label>
+                <label htmlFor="lab-input" className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Laboratory Division</label>
                 <input
+                  id="lab-input"
                   type="text"
                   required
                   value={lab}
                   onChange={(e) => setLab(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                 />
               </div>
             </div>
@@ -158,7 +163,7 @@ export default function SettingsPage() {
               )}
               <button
                 type="submit"
-                className="ml-auto inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow active:scale-[0.98] transition-all"
+                className="ml-auto inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow active:scale-[0.98] transition-all focus-ring"
               >
                 <Save className="w-3.5 h-3.5 mr-1.5" /> Save Changes
               </button>
@@ -171,7 +176,7 @@ export default function SettingsPage() {
           <div className="space-y-4 flex-1 flex flex-col animate-fade-in-up">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <h3 className="font-bold text-slate-800 text-sm">Regulatory Audit Ledger (FDA 21 CFR Part 11)</h3>
+                <h3 className="font-bold text-slate-800 text-xs sm:text-sm">Regulatory Audit Ledger (FDA 21 CFR Part 11)</h3>
                 <p className="text-[10px] text-slate-400 mt-0.5">Automated timestamp signature logs mapping user actions, IP targets, and validation checks.</p>
               </div>
 
@@ -183,7 +188,7 @@ export default function SettingsPage() {
                   placeholder="Filter logs..."
                   value={searchLogQuery}
                   onChange={(e) => setSearchLogQuery(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 pl-8 pr-3 text-xs"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-xl py-1.5 pl-8 pr-3 text-xs focus-ring"
                 />
               </div>
             </div>
@@ -226,24 +231,25 @@ export default function SettingsPage() {
         {activeTab === 'security' && (
           <div className="space-y-6 animate-fade-in-up">
             <div>
-              <h3 className="font-bold text-slate-850 text-sm">Security Controls</h3>
+              <h3 className="font-bold text-slate-855 text-xs sm:text-sm">Security Controls</h3>
               <p className="text-[10px] text-slate-400 mt-0.5">Toggle multi-factor verification settings and auto-lock parameters.</p>
             </div>
 
             <div className="space-y-5 border-t border-slate-100 pt-5 text-xs">
               
               {/* Toggle 1: MFA */}
-              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200/80 bg-slate-50/50">
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
                 <div>
                   <h4 className="font-bold text-slate-800 text-xs">Two-Factor Authentication (MFA)</h4>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Requires a secure mobile verification code before editing or signing files.</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5 font-semibold">Requires mobile verification codes before editing or signing files.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setMfaEnabled(!mfaEnabled)}
-                  className={`w-11 h-6 rounded-full relative transition-colors ${
-                    mfaEnabled ? 'bg-blue-600' : 'bg-slate-350'
+                  className={`w-11 h-6 rounded-full relative transition-colors focus-ring ${
+                    mfaEnabled ? 'bg-blue-605' : 'bg-slate-300'
                   }`}
+                  aria-label="Toggle Two Factor Authentication"
                 >
                   <span className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${
                     mfaEnabled ? 'right-1' : 'left-1'
@@ -252,17 +258,18 @@ export default function SettingsPage() {
               </div>
 
               {/* Toggle 2: Signature PIN requirement */}
-              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200/80 bg-slate-50/50">
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
                 <div>
                   <h4 className="font-bold text-slate-800 text-xs">Cryptographic PIN validation</h4>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Requests a personal 4-digit PIN before applying electronic signatures to notebook lines.</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5 font-semibold">Requests a personal 4-digit PIN before applying electronic signatures to notebook lines.</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setPinRequired(!pinRequired)}
-                  className={`w-11 h-6 rounded-full relative transition-colors ${
-                    pinRequired ? 'bg-blue-600' : 'bg-slate-350'
+                  className={`w-11 h-6 rounded-full relative transition-colors focus-ring ${
+                    pinRequired ? 'bg-blue-605' : 'bg-slate-300'
                   }`}
+                  aria-label="Toggle Cryptographic PIN validation"
                 >
                   <span className={`w-4 h-4 bg-white rounded-full absolute top-1 transition-all ${
                     pinRequired ? 'right-1' : 'left-1'
@@ -271,15 +278,15 @@ export default function SettingsPage() {
               </div>
 
               {/* Input: Session Timeout */}
-              <div className="flex items-center justify-between p-3 rounded-xl border border-slate-200/80 bg-slate-50/50">
+              <div className="flex items-center justify-between p-3.5 rounded-xl border border-slate-200 bg-slate-50/50">
                 <div>
                   <h4 className="font-bold text-slate-800 text-xs">Session Timeout (minutes)</h4>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Auto-locks the browser research vault during inactivity.</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5 font-semibold">Auto-locks the browser research vault during inactivity.</p>
                 </div>
                 <select
                   value={sessionTimeout}
                   onChange={(e) => setSessionTimeout(e.target.value)}
-                  className="bg-white border border-slate-200 text-xs rounded-lg p-1.5 font-bold text-slate-700"
+                  className="bg-white border border-slate-200 text-xs rounded-lg p-1.5 font-bold text-slate-700 focus-ring"
                 >
                   <option value="15">15 mins</option>
                   <option value="30">30 mins</option>

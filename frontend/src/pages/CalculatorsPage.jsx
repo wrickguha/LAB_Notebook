@@ -45,7 +45,7 @@ export default function CalculatorsPage() {
   // Half-Life Inputs
   const [hlAmount, setHlAmount] = useState('100');
   const [hlTime, setHlTime] = useState('24');
-  const [hlPeriod, setHlPeriod] = useState('8'); // e.g. Iodine-131 half-life
+  const [hlPeriod, setHlPeriod] = useState('8');
   const [hlResult, setHlResult] = useState(null);
 
   // Statistics Inputs
@@ -58,7 +58,6 @@ export default function CalculatorsPage() {
     setTimeout(() => setCopiedId(null), 1500);
   };
 
-  // Run Molarity calculation
   const runMolarity = (e) => {
     e.preventDefault();
     const res = calculateMolarity(molMass, molMw, molVol);
@@ -73,7 +72,6 @@ export default function CalculatorsPage() {
     }
   };
 
-  // Run DNA Copy calculation
   const runDnaCopies = (e) => {
     e.preventDefault();
     const res = calculateDnaCopyNumber(dnaNg, dnaBp);
@@ -88,7 +86,6 @@ export default function CalculatorsPage() {
     }
   };
 
-  // Run PCR recipe scale
   const runPcrMix = (e) => {
     e.preventDefault();
     const res = calculatePcrMix(pcrReactions, pcrOverage);
@@ -103,7 +100,6 @@ export default function CalculatorsPage() {
     }
   };
 
-  // Run Half Life Decay
   const runHalfLife = (e) => {
     e.preventDefault();
     const res = calculateHalfLifeDecay(hlAmount, hlPeriod, hlTime);
@@ -118,7 +114,6 @@ export default function CalculatorsPage() {
     }
   };
 
-  // Run Stats
   const runStats = (e) => {
     e.preventDefault();
     const res = calculateStats(statsData);
@@ -140,17 +135,17 @@ export default function CalculatorsPage() {
       <div className="lg:col-span-8 space-y-6">
         
         {/* Toggle Categories Tabs */}
-        <div className="bg-white border border-slate-200/80 p-4 rounded-2xl shadow-sm flex flex-wrap gap-2">
+        <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs flex flex-wrap gap-2">
           {[
             { id: 'biotech', name: '🧪 Biotechnology', desc: 'DNA copy counts, PCR setups' },
             { id: 'chemistry', name: '🧫 Chemistry', desc: 'Molarity & Dilutions' },
-            { id: 'physics', name: '⚛ Physics & Half-Life', desc: 'Radioactive decay logs' },
+            { id: 'physics', name: '⚛ Physics & Decay', desc: 'Radioactive decay logs' },
             { id: 'stats', name: '📊 Statistics', desc: 'Sample deviations & variance' }
           ].map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
-              className={`flex-1 text-left p-3 rounded-xl border transition-all ${
+              className={`flex-1 text-left p-3 rounded-xl border transition-all focus-ring ${
                 activeTab === tab.id
                   ? 'bg-blue-50 border-blue-300 shadow-xs scale-[1.01]'
                   : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
@@ -163,16 +158,16 @@ export default function CalculatorsPage() {
         </div>
 
         {/* Tab content widgets */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm min-h-[300px]">
+        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs min-h-[300px]">
           
           {/* CHEMISTRY TAB: Molarity Solver */}
           {activeTab === 'chemistry' && (
             <div className="space-y-6 animate-fade-in-up">
               <div>
-                <h3 className="font-bold text-slate-850 text-sm">Molarity Solution Calculator</h3>
+                <h3 className="font-bold text-slate-850 text-xs sm:text-sm">Molarity Solution Calculator</h3>
                 <p className="text-[10px] text-slate-400 mt-0.5">Determine the molarity of a solute dissolved in a specific volume.</p>
-                <div className="text-[10px] bg-slate-50 text-slate-500 font-mono p-2 rounded border border-slate-150 mt-2">
-                  Formula: M = m / (MW * V) where V is in liters.
+                <div className="text-[10px] bg-slate-50 text-slate-505 font-mono p-2.5 rounded-lg border border-slate-150 mt-2">
+                  Formula: M = m / (MW * V) where V is in L.
                 </div>
               </div>
 
@@ -184,7 +179,7 @@ export default function CalculatorsPage() {
                     step="any"
                     value={molMass}
                     onChange={(e) => setMolMass(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus-ring"
                   />
                 </div>
                 <div>
@@ -194,7 +189,7 @@ export default function CalculatorsPage() {
                     step="any"
                     value={molMw}
                     onChange={(e) => setMolMw(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus-ring"
                   />
                 </div>
                 <div>
@@ -204,11 +199,11 @@ export default function CalculatorsPage() {
                     step="any"
                     value={molVol}
                     onChange={(e) => setMolVol(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus-ring"
                   />
                 </div>
                 <div className="sm:col-span-3 pt-3 flex justify-end">
-                  <button type="submit" className="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">
+                  <button type="submit" className="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow focus-ring">
                     Solve Molarity
                   </button>
                 </div>
@@ -222,7 +217,7 @@ export default function CalculatorsPage() {
                   </div>
                   <button
                     onClick={() => handleCopy(molarityResult, 'chem')}
-                    className="p-2 hover:bg-blue-100 rounded-lg text-blue-650 transition-colors"
+                    className="p-2 hover:bg-blue-100 rounded-lg text-blue-650 transition-colors focus-ring"
                   >
                     {copiedId === 'chem' ? <Check className="w-4 h-4" /> : <Clipboard className="w-4 h-4" />}
                   </button>
@@ -237,33 +232,33 @@ export default function CalculatorsPage() {
               {/* DNA Copy Number widget */}
               <div className="space-y-4">
                 <div>
-                  <h3 className="font-bold text-slate-800 text-sm">DNA Copy Number Estimator</h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Determine the total template copy count based on double-stranded DNA mass and base pair length.</p>
+                  <h3 className="font-bold text-slate-800 text-xs sm:text-sm">DNA Copy Number Estimator</h3>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Determine template copy count based on double-stranded DNA mass and base pair length.</p>
                 </div>
 
                 <form onSubmit={runDnaCopies} className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">DNA Mass (ng)</label>
+                    <label className="block text-[10px] font-bold text-slate-455 uppercase mb-1">DNA Mass (ng)</label>
                     <input
                       type="number"
                       step="any"
                       value={dnaNg}
                       onChange={(e) => setDnaNg(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus-ring"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-bold text-slate-450 uppercase mb-1">Length of Template (bp)</label>
+                    <label className="block text-[10px] font-bold text-slate-455 uppercase mb-1">Length of Template (bp)</label>
                     <input
                       type="number"
                       step="any"
                       value={dnaBp}
                       onChange={(e) => setDnaBp(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus-ring"
                     />
                   </div>
                   <div className="sm:col-span-2 pt-2 flex justify-end">
-                    <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">
+                    <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow focus-ring">
                       Calculate Copy Count
                     </button>
                   </div>
@@ -277,7 +272,7 @@ export default function CalculatorsPage() {
                     </div>
                     <button
                       onClick={() => handleCopy(dnaResult, 'dna')}
-                      className="p-2 hover:bg-blue-100 rounded-lg text-blue-655"
+                      className="p-2 hover:bg-blue-100 rounded-lg text-blue-655 focus-ring"
                     >
                       {copiedId === 'dna' ? <Check className="w-4 h-4" /> : <Clipboard className="w-4 h-4" />}
                     </button>
@@ -288,7 +283,7 @@ export default function CalculatorsPage() {
               {/* PCR recipe scaler widget */}
               <div className="border-t border-slate-150 pt-6 space-y-4">
                 <div>
-                  <h3 className="font-bold text-slate-800 text-sm">PCR Master Mix Scaler</h3>
+                  <h3 className="font-bold text-slate-850 text-xs sm:text-sm">PCR Master Mix Scaler</h3>
                   <p className="text-[10px] text-slate-400 mt-0.5">Scale default Taq polymerase assay formulas to custom run counts with overages.</p>
                 </div>
 
@@ -299,7 +294,7 @@ export default function CalculatorsPage() {
                       type="number"
                       value={pcrReactions}
                       onChange={(e) => setPcrReactions(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus-ring"
                     />
                   </div>
                   <div>
@@ -308,11 +303,11 @@ export default function CalculatorsPage() {
                       type="number"
                       value={pcrOverage}
                       onChange={(e) => setPcrOverage(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus-ring"
                     />
                   </div>
                   <div className="sm:col-span-2 pt-2 flex justify-end">
-                    <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">
+                    <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow focus-ring">
                       Compile PCR Mix Sheet
                     </button>
                   </div>
@@ -352,7 +347,7 @@ export default function CalculatorsPage() {
           {activeTab === 'physics' && (
             <div className="space-y-6 animate-fade-in-up">
               <div>
-                <h3 className="font-bold text-slate-850 text-sm">Radioactive Isotope Decay Solver</h3>
+                <h3 className="font-bold text-slate-850 text-xs sm:text-sm">Radioactive Isotope Decay Solver</h3>
                 <p className="text-[10px] text-slate-400 mt-0.5">Calculate the remaining mass of a radioactive sample over time.</p>
               </div>
 
@@ -364,7 +359,7 @@ export default function CalculatorsPage() {
                     step="any"
                     value={hlAmount}
                     onChange={(e) => setHlAmount(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus-ring"
                   />
                 </div>
                 <div>
@@ -374,7 +369,7 @@ export default function CalculatorsPage() {
                     step="any"
                     value={hlPeriod}
                     onChange={(e) => setHlPeriod(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus-ring"
                   />
                 </div>
                 <div>
@@ -384,11 +379,11 @@ export default function CalculatorsPage() {
                     step="any"
                     value={hlTime}
                     onChange={(e) => setHlTime(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 focus-ring"
                   />
                 </div>
                 <div className="sm:col-span-3 pt-3 flex justify-end">
-                  <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">
+                  <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow focus-ring">
                     Solve Decay State
                   </button>
                 </div>
@@ -417,7 +412,7 @@ export default function CalculatorsPage() {
           {activeTab === 'stats' && (
             <div className="space-y-6 animate-fade-in-up">
               <div>
-                <h3 className="font-bold text-slate-850 text-sm">Sample Standard Deviation Solver</h3>
+                <h3 className="font-bold text-slate-850 text-xs sm:text-sm">Sample Standard Deviation Solver</h3>
                 <p className="text-[10px] text-slate-400 mt-0.5">Determine the mean, variance, and standard deviation of a dataset. Input values separated by commas.</p>
               </div>
 
@@ -428,12 +423,12 @@ export default function CalculatorsPage() {
                     type="text"
                     value={statsData}
                     onChange={(e) => setStatsData(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-slate-800 focus-ring"
                     placeholder="e.g. 1.2, 1.5, 1.4, 1.9, 2.1"
                   />
                 </div>
                 <div className="pt-2 flex justify-end">
-                  <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">
+                  <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow focus-ring">
                     Solve Statistics
                   </button>
                 </div>
@@ -467,25 +462,25 @@ export default function CalculatorsPage() {
       </div>
 
       {/* RIGHT: History Ledger */}
-      <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-        <h3 className="font-bold text-slate-800 text-sm flex items-center gap-1.5 border-b border-slate-100 pb-3">
-          <History className="w-4 h-4 text-slate-450" /> Calculation Ledger Logs
+      <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+        <h3 className="font-bold text-slate-800 text-xs flex items-center gap-1.5 border-b border-slate-100 pb-3">
+          <History className="w-4 h-4 text-slate-450" /> Calculation Ledger
         </h3>
 
         <div className="space-y-3.5 max-h-[450px] overflow-y-auto no-scrollbar">
           {calcHistory.map((item) => (
-            <div key={item.id} className="p-3 bg-slate-50 border border-slate-150 rounded-xl space-y-2 text-[10px] text-slate-650">
-              <div className="flex justify-between items-center border-b border-slate-200/50 pb-1.5">
-                <span className="font-bold text-slate-850 uppercase">{item.type}</span>
-                <span className="text-[9px] text-slate-400">{item.date}</span>
+            <div key={item.id} className="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-[10px] text-slate-655">
+              <div className="flex justify-between items-center border-b border-slate-200/55 pb-1.5">
+                <span className="font-extrabold text-slate-850 uppercase">{item.type}</span>
+                <span className="text-[9px] text-slate-400 font-bold">{item.date}</span>
               </div>
-              <div className="font-mono bg-white p-1 rounded border border-slate-100 text-slate-500 overflow-x-auto">
+              <div className="font-mono bg-white p-1 rounded border border-slate-200 text-slate-500 overflow-x-auto">
                 Formula: {item.formula}
               </div>
-              <div className="text-[9px] text-slate-500">
+              <div className="text-[9px] text-slate-400">
                 Inputs: {item.input}
               </div>
-              <div className="font-bold text-blue-750 text-xs">
+              <div className="font-black text-blue-750 text-xs">
                 Result: {item.result}
               </div>
             </div>

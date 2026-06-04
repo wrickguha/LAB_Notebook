@@ -71,13 +71,13 @@ export default function ResearchPapersPage() {
             placeholder="Search papers by title, author, tag..."
             value={filterQuery}
             onChange={(e) => setFilterQuery(e.target.value)}
-            className="w-full bg-slate-50 border border-slate-200 hover:border-slate-350 rounded-xl py-1.5 pl-9 pr-4 text-xs font-semibold text-slate-655"
+            className="w-full bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-xl py-1.5 pl-9 pr-4 text-xs font-semibold text-slate-700 transition-all focus-ring"
           />
         </div>
 
         <button
           onClick={() => setModalOpen(true)}
-          className="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-4 py-2.5 shadow active:scale-[0.98] transition-all"
+          className="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-4 py-2.5 shadow hover:shadow-md active:scale-[0.98] transition-all focus-ring cursor-pointer"
         >
           <Plus className="w-4 h-4 mr-1.5" /> Add Paper
         </button>
@@ -88,7 +88,7 @@ export default function ResearchPapersPage() {
         {filteredPapers.map((paper) => (
           <div
             key={paper.id}
-            className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4"
+            className="bg-white border border-slate-200 hover:border-slate-300 hover:shadow-md rounded-2xl p-5 shadow-sm flex flex-col justify-between space-y-4 transition-all duration-300"
           >
             <div className="space-y-3">
               <div className="flex justify-between items-start gap-4">
@@ -122,7 +122,7 @@ export default function ResearchPapersPage() {
                   href={`https://doi.org/${paper.doi}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-[10px] text-blue-600 hover:text-blue-700 font-bold flex items-center gap-1 hover:underline"
+                  className="text-[10px] text-blue-650 hover:text-blue-700 font-bold flex items-center gap-1 hover:underline focus-ring rounded px-1"
                 >
                   View Publisher <ExternalLink className="w-3 h-3" />
                 </a>
@@ -151,7 +151,7 @@ export default function ResearchPapersPage() {
             >
               <div className="flex justify-between items-center border-b border-slate-150 pb-3 mb-4">
                 <h3 className="font-bold text-slate-900 text-sm">Log Reference Publication</h3>
-                <button onClick={() => setModalOpen(false)} className="p-1 text-slate-450 hover:text-slate-600">
+                <button onClick={() => setModalOpen(false)} className="p-1 text-slate-450 hover:text-slate-655 focus-ring rounded-lg cursor-pointer">
                   <X className="w-4 h-4" />
                 </button>
               </div>
@@ -165,7 +165,7 @@ export default function ResearchPapersPage() {
                     placeholder="e.g. CRISPR-Cas9 Editing in Mammalians"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                   />
                 </div>
 
@@ -177,7 +177,7 @@ export default function ResearchPapersPage() {
                     placeholder="e.g. Zhang F., Hubbell J."
                     value={authors}
                     onChange={(e) => setAuthors(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                   />
                 </div>
 
@@ -189,7 +189,7 @@ export default function ResearchPapersPage() {
                       placeholder="e.g. Nature Biotech"
                       value={journal}
                       onChange={(e) => setJournal(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                     />
                   </div>
                   <div>
@@ -198,7 +198,7 @@ export default function ResearchPapersPage() {
                       type="number"
                       value={year}
                       onChange={(e) => setYear(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                     />
                   </div>
                 </div>
@@ -211,7 +211,7 @@ export default function ResearchPapersPage() {
                       placeholder="e.g. 10.1038/nprot.2013"
                       value={doi}
                       onChange={(e) => setDoi(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                     />
                   </div>
                   <div>
@@ -221,7 +221,7 @@ export default function ResearchPapersPage() {
                       placeholder="e.g. CRISPR, Biotech, RNA"
                       value={tags}
                       onChange={(e) => setTags(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-850"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-850 focus-ring"
                     />
                   </div>
                 </div>
@@ -233,7 +233,7 @@ export default function ResearchPapersPage() {
                     placeholder="Provide a condensed summary of research conclusions and methodologies."
                     value={summary}
                     onChange={(e) => setSummary(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 text-xs text-slate-800 focus-ring"
                   />
                 </div>
 
@@ -241,13 +241,13 @@ export default function ResearchPapersPage() {
                   <button
                     type="button"
                     onClick={() => setModalOpen(false)}
-                    className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-650 font-bold rounded-lg"
+                    className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-650 font-bold rounded-lg focus-ring cursor-pointer"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow"
+                    className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg shadow hover:shadow-md focus-ring cursor-pointer"
                   >
                     Index Paper
                   </button>

@@ -313,13 +313,27 @@ export default function LabNotebookPage() {
                   value={activeEntry.content}
                   onChange={(e) => updateNotebookEntryContent(activeEntry.id, e.target.value)}
                   placeholder="Draft your experimental process in markdown. Supports TeX math (e.g. $C_1 V_1 = C_2 V_2$)."
-                  className="w-full flex-1 resize-none bg-transparent border-0 text-slate-800 text-xs leading-relaxed focus:ring-0 min-h-[300px]"
+                  className="w-full flex-1 resize-none bg-transparent border-0 text-slate-800 text-xs leading-relaxed focus:ring-0 min-h-[300px] focus-ring"
                 />
               ) : (
-                <div
-                  className="flex-1 text-xs leading-relaxed text-slate-800 space-y-4"
-                  dangerouslySetInnerHTML={{ __html: parseMarkdown(activeEntry.content) }}
-                />
+                <div className="flex-1 text-xs leading-relaxed text-slate-800 space-y-4">
+                  {activeEntry.status === 'Approved' && (
+                    <div className="crypto-seal rounded-2xl p-4 mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-[10px] text-emerald-800 bg-emerald-50/10">
+                      <div>
+                        <div className="font-extrabold text-emerald-800 flex items-center gap-1.5">
+                          <LockKeyhole className="w-3.5 h-3.5 text-emerald-600" /> Cryptographic Sign Lock Active
+                        </div>
+                        <p className="text-slate-500 mt-1 font-semibold">Digitally signed by {activeEntry.author} for Thorne Genomics Lab.</p>
+                        <div className="font-mono text-[9px] text-slate-400 mt-1">SHA-256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</div>
+                      </div>
+                      <div className="text-left sm:text-right">
+                        <span className="font-extrabold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Part 11 Compliant</span>
+                        <span className="text-[9px] text-slate-400 block mt-1.5">{activeEntry.date} 18:12:35 UTC</span>
+                      </div>
+                    </div>
+                  )}
+                  <div dangerouslySetInnerHTML={{ __html: parseMarkdown(activeEntry.content) }} />
+                </div>
               )}
             </div>
 

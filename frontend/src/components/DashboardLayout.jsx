@@ -105,16 +105,25 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
                   setActiveTab(item.id);
                   setMobileSidebarOpen(false);
                 }}
-                className={`w-full flex items-center rounded-xl px-3 py-2.5 text-xs font-semibold tracking-wide transition-all group ${
+                className={`w-full flex items-center rounded-xl px-3 py-2.5 text-xs font-semibold tracking-wide transition-colors relative group focus-ring ${
                   isActive
-                    ? 'bg-blue-50 border-l-2 border-blue-600 text-blue-650'
-                    : 'text-slate-550 hover:bg-slate-50 hover:text-slate-900'
+                    ? 'text-blue-650 font-bold'
+                    : 'text-slate-550 hover:bg-slate-50/50 hover:text-slate-900'
                 }`}
               >
-                <item.icon className={`h-4.5 w-4.5 mr-3 transition-colors ${
-                  isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-700'
-                }`} />
-                {!sidebarCollapsed && <span>{item.name}</span>}
+                {isActive && (
+                  <motion.div
+                    layoutId="activeTabPill"
+                    className="absolute inset-0 bg-blue-50 border-l-2 border-blue-600 rounded-xl"
+                    transition={{ type: 'spring', stiffness: 350, damping: 32 }}
+                  />
+                )}
+                <span className="relative z-10 flex items-center w-full">
+                  <item.icon className={`h-4.5 w-4.5 mr-3 transition-colors ${
+                    isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-700'
+                  }`} />
+                  {!sidebarCollapsed && <span>{item.name}</span>}
+                </span>
               </button>
             );
           })}
