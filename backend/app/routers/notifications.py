@@ -4,26 +4,27 @@ Notifications Router
   PATCH /api/notifications/mark-read — mark all as read
 """
 
-from fastapi import APIRouter
 from typing import List
-from app.database import db
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.database import get_db
 from app.schemas import NotificationOut
+import app.crud as crud
 
 router = APIRouter(prefix="/api/notifications", tags=["notifications"])
 
 
 @router.get("", response_model=List[NotificationOut])
-def get_notifications():
-    """Return all notifications, most recent first."""
-    return db["notifications"]
+def get_notifications(db: Session = Depends(get_db)):
+    """Return all notifications, most recent first from database."""
+    return crud.get_notifications(db)
 
 
 @router.patch("/mark-read")
-def mark_all_read():
+def mark_all_read(db: Session = Depends(get_db)):
     """
     Mark every notification as read.
     Mirrors markNotificationsAsRead() in AppContext.jsx.
     """
-    for n in db["notifications"]:
-        n["read"] = True
-    return {"success": True, "marked": len(db["notifications"])}
+    crud.mark_notifications_read(db)
+    return {"success": True}
