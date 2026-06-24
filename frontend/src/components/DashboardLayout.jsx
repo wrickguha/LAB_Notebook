@@ -31,6 +31,15 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
 
   const unreadNotifCount = notifications.filter(n => !n.read).length;
 
+  const getInitials = (name) => {
+    if (!name) return 'U';
+    const parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name[0].toUpperCase();
+  };
+
   const menuItems = [
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
     { id: 'projects', name: 'Projects', icon: Layers },
@@ -132,11 +141,17 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
         {/* Sidebar Footer User Panel */}
         <div className="p-4 border-t border-slate-200/80 bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <img 
-              src={user.avatar} 
-              alt={user.name} 
-              className="h-9 w-9 rounded-full object-cover ring-2 ring-slate-100 shadow-sm"
-            />
+            {user.avatar ? (
+              <img 
+                src={user.avatar} 
+                alt={user.name} 
+                className="h-9 w-9 rounded-full object-cover ring-2 ring-slate-100 shadow-sm"
+              />
+            ) : (
+              <div className="h-9 w-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold ring-2 ring-slate-100 shadow-sm">
+                {getInitials(user.name)}
+              </div>
+            )}
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-bold text-slate-800 truncate">{user.name}</p>
@@ -277,12 +292,20 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
                 }}
                 className="flex items-center gap-1.5 p-1 rounded-xl hover:bg-slate-50 border border-slate-100 transition-colors cursor-pointer"
               >
-                <img 
-                  src={user.avatar} 
-                  alt={user.name} 
-                  className="h-7 w-7 rounded-full object-cover ring-1 ring-slate-200"
-                />
-                <span className="text-xs font-semibold text-slate-700 hidden lg:inline">{user.name.split(' ')[1]}</span>
+                {user.avatar ? (
+                  <img 
+                    src={user.avatar} 
+                    alt={user.name} 
+                    className="h-7 w-7 rounded-full object-cover ring-1 ring-slate-200"
+                  />
+                ) : (
+                  <div className="h-7 w-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold ring-1 ring-slate-200">
+                    {getInitials(user.name)}
+                  </div>
+                )}
+                <span className="text-xs font-semibold text-slate-700 hidden lg:inline">
+                  {user.name ? (user.name.split(' ')[1] || user.name) : 'User'}
+                </span>
               </button>
 
               {/* Profile dropdown */}

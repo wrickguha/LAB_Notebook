@@ -1,4 +1,5 @@
 // LocalStorage mock API implementation for LAB Notebook
+import api from './client';
 
 const delay = (ms = 100) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -327,19 +328,45 @@ const addLocalAuditLog = (action, target) => {
 
 export const authApi = {
   login: async (credentials) => {
-    await delay(150);
-    return { success: true, message: "Logged in successfully" };
+    if (credentials.signup) {
+      const payload = {
+        email: credentials.email,
+        password: credentials.password,
+        full_name: credentials.name,
+        role: credentials.role,
+        institution: credentials.institution,
+        lab: credentials.lab,
+      };
+      const response = await api.post('/api/auth/signup', payload);
+      setDb('user', response);
+      return response;
+    } else {
+      const payload = {
+        email: credentials.email,
+        password: credentials.password
+      };
+      const response = await api.post('/api/auth/signin', payload);
+      setDb('user', response);
+      return response;
+    }
   },
   logout: async () => {
-    await delay(100);
-    return { success: true };
+    const response = await api.post('/api/auth/logout');
+    setDb('user', null);
+    return response;
   },
 };
 
 export const userApi = {
   getUser: async () => {
-    await delay(100);
-    return getDb('user', defaultUser);
+    try {
+      const response = await api.get('/api/auth/me');
+      setDb('user', response);
+      return response;
+    } catch (err) {
+      // Return null or rethrow, but rethrowing will trigger error state in react-query
+      throw err;
+    }
   },
   updateUser: async (updates) => {
     await delay(150);

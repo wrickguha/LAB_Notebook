@@ -30,6 +30,7 @@ export default function AuthPage() {
   const [name, setName] = useState('');
   const [role, setRole] = useState('Principal Investigator');
   const [institution, setInstitution] = useState('');
+  const [lab, setLab] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [validationError, setValidationError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -67,7 +68,11 @@ export default function AuthPage() {
         return;
       }
       if (!institution) {
-        setValidationError('Institution / Laboratory is required.');
+        setValidationError('Institution is required.');
+        return;
+      }
+      if (!lab) {
+        setValidationError('Laboratory is required.');
         return;
       }
     }
@@ -82,7 +87,7 @@ export default function AuthPage() {
           password,
           role,
           institution,
-          lab: `${name.split(' ').pop() || 'Thorne'} Genomics Lab`
+          lab
         });
       } else {
         await login({
@@ -210,7 +215,7 @@ export default function AuthPage() {
 
                 {/* Institution */}
                 <div>
-                  <label className="block text-[9px] font-bold text-slate-450 uppercase mb-1.5 tracking-wider">Institution / Laboratory</label>
+                  <label className="block text-[9px] font-bold text-slate-450 uppercase mb-1.5 tracking-wider">Institution</label>
                   <div className="relative">
                     <Building className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
                     <input
@@ -218,6 +223,21 @@ export default function AuthPage() {
                       placeholder="e.g. Institute of Biomolecular Sciences"
                       value={institution}
                       onChange={(e) => setInstitution(e.target.value)}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-xs text-slate-800 focus-ring"
+                    />
+                  </div>
+                </div>
+
+                {/* Laboratory */}
+                <div>
+                  <label className="block text-[9px] font-bold text-slate-450 uppercase mb-1.5 tracking-wider">Laboratory</label>
+                  <div className="relative">
+                    <Beaker className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
+                    <input
+                      type="text"
+                      placeholder="e.g. Thorne Genomics Lab"
+                      value={lab}
+                      onChange={(e) => setLab(e.target.value)}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-xs text-slate-800 focus-ring"
                     />
                   </div>
