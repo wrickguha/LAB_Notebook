@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useApp } from '../context/AppContext';
 import {
@@ -58,7 +59,7 @@ const Counter = ({ value, duration = 1.5, suffix = '' }) => {
 };
 
 export default function LandingPage() {
-  const { login } = useApp();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [billingCycle, setBillingCycle] = useState('monthly'); // 'monthly' | 'yearly'
   const [activeFaq, setActiveFaq] = useState(null);
@@ -207,13 +208,13 @@ export default function LandingPage() {
           {/* Action Buttons */}
           <div className="hidden md:flex items-center gap-3">
             <button
-              onClick={login}
+              onClick={() => navigate('/auth')}
               className="text-xs font-bold text-slate-700 hover:text-blue-600 transition-colors px-3 py-2 rounded-lg focus-ring"
             >
               Login
             </button>
             <button
-              onClick={login}
+              onClick={() => navigate('/auth?signup=true')}
               className="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-4 py-2.5 shadow hover:scale-[1.02] active:scale-[0.98] transition-all focus-ring"
             >
               Get Started
@@ -266,13 +267,13 @@ export default function LandingPage() {
 
               <div className="flex flex-col gap-3 pb-12">
                 <button
-                  onClick={() => { setMobileMenuOpen(false); login(); }}
+                  onClick={() => { setMobileMenuOpen(false); navigate('/auth'); }}
                   className="w-full text-center py-3 text-sm font-bold text-slate-700 bg-slate-100 rounded-xl hover:bg-slate-200 transition-colors"
                 >
                   Login
                 </button>
                 <button
-                  onClick={() => { setMobileMenuOpen(false); login(); }}
+                  onClick={() => { setMobileMenuOpen(false); navigate('/auth?signup=true'); }}
                   className="w-full text-center py-3 text-sm font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 shadow shadow-blue-500/10 transition-colors"
                 >
                   Get Started
@@ -322,7 +323,7 @@ export default function LandingPage() {
             className="flex flex-wrap items-center justify-center gap-3 pt-4"
           >
             <button
-              onClick={login}
+              onClick={() => navigate('/auth?signup=true')}
               className="inline-flex items-center justify-center rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-3.5 shadow-lg shadow-blue-650/15 hover:scale-[1.02] active:scale-[0.98] transition-all focus-ring"
             >
               Start Free Trial
@@ -892,7 +893,7 @@ export default function LandingPage() {
               </ul>
             </div>
             <button
-              onClick={login}
+              onClick={() => navigate('/auth?signup=true')}
               className="mt-6 w-full py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs bg-white transition-all focus-ring"
             >
               Start Free Trial
@@ -925,7 +926,7 @@ export default function LandingPage() {
               </ul>
             </div>
             <button
-              onClick={login}
+              onClick={() => navigate('/auth?signup=true')}
               className="mt-6 w-full py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow shadow-blue-550/20 transition-all focus-ring"
             >
               Start Free Trial
@@ -955,7 +956,7 @@ export default function LandingPage() {
               </ul>
             </div>
             <button
-              onClick={login}
+              onClick={() => navigate('/auth?signup=true')}
               className="mt-6 w-full py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-700 font-bold text-xs bg-white transition-all focus-ring"
             >
               Book Custom Demo
@@ -1012,13 +1013,13 @@ export default function LandingPage() {
           </p>
           <div className="mt-7 flex flex-wrap justify-center gap-3.5">
             <button
-              onClick={login}
+              onClick={() => navigate('/auth?signup=true')}
               className="inline-flex items-center justify-center rounded-xl bg-white hover:bg-slate-50 text-blue-600 font-bold text-xs px-5 py-3 shadow transition-all hover:scale-[1.02] active:scale-[0.98] focus-ring"
             >
               Start Free Trial
             </button>
             <button
-              onClick={login}
+              onClick={() => navigate('/auth?signup=true')}
               className="inline-flex items-center justify-center rounded-xl border border-blue-400 hover:border-blue-300 text-white font-bold text-xs px-5 py-3 transition-all focus-ring"
             >
               Book Custom Demo

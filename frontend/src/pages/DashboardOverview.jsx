@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 
 export default function DashboardOverview({ setActiveTab }) {
-  const { projects, notebookEntries, sharedResources, auditLogs } = useApp();
+  const { user, projects, notebookEntries, sharedResources, auditLogs } = useApp();
   const [loading, setLoading] = useState(true);
 
   // Simulate loading state on mount to show skeleton loaders
@@ -127,7 +127,7 @@ export default function DashboardOverview({ setActiveTab }) {
       <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 relative overflow-hidden">
         <div className="absolute -right-12 -bottom-12 w-48 h-48 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
         <div>
-          <h2 className="text-base font-extrabold text-slate-900">Welcome Back, Dr. Thorne</h2>
+          <h2 className="text-base font-extrabold text-slate-900">Welcome Back, {user.name}</h2>
           <p className="text-[11px] text-slate-500 mt-1">Your laboratory clusters are running securely. Compliant with FDA 21 CFR Part 11 signature logs.</p>
         </div>
         <div className="flex gap-2.5">

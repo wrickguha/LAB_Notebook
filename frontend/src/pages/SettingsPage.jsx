@@ -23,6 +23,15 @@ export default function SettingsPage() {
   const [email, setEmail] = useState(user.email);
   const [institution, setInstitution] = useState(user.institution);
   const [lab, setLab] = useState(user.lab);
+
+  // Sync local form states when user query resolves
+  React.useEffect(() => {
+    setName(user.name);
+    setRole(user.role);
+    setEmail(user.email);
+    setInstitution(user.institution);
+    setLab(user.lab);
+  }, [user]);
   
   const [saveSuccess, setSaveSuccess] = useState(false);
 

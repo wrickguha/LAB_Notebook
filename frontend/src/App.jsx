@@ -4,6 +4,7 @@ import { AppDataProvider, useApp } from './context/AppContext';
 
 // Pages & Layout Imports
 import LandingPage from './pages/LandingPage';
+import AuthPage from './pages/AuthPage';
 import DashboardLayout from './components/DashboardLayout';
 import DashboardOverview from './pages/DashboardOverview';
 import ProjectsPage from './pages/ProjectsPage';
@@ -42,6 +43,14 @@ function AppContent() {
         path="/"
         element={
           isAuthenticated ? <Navigate to="/dashboard" replace /> : <LandingPage />
+        }
+      />
+
+      {/* Public Auth Page */}
+      <Route
+        path="/auth"
+        element={
+          isAuthenticated ? <Navigate to="/dashboard" replace /> : <AuthPage />
         }
       />
 

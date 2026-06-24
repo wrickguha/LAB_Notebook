@@ -23,7 +23,9 @@ export const AppDataProvider = ({ children }) => {
   const queryClient = useQueryClient();
 
   // Simulated Authentication State (kept as local state for dashboard toggling)
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(() => {
+    return localStorage.getItem('biotech_isAuthenticated') === 'true';
+  });
   const [searchQuery, setSearchQuery] = useState('');
   
   // Central Toast State
@@ -105,9 +107,10 @@ export const AppDataProvider = ({ children }) => {
   // ─────────────────────────────────────────────────────────────────────────────
 
   // Auth Operations
-  const login = async () => {
+  const login = async (credentials) => {
     try {
-      await authApi.login();
+      await authApi.login(credentials);
+      localStorage.setItem('biotech_isAuthenticated', 'true');
       setIsAuthenticated(true);
       queryClient.invalidateQueries({ queryKey: ['user'] });
       queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
@@ -120,6 +123,7 @@ export const AppDataProvider = ({ children }) => {
   const logout = async () => {
     try {
       await authApi.logout();
+      localStorage.removeItem('biotech_isAuthenticated');
       setIsAuthenticated(false);
       // Reset react-query cache on logout
       queryClient.clear();
