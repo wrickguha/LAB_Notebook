@@ -51,10 +51,10 @@ export default function ResearchPapersPage() {
     setModalOpen(false);
   };
 
-  const filteredPapers = researchPapers.filter(paper => 
-    paper.title.toLowerCase().includes(filterQuery.toLowerCase()) ||
-    paper.authors.toLowerCase().includes(filterQuery.toLowerCase()) ||
-    paper.tags.some(tag => tag.toLowerCase().includes(filterQuery.toLowerCase()))
+  const filteredPapers = (researchPapers || []).filter(paper => 
+    (paper.title || '').toLowerCase().includes(filterQuery.toLowerCase()) ||
+    (paper.authors || '').toLowerCase().includes(filterQuery.toLowerCase()) ||
+    (paper.tags || []).some(tag => tag.toLowerCase().includes(filterQuery.toLowerCase()))
   );
 
   return (
@@ -102,11 +102,11 @@ export default function ResearchPapersPage() {
                 <span className="italic">{paper.journal} ({paper.year})</span>
               </div>
 
-              <p className="text-xs text-slate-500 leading-relaxed">{paper.summary}</p>
+              <p className="text-xs text-slate-500 leading-relaxed">{paper.summary || paper.abstract || ''}</p>
               
               {/* Tags */}
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {paper.tags.map((tag, i) => (
+                {(paper.tags || []).map((tag, i) => (
                   <span key={i} className="bg-slate-100 text-slate-600 text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                     <Tag className="w-2.5 h-2.5" /> {tag}
                   </span>

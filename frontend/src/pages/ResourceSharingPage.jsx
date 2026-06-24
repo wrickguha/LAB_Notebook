@@ -78,7 +78,7 @@ export default function ResourceSharingPage() {
             </tr>
           </thead>
           <tbody>
-            {sharedResources.map((res) => (
+            {(sharedResources || []).map((res) => (
               <tr key={res.id} className="border-b border-slate-150 last:border-0 hover:bg-slate-50/50 transition-colors">
                 <td className="p-4 flex items-center gap-3">
                   <div className="bg-slate-100 p-2 rounded-lg">
@@ -93,7 +93,7 @@ export default function ResourceSharingPage() {
                 <td className="p-4 font-bold text-slate-700">{res.owner}</td>
                 <td className="p-4 space-y-2">
                   <div className="flex flex-wrap gap-2">
-                    {res.sharedWith.map((collab, i) => {
+                    {(res.sharedWith || []).map((collab, i) => {
                       const name = collab.split(' (')[0];
                       const role = collab.split(' (')[1]?.replace(')', '') || 'Viewer';
                       return (

@@ -154,9 +154,33 @@ Longer exposures showed higher gel fraction but increased brittleness.`,
 ];
 
 const defaultResources = [
-  { id: "res-1", name: "Confocal Microscope Zeiss LSM 880", owner: "Dr. Evelyn Thorne", permission: "Owner" },
-  { id: "res-2", name: "Illumina NextSeq Sequencing Node", owner: "Genomics Lab Center", permission: "Editor" },
-  { id: "res-3", name: "Materials Tensile Tester (Instron 5944)", owner: "Dr. Marcus Vance", permission: "Viewer" }
+  { 
+    id: "res-1", 
+    name: "Confocal Microscope Zeiss LSM 880", 
+    type: "Equipment Log", 
+    owner: "Dr. Evelyn Thorne", 
+    permission: "Owner",
+    sharedWith: ["Dr. Alex Rivera (Editor)", "Dr. Marcus Vance (Viewer)"],
+    lastModified: "2026-06-23 18:12"
+  },
+  { 
+    id: "res-2", 
+    name: "Illumina NextSeq Sequencing Node", 
+    type: "Equipment Log", 
+    owner: "Genomics Lab Center", 
+    permission: "Editor",
+    sharedWith: ["Dr. Evelyn Thorne (Editor)", "Dr. Alex Rivera (Viewer)"],
+    lastModified: "2026-06-22 14:10"
+  },
+  { 
+    id: "res-3", 
+    name: "Materials Tensile Tester (Instron 5944)", 
+    type: "Equipment Log", 
+    owner: "Dr. Marcus Vance", 
+    permission: "Viewer",
+    sharedWith: ["Dr. Evelyn Thorne (Viewer)"],
+    lastModified: "2026-06-21 11:22"
+  }
 ];
 
 const defaultPapers = [
@@ -167,7 +191,9 @@ const defaultPapers = [
     journal: "Biomacromolecules",
     year: "2003",
     doi: "10.1021/bm025744e",
-    abstract: "This review explores design guidelines for creating synthetic hydrogel matrices with biomimetic cues for tissue engineering scaffolds..."
+    abstract: "This review explores design guidelines for creating synthetic hydrogel matrices with biomimetic cues for tissue engineering scaffolds...",
+    summary: "This review explores design guidelines for creating synthetic hydrogel matrices with biomimetic cues for tissue engineering scaffolds...",
+    tags: ["Hydrogel", "Scaffold", "Tissue Engineering"]
   },
   {
     id: "paper-2",
@@ -176,7 +202,9 @@ const defaultPapers = [
     journal: "Science",
     year: "2013",
     doi: "10.1126/science.1231143",
-    abstract: "We describe here a programmable RNA-guided genome editing platform based on the CRISPR/Cas9 system that facilitates specific alterations..."
+    abstract: "We describe here a programmable RNA-guided genome editing platform based on the CRISPR/Cas9 system that facilitates specific alterations...",
+    summary: "We describe here a programmable RNA-guided genome editing platform based on the CRISPR/Cas9 system that facilitates specific alterations...",
+    tags: ["CRISPR", "Genome Editing", "Cas9"]
   }
 ];
 
@@ -214,16 +242,20 @@ const defaultAuditLogs = [
 const defaultCalcHistory = [
   {
     id: "calc-1",
-    type: "Molarity",
+    type: "Molarity Dilution",
+    formula: "M = m / (MW * V)",
     input: "1.0 M NaCl in 100mL",
     result: "5.844 g",
+    date: "2026-06-23 10:15",
     timestamp: "2026-06-23 10:15"
   },
   {
     id: "calc-2",
-    type: "DNA Copies",
+    type: "DNA Copy Estimation",
+    formula: "Copies = (ng * N_A) / (bp * 1e9 * 660)",
     input: "50ng of 4000 bp",
     result: "1.143e+10 copies",
+    date: "2026-06-22 15:42",
     timestamp: "2026-06-22 15:42"
   }
 ];
@@ -235,7 +267,35 @@ const getDb = (key, defaultData) => {
     return defaultData;
   }
   try {
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    // Dynamic migration: if it's an array and defaultData is an array of objects,
+    // ensure all keys in defaultData's items are present in parsed items.
+    if (Array.isArray(parsed) && Array.isArray(defaultData) && defaultData.length > 0) {
+      let migrated = false;
+      const defaultKeysObj = {};
+      defaultData.forEach(d => {
+        Object.keys(d).forEach(k => {
+          defaultKeysObj[k] = d[k];
+        });
+      });
+      const newParsed = parsed.map(item => {
+        let itemMigrated = false;
+        const newItem = { ...item };
+        for (const k of Object.keys(defaultKeysObj)) {
+          if (newItem[k] === undefined) {
+            newItem[k] = defaultKeysObj[k];
+            itemMigrated = true;
+          }
+        }
+        if (itemMigrated) migrated = true;
+        return newItem;
+      });
+      if (migrated) {
+        localStorage.setItem(`biotech_${key}`, JSON.stringify(newParsed));
+        return newParsed;
+      }
+    }
+    return parsed;
   } catch (e) {
     return defaultData;
   }
@@ -496,11 +556,19 @@ export const resourcesApi = {
     await delay(150);
     const resources = getDb('resources', defaultResources);
     const user = getDb('user', defaultUser);
+    const now = new Date();
+    const formatTime = (d) => {
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
     const newResource = {
       id: `res-${Date.now()}`,
       name: resourceData.name,
+      type: resourceData.type || 'Folder',
       owner: user.name,
-      permission: 'Owner'
+      permission: resourceData.permission || 'Owner',
+      sharedWith: resourceData.sharedWith || [],
+      lastModified: formatTime(now)
     };
     resources.push(newResource);
     setDb('resources', resources);
@@ -513,7 +581,23 @@ export const resourcesApi = {
     const idx = resources.findIndex(r => r.id === resourceId);
     if (idx === -1) throw new Error('Resource not found');
     
-    resources[idx].permission = newLevel;
+    if (resources[idx].sharedWith) {
+      resources[idx].sharedWith = resources[idx].sharedWith.map(collab => {
+        const name = collab.split(' (')[0];
+        if (name === targetUser) {
+          return `${targetUser} (${newLevel})`;
+        }
+        return collab;
+      });
+    }
+
+    const now = new Date();
+    const formatTime = (d) => {
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    };
+    resources[idx].lastModified = formatTime(now);
+
     setDb('resources', resources);
     addLocalAuditLog('Resource Permission Updated', `Resource ${resources[idx].name}: ${targetUser} set to ${newLevel}`);
     return resources[idx];
