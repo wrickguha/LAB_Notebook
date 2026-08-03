@@ -57,17 +57,23 @@ export default function LabNotebookPage() {
     setFolderModalOpen(false);
   };
 
-  const handleCreateLog = () => {
-    const newId = addNotebookEntry({
-      folderId: activeFolderId,
-      projectId: projects[0]?.id || '',
-      title: 'Untilted Experiment Entry',
-      status: 'Draft',
-      content: `### Objective\nDescribe the biological or chemical objective...\n\n### Procedure\n1. Step 1\n2. Step 2\n\n### Observations\nRecord live data readouts...`,
-    });
-    setActiveEntryId(newId);
-    setEditorMode('edit');
-    setShowCabinet(false);
+  const handleCreateLog = async () => {
+    try {
+      const newId = await addNotebookEntry({
+        folderId: activeFolderId,
+        projectId: projects[0]?.id || '',
+        title: 'Untitled Experiment Entry',
+        status: 'Draft',
+        content: `### Objective\nDescribe the biological or chemical objective...\n\n### Procedure\n1. Step 1\n2. Step 2\n\n### Observations\nRecord live data readouts...`,
+      });
+      if (newId) {
+        setActiveEntryId(newId);
+        setEditorMode('edit');
+        setShowCabinet(false);
+      }
+    } catch (err) {
+      console.error('Failed to create log:', err);
+    }
   };
 
   // Simple Markdown & TeX Parser for Preview Mode
