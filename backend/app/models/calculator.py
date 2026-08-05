@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy import Column, String, DateTime, ForeignKey, JSON
 from app.db.database import Base
 
 class CalcHistory(Base):
@@ -7,10 +7,15 @@ class CalcHistory(Base):
 
     id = Column(String(50), primary_key=True, default=lambda: f"calc-{int(datetime.utcnow().timestamp() * 1000)}", index=True)
     type = Column(String(100), nullable=False)
+    calculator_name = Column(String(100), nullable=True)
     formula = Column(String(255), nullable=True)
     input = Column(String(500), nullable=False)
     result = Column(String(500), nullable=False)
+    input_json = Column(JSON, nullable=True)
+    output_json = Column(JSON, nullable=True)
     date = Column(String(100), nullable=True)
     timestamp = Column(String(100), nullable=False)
     user_id = Column(String(36), ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+    project_id = Column(String(50), ForeignKey("projects.id", ondelete="SET NULL"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
