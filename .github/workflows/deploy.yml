@@ -103,8 +103,34 @@ jobs:
           printf '%s\n' "${HOSTINGER_SSH_KEY}" > "$SSH_KEY_PATH"
           chmod 600 "$SSH_KEY_PATH"
 
-          ssh-keyscan -H "${HOSTINGER_SSH_HOST}" >> "$KNOWN_HOSTS_PATH" 2>/dev/null || true
-          chmod 600 "$KNOWN_HOSTS_PATH"
+          if [ -n "${HOSTINGER_SSH_HOST}" ]; then
+            ssh-keyscan -H "${HOSTINGER_SSH_HOST}" >> "$KNOWN_HOSTS_PATH" 2>/dev/null || true
+            chmod 600 "$KNOWN_HOSTS_PATH"
+          fi
+
+      - name: Verify Hostinger SSH connectivity
+        shell: bash
+        env:
+          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
+        run: |
+          set -e
+          if [ -z "${HOSTINGER_SSH_HOST}" ] || [ -z "${HOSTINGER_SSH_USER}" ]; then
+            echo "::error::HOSTINGER_SSH_HOST or HOSTINGER_SSH_USER is missing. Set both in GitHub secrets."
+            exit 1
+          fi
+
+          echo "Testing SSH connectivity to ${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_SSH_PORT}"
+          timeout 20 bash -c ">/dev/tcp/${HOSTINGER_SSH_HOST}/${HOSTINGER_SSH_PORT}" || {
+            echo "::error::SSH connection timed out. Check HOSTINGER_SSH_HOST and HOSTINGER_SSH_PORT. Hostinger SSH must be enabled and reachable from GitHub Actions."
+            exit 1
+          }
+
+          ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -p "${HOSTINGER_SSH_PORT}" "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" "echo SSH_OK" || {
+            echo "::error::SSH authentication failed. Check HOSTINGER_SSH_USER, HOSTINGER_SSH_KEY, and Hostinger SSH access settings."
+            exit 1
+          }
 
       - name: Upload archive to Hostinger
         uses: appleboy/scp-action@v1
@@ -114,6 +140,8 @@ jobs:
           key_path: /home/runner/.ssh/hostinger_key
           passphrase: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
           port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
+          timeout: 30s
+          command_timeout: 10m
           source: deploy.tar.gz
           target: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
 
