@@ -127,7 +127,7 @@ jobs:
             exit 1
           }
 
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -p "${HOSTINGER_SSH_PORT}" "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" "echo SSH_OK" || {
+          ssh -i /home/runner/.ssh/hostinger_key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -p "${HOSTINGER_SSH_PORT}" "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" "echo SSH_OK" || {
             echo "::error::SSH authentication failed. Check HOSTINGER_SSH_USER, HOSTINGER_SSH_KEY, and Hostinger SSH access settings."
             exit 1
           }
