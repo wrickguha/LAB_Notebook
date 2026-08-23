@@ -91,7 +91,7 @@ jobs:
           tar -czf deploy.tar.gz -C deploy .
 
       - name: Upload archive to Hostinger
-        uses: appleboy/scp-action@v1.0.3
+        uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
@@ -101,7 +101,7 @@ jobs:
           target: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
 
       - name: Deploy on Hostinger server
-        uses: appleboy/ssh-action@v1.0.3
+        uses: appleboy/ssh-action@v1
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
