@@ -1,0 +1,147 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    env:
+      NODE_VERSION: 22
+      PHP_VERSION: '8.2'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: mbstring, ctype, json, tokenizer, pdo_mysql, dom, fileinfo, xml, curl, gd
+          coverage: none
+
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build frontend production bundle
+        working-directory: frontend
+        env:
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+        run: npm run build
+
+      - name: Install backend dependencies
+        working-directory: backend
+        run: composer install --no-interaction --prefer-dist --no-progress --no-dev
+
+      - name: Prepare backend .env for production
+        working-directory: backend
+        run: |
+          cp .env.example .env.production || true
+          cat > .env <<'EOF'
+          APP_NAME="${{ secrets.APP_NAME }}"
+          APP_ENV=production
+          APP_KEY=${{ secrets.APP_KEY }}
+          APP_DEBUG=false
+          APP_URL=${{ secrets.APP_URL }}
+
+          LOG_CHANNEL=stack
+          LOG_LEVEL=debug
+
+          DB_CONNECTION=mysql
+          DB_HOST=${{ secrets.DB_HOST }}
+          DB_PORT=${{ secrets.DB_PORT }}
+          DB_DATABASE=${{ secrets.DB_DATABASE }}
+          DB_USERNAME=${{ secrets.DB_USERNAME }}
+          DB_PASSWORD='${{ secrets.DB_PASSWORD }}'
+
+          SESSION_DRIVER=database
+          QUEUE_CONNECTION=database
+          CACHE_STORE=database
+          FILESYSTEM_DISK=local
+
+          MAIL_MAILER=log
+          MAIL_FROM_ADDRESS=${{ secrets.MAIL_FROM_ADDRESS }}
+          MAIL_FROM_NAME="${{ secrets.APP_NAME }}"
+          EOF
+
+      - name: Laravel production optimization
+        working-directory: backend
+        run: |
+          php artisan config:cache
+          php artisan route:cache
+          php artisan view:cache
+          php artisan migrate --force
+
+      - name: Create deployment archive
+        run: |
+          mkdir -p deploy
+          cp -r backend deploy/backend
+          cp -r frontend/dist deploy/frontend
+          tar -czf deploy.tar.gz -C deploy .
+
+      - name: Upload archive to Hostinger
+        uses: appleboy/scp-action@v1.0.3
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
+          source: deploy.tar.gz
+          target: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
+
+      - name: Deploy on Hostinger server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
+          script: |
+            set -e
+            DEPLOY_PATH="${{ secrets.HOSTINGER_DEPLOY_PATH }}"
+            PUBLIC_PATH="${{ secrets.HOSTINGER_PUBLIC_PATH }}"
+            API_PATH="${{ secrets.HOSTINGER_API_PATH }}"
+
+            mkdir -p "$DEPLOY_PATH"
+            cd "$DEPLOY_PATH"
+
+            tar -xzf deploy.tar.gz
+            rm -rf backend frontend
+            mv deploy/backend ./backend
+            mv deploy/frontend ./frontend
+            rm -rf deploy deploy.tar.gz
+
+            mkdir -p "$PUBLIC_PATH"
+            rsync -a --delete "$DEPLOY_PATH/frontend/" "$PUBLIC_PATH/"
+
+            mkdir -p "$API_PATH"
+            rsync -a --delete "$DEPLOY_PATH/backend/" "$API_PATH/"
+
+            cd "$API_PATH"
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+            php artisan migrate --force
+            php artisan storage:link
+            chmod -R 755 storage bootstrap/cache
+            chmod -R 775 storage bootstrap/cache
+            chown -R $USER:www-data "$API_PATH" || true
+            find "$API_PATH" -type d -exec chmod 755 {} \;
+            find "$API_PATH" -type f -exec chmod 644 {} \;
+
+            if [ -f "$API_PATH/public/.htaccess" ]; then
+              echo "Laravel public root is configured."
+            fi
+
+            echo "Deployment completed successfully."
