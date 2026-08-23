@@ -82,12 +82,34 @@ jobs:
           cp -r frontend/dist deploy/frontend
           tar -czf deploy.tar.gz -C deploy .
 
+      - name: Prepare SSH key for Hostinger
+        shell: bash
+        env:
+          HOSTINGER_SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+        run: |
+          set -e
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+
+          if [ -z "${HOSTINGER_SSH_KEY}" ]; then
+            echo "::error::HOSTINGER_SSH_KEY is empty. Add the private SSH key to GitHub repository secrets."
+            exit 1
+          fi
+
+          printf '%s\n' "${HOSTINGER_SSH_KEY}" > ~/.ssh/hostinger_key
+          chmod 600 ~/.ssh/hostinger_key
+
+          ssh-keyscan -H "${HOSTINGER_SSH_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          chmod 600 ~/.ssh/known_hosts
+
       - name: Upload archive to Hostinger
         uses: appleboy/scp-action@v1
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          key_path: ~/.ssh/hostinger_key
+          passphrase: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
           port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
           source: deploy.tar.gz
           target: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
@@ -97,7 +119,8 @@ jobs:
         with:
           host: ${{ secrets.HOSTINGER_SSH_HOST }}
           username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          key_path: ~/.ssh/hostinger_key
+          passphrase: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
           port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
           script: |
             set -e

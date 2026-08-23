@@ -19,7 +19,8 @@ The recommended deployment layout on Hostinger is:
    - `HOSTINGER_SSH_HOST`
    - `HOSTINGER_SSH_USER`
    - `HOSTINGER_SSH_PORT` (usually `22`)
-   - `HOSTINGER_SSH_KEY` (private SSH key content)
+   - `HOSTINGER_SSH_KEY` (raw private SSH key content, including `-----BEGIN OPENSSH PRIVATE KEY-----`)
+   - `HOSTINGER_SSH_PASSPHRASE` (optional, only if your private key is encrypted)
    - `HOSTINGER_DEPLOY_PATH` (temporary staging folder on server, example: `/home/username/deploy/biotech`)
    - `HOSTINGER_PUBLIC_PATH` (frontend root path, example: `/home/username/public_html`)
    - `HOSTINGER_API_PATH` (Laravel path, example: `/home/username/domains/api.example.com/public_html`)
@@ -39,8 +40,9 @@ The recommended deployment layout on Hostinger is:
 1. Create a subdomain or domain for the API (for example: `api.example.com`).
 2. Point it to the server folder that will hold the Laravel app.
 3. Generate an SSH key and add the public key to Hostinger.
-4. Ensure PHP 8.2 + Composer + MySQL are available on the server.
-5. Make sure the web root is the folder that serves the frontend static build.
+4. If you protect the private key with a passphrase, add the passphrase to the GitHub Actions secret `HOSTINGER_SSH_PASSPHRASE`.
+5. Ensure PHP 8.2 + Composer + MySQL are available on the server.
+6. Make sure the web root is the folder that serves the frontend static build.
 
 ## 3) Production environment values
 
