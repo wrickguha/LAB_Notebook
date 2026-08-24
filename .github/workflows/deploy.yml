@@ -79,132 +79,33 @@ jobs:
           cp -r frontend/dist deploy/frontend
           tar -czf deploy.tar.gz -C deploy .
 
-      - name: Prepare SSH key for Hostinger
+      - name: Deploy frontend and backend via FTP
         shell: bash
         env:
-          HOSTINGER_SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
-          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
+          HOSTINGER_FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          HOSTINGER_FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          HOSTINGER_PUBLIC_PATH: ${{ secrets.HOSTINGER_PUBLIC_PATH }}
+          HOSTINGER_API_PATH: ${{ secrets.HOSTINGER_API_PATH }}
         run: |
           set -e
-          SSH_KEY_PATH="/home/runner/.ssh/hostinger_key"
-          KNOWN_HOSTS_PATH="/home/runner/.ssh/known_hosts"
 
-          mkdir -p "$(dirname "$SSH_KEY_PATH")"
-          chmod 700 "$(dirname "$SSH_KEY_PATH")"
-
-          if [ -z "${HOSTINGER_SSH_KEY}" ]; then
-            echo "::error::HOSTINGER_SSH_KEY is empty. Add the private SSH key to GitHub repository secrets."
+          if [ -z "${HOSTINGER_FTP_HOST}" ] || [ -z "${HOSTINGER_FTP_USERNAME}" ] || [ -z "${HOSTINGER_FTP_PASSWORD}" ]; then
+            echo "::error::HOSTINGER_FTP_HOST, HOSTINGER_FTP_USERNAME, and HOSTINGER_FTP_PASSWORD must all be configured for FTP deployment."
             exit 1
           fi
 
-          printf '%s\n' "${HOSTINGER_SSH_KEY}" > "$SSH_KEY_PATH"
-          chmod 600 "$SSH_KEY_PATH"
-
-          if [ -n "${HOSTINGER_SSH_HOST}" ]; then
-            ssh-keyscan -H "${HOSTINGER_SSH_HOST}" >> "$KNOWN_HOSTS_PATH" 2>/dev/null || true
-            chmod 600 "$KNOWN_HOSTS_PATH"
+          if [ -z "${HOSTINGER_PUBLIC_PATH}" ] || [ -z "${HOSTINGER_API_PATH}" ]; then
+            echo "::error::HOSTINGER_PUBLIC_PATH and HOSTINGER_API_PATH must both be configured."
+            exit 1
           fi
 
-      - name: Verify Hostinger SSH connectivity
-        shell: bash
-        env:
-          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp >/dev/null
+
+          lftp -e "set ftp:ssl-allow no; set ssl:verify-certificate false; open ${HOSTINGER_FTP_HOST}; user ${HOSTINGER_FTP_USERNAME} ${HOSTINGER_FTP_PASSWORD}; mkdir -p ${HOSTINGER_PUBLIC_PATH}; mkdir -p ${HOSTINGER_API_PATH}; mirror -R --delete --parallel=10 -x .git -x .env -x .env.example frontend/dist ${HOSTINGER_PUBLIC_PATH}; mirror -R --delete --parallel=10 -x .git -x .env -x .env.example backend ${HOSTINGER_API_PATH}; bye"
+
+      - name: Post deployment note
         run: |
-          set -e
-          SSH_KEY_PATH="/home/runner/.ssh/hostinger_key"
-
-          if [ -z "${HOSTINGER_SSH_HOST}" ] || [ -z "${HOSTINGER_SSH_USER}" ]; then
-            echo "::error::HOSTINGER_SSH_HOST or HOSTINGER_SSH_USER is missing. Set both in GitHub secrets."
-            exit 1
-          fi
-
-          if [ ! -f "${SSH_KEY_PATH}" ]; then
-            echo "::error::Hostinger SSH private key file is missing. Re-run the prepare step or verify HOSTINGER_SSH_KEY is set."
-            exit 1
-          fi
-
-          echo "Testing SSH connectivity to ${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_SSH_PORT}"
-          timeout 20 bash -c ">/dev/tcp/${HOSTINGER_SSH_HOST}/${HOSTINGER_SSH_PORT}" || {
-            echo "::error::SSH connection timed out. Check HOSTINGER_SSH_HOST and HOSTINGER_SSH_PORT. Hostinger SSH must be enabled and reachable from GitHub Actions."
-            exit 1
-          }
-
-          ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i "${SSH_KEY_PATH}" -p "${HOSTINGER_SSH_PORT}" "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" "echo SSH_OK" || {
-            echo "::error::SSH authentication failed. Check HOSTINGER_SSH_USER, HOSTINGER_SSH_KEY, and Hostinger SSH access settings."
-            exit 1
-          }
-
-      - name: Upload archive to Hostinger
-        shell: bash
-        env:
-          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
-          HOSTINGER_DEPLOY_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
-          HOSTINGER_SSH_PASSPHRASE: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
-        run: |
-          set -e
-          SSH_KEY_PATH="/home/runner/.ssh/hostinger_key"
-
-          if [ -z "${HOSTINGER_SSH_HOST}" ] || [ -z "${HOSTINGER_SSH_USER}" ] || [ -z "${HOSTINGER_DEPLOY_PATH}" ]; then
-            echo "::error::HOSTINGER_SSH_HOST, HOSTINGER_SSH_USER, and HOSTINGER_DEPLOY_PATH must all be set."
-            exit 1
-          fi
-
-          ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i "${SSH_KEY_PATH}" -p "${HOSTINGER_SSH_PORT}" "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" "mkdir -p \"${HOSTINGER_DEPLOY_PATH}\""
-
-          scp -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i "${SSH_KEY_PATH}" -P "${HOSTINGER_SSH_PORT}" deploy.tar.gz "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_DEPLOY_PATH}/"
-
-      - name: Deploy on Hostinger server
-        uses: appleboy/ssh-action@v1
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key_path: /home/runner/.ssh/hostinger_key
-          passphrase: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
-          script: |
-            set -e
-            DEPLOY_PATH="${{ secrets.HOSTINGER_DEPLOY_PATH }}"
-            PUBLIC_PATH="${{ secrets.HOSTINGER_PUBLIC_PATH }}"
-            API_PATH="${{ secrets.HOSTINGER_API_PATH }}"
-
-            if [ -z "$DEPLOY_PATH" ] || [ -z "$PUBLIC_PATH" ] || [ -z "$API_PATH" ]; then
-              echo "::error::HOSTINGER_DEPLOY_PATH, HOSTINGER_PUBLIC_PATH, and HOSTINGER_API_PATH must be configured."
-              exit 1
-            fi
-
-            mkdir -p "$DEPLOY_PATH" "$PUBLIC_PATH" "$API_PATH"
-            cd "$DEPLOY_PATH"
-
-            tar -xzf deploy.tar.gz
-            if [ ! -d "$DEPLOY_PATH/backend" ] || [ ! -d "$DEPLOY_PATH/frontend" ]; then
-              echo "::error::Archive extraction failed. Expected backend and frontend folders were not created."
-              ls -la "$DEPLOY_PATH"
-              exit 1
-            fi
-
-            rm -f deploy.tar.gz
-            rsync -a --delete "$DEPLOY_PATH/frontend/" "$PUBLIC_PATH/"
-            rsync -a --delete --exclude='.env' --exclude='.env.example' "$DEPLOY_PATH/backend/" "$API_PATH/"
-
-            cd "$API_PATH"
-            [ -f .env ] || cp .env.example .env || true
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
-            php artisan migrate --force
-            php artisan storage:link
-            chmod -R 755 storage bootstrap/cache
-            chmod -R 775 storage bootstrap/cache
-            chown -R "$USER":www-data "$API_PATH" || true
-            find "$API_PATH" -type d -exec chmod 755 {} \;
-            find "$API_PATH" -type f -exec chmod 644 {} \;
-
-            if [ -f "$API_PATH/public/.htaccess" ]; then
-              echo "Laravel public root is configured."
-            fi
-
-            echo "Deployment completed successfully."
+          echo "FTP deployment has started. Make sure the live .env on Hostinger contains the correct MySQL DB values."
+          echo "Frontend should live in the public folder and Laravel in the API folder configured in HOSTINGER_PUBLIC_PATH and HOSTINGER_API_PATH."
