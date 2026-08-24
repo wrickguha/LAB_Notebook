@@ -116,8 +116,15 @@ jobs:
           HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
         run: |
           set -e
+          SSH_KEY_PATH="/home/runner/.ssh/hostinger_key"
+
           if [ -z "${HOSTINGER_SSH_HOST}" ] || [ -z "${HOSTINGER_SSH_USER}" ]; then
             echo "::error::HOSTINGER_SSH_HOST or HOSTINGER_SSH_USER is missing. Set both in GitHub secrets."
+            exit 1
+          fi
+
+          if [ ! -f "${SSH_KEY_PATH}" ]; then
+            echo "::error::Hostinger SSH private key file is missing. Re-run the prepare step or verify HOSTINGER_SSH_KEY is set."
             exit 1
           fi
 
@@ -127,7 +134,7 @@ jobs:
             exit 1
           }
 
-          ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -p "${HOSTINGER_SSH_PORT}" "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" "echo SSH_OK" || {
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i "${SSH_KEY_PATH}" -p "${HOSTINGER_SSH_PORT}" "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" "echo SSH_OK" || {
             echo "::error::SSH authentication failed. Check HOSTINGER_SSH_USER, HOSTINGER_SSH_KEY, and Hostinger SSH access settings."
             exit 1
           }
