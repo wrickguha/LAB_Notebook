@@ -183,11 +183,13 @@ jobs:
             cd "$DEPLOY_PATH"
 
             tar -xzf deploy.tar.gz
-            rm -rf backend frontend
-            mv deploy/backend ./backend
-            mv deploy/frontend ./frontend
-            rm -rf deploy deploy.tar.gz
+            if [ ! -d "$DEPLOY_PATH/backend" ] || [ ! -d "$DEPLOY_PATH/frontend" ]; then
+              echo "::error::Archive extraction failed. Expected backend and frontend folders were not created."
+              ls -la "$DEPLOY_PATH"
+              exit 1
+            fi
 
+            rm -f deploy.tar.gz
             rsync -a --delete "$DEPLOY_PATH/frontend/" "$PUBLIC_PATH/"
             rsync -a --delete "$DEPLOY_PATH/backend/" "$API_PATH/"
 
