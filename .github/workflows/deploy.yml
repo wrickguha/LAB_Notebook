@@ -140,17 +140,25 @@ jobs:
           }
 
       - name: Upload archive to Hostinger
-        uses: appleboy/scp-action@v1
-        with:
-          host: ${{ secrets.HOSTINGER_SSH_HOST }}
-          username: ${{ secrets.HOSTINGER_SSH_USER }}
-          key_path: /home/runner/.ssh/hostinger_key
-          passphrase: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
-          port: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
-          timeout: 30s
-          command_timeout: 10m
-          source: deploy.tar.gz
-          target: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
+        shell: bash
+        env:
+          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT || 22 }}
+          HOSTINGER_DEPLOY_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
+          HOSTINGER_SSH_PASSPHRASE: ${{ secrets.HOSTINGER_SSH_PASSPHRASE }}
+        run: |
+          set -e
+          SSH_KEY_PATH="/home/runner/.ssh/hostinger_key"
+
+          if [ -z "${HOSTINGER_SSH_HOST}" ] || [ -z "${HOSTINGER_SSH_USER}" ] || [ -z "${HOSTINGER_DEPLOY_PATH}" ]; then
+            echo "::error::HOSTINGER_SSH_HOST, HOSTINGER_SSH_USER, and HOSTINGER_DEPLOY_PATH must all be set."
+            exit 1
+          fi
+
+          ssh -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i "${SSH_KEY_PATH}" -p "${HOSTINGER_SSH_PORT}" "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" "mkdir -p \"${HOSTINGER_DEPLOY_PATH}\""
+
+          scp -o BatchMode=yes -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=15 -i "${SSH_KEY_PATH}" -P "${HOSTINGER_SSH_PORT}" deploy.tar.gz "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_DEPLOY_PATH}/"
 
       - name: Deploy on Hostinger server
         uses: appleboy/ssh-action@v1
@@ -166,7 +174,12 @@ jobs:
             PUBLIC_PATH="${{ secrets.HOSTINGER_PUBLIC_PATH }}"
             API_PATH="${{ secrets.HOSTINGER_API_PATH }}"
 
-            mkdir -p "$DEPLOY_PATH"
+            if [ -z "$DEPLOY_PATH" ] || [ -z "$PUBLIC_PATH" ] || [ -z "$API_PATH" ]; then
+              echo "::error::HOSTINGER_DEPLOY_PATH, HOSTINGER_PUBLIC_PATH, and HOSTINGER_API_PATH must be configured."
+              exit 1
+            fi
+
+            mkdir -p "$DEPLOY_PATH" "$PUBLIC_PATH" "$API_PATH"
             cd "$DEPLOY_PATH"
 
             tar -xzf deploy.tar.gz
@@ -175,13 +188,11 @@ jobs:
             mv deploy/frontend ./frontend
             rm -rf deploy deploy.tar.gz
 
-            mkdir -p "$PUBLIC_PATH"
             rsync -a --delete "$DEPLOY_PATH/frontend/" "$PUBLIC_PATH/"
-
-            mkdir -p "$API_PATH"
             rsync -a --delete "$DEPLOY_PATH/backend/" "$API_PATH/"
 
             cd "$API_PATH"
+            [ -f .env ] || cp .env.example .env || true
             php artisan config:cache
             php artisan route:cache
             php artisan view:cache
@@ -189,7 +200,7 @@ jobs:
             php artisan storage:link
             chmod -R 755 storage bootstrap/cache
             chmod -R 775 storage bootstrap/cache
-            chown -R $USER:www-data "$API_PATH" || true
+            chown -R "$USER":www-data "$API_PATH" || true
             find "$API_PATH" -type d -exec chmod 755 {} \;
             find "$API_PATH" -type f -exec chmod 644 {} \;
 
