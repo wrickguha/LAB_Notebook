@@ -10,11 +10,12 @@ jobs:
     runs-on: ubuntu-latest
     env:
       NODE_VERSION: 22
-      PHP_VERSION: '8.2'
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      # ── Frontend build ───────────────────────────────────────────────────────
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -23,137 +24,144 @@ jobs:
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: ${{ env.PHP_VERSION }}
-          extensions: mbstring, ctype, json, tokenizer, pdo_mysql, dom, fileinfo, xml, curl, gd
-          coverage: none
-
       - name: Install frontend dependencies
         working-directory: frontend
         run: npm ci
 
-      - name: Build frontend production bundle
+      - name: Build React production bundle
         working-directory: frontend
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
         run: |
           rm -rf dist
           npm run build
+          # Copy SPA rewrite rules into the build output
+          cp public/.htaccess dist/.htaccess
 
-      - name: Install backend dependencies
-        working-directory: backend
-        run: composer install --no-interaction --prefer-dist --no-progress --no-dev
+      # ── SSH setup ────────────────────────────────────────────────────────────
 
-      - name: Prepare backend .env for production
-        working-directory: backend
-        run: |
-          cp .env.example .env.production || true
-          cat > .env <<'EOF'
-          APP_NAME="${{ secrets.APP_NAME }}"
-          APP_ENV=production
-          APP_KEY=${{ secrets.APP_KEY }}
-          APP_DEBUG=false
-          APP_URL=${{ secrets.APP_URL }}
-
-          LOG_CHANNEL=stack
-          LOG_LEVEL=debug
-
-          DB_CONNECTION=mysql
-          # Database credentials are configured in the live Hostinger .env file.
-          # Keep DB_HOST, DB_PORT, DB_DATABASE, DB_USERNAME and DB_PASSWORD in the server-side .env.
-
-          SESSION_DRIVER=database
-          QUEUE_CONNECTION=database
-          CACHE_STORE=database
-          FILESYSTEM_DISK=local
-
-          MAIL_MAILER=log
-          MAIL_FROM_ADDRESS=${{ secrets.MAIL_FROM_ADDRESS }}
-          MAIL_FROM_NAME="${{ secrets.APP_NAME }}"
-          EOF
-
-      - name: Deploy frontend and backend via SSH + rsync
-        shell: bash
+      - name: Configure SSH agent
         env:
-          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
           HOSTINGER_SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
-          HOSTINGER_PUBLIC_PATH: ${{ secrets.HOSTINGER_PUBLIC_PATH }}
-          HOSTINGER_API_PATH: ${{ secrets.HOSTINGER_API_PATH }}
-          DB_HOST: ${{ secrets.DB_HOST }}
-          DB_PORT: ${{ secrets.DB_PORT }}
-          DB_DATABASE: ${{ secrets.DB_DATABASE }}
-          DB_USERNAME: ${{ secrets.DB_USERNAME }}
-          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
         run: |
-          set -euo pipefail
-
-          : "${HOSTINGER_SSH_HOST:?HOSTINGER_SSH_HOST is required for SSH deployment.}"
-          : "${HOSTINGER_SSH_USER:?HOSTINGER_SSH_USER is required for SSH deployment.}"
-          : "${HOSTINGER_SSH_KEY:?HOSTINGER_SSH_KEY is required for SSH deployment.}"
-
-          HOSTINGER_SSH_PORT="${HOSTINGER_SSH_PORT:-22}"
-
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           printf '%s\n' "${HOSTINGER_SSH_KEY}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p "${HOSTINGER_SSH_PORT}" "${HOSTINGER_SSH_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
+          ssh-keyscan -p "${HOSTINGER_SSH_PORT:-22}" "${HOSTINGER_SSH_HOST}" \
+            >> ~/.ssh/known_hosts 2>/dev/null
 
-          HOSTINGER_PUBLIC_PATH="${HOSTINGER_PUBLIC_PATH:-}"
-          HOSTINGER_API_PATH="${HOSTINGER_API_PATH:-}"
+      # ── Deploy React build → public_html ─────────────────────────────────────
+      # --exclude 'api/' preserves the Laravel entry point on re-deploys.
 
-          if [ -z "${HOSTINGER_PUBLIC_PATH}" ]; then
-            HOSTINGER_PUBLIC_PATH="$(ssh -p "${HOSTINGER_SSH_PORT}" -i ~/.ssh/id_rsa "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" "for p in \$HOME/public_html /home/*/public_html /home/*/domains/*/public_html; do [ -d \"\$p\" ] && { echo \"\$p\"; break; }; done")"
-          fi
-
-          if [ -z "${HOSTINGER_API_PATH}" ]; then
-            HOSTINGER_API_PATH="$(ssh -p "${HOSTINGER_SSH_PORT}" -i ~/.ssh/id_rsa "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" "for p in /home/*/domains/*/public_html /home/*/public_html /home/*/api/public_html; do [ -d \"\$p\" ] && { echo \"\$p\"; break; }; done")"
-          fi
-
-          if [ -z "${HOSTINGER_PUBLIC_PATH}" ] || [ -z "${HOSTINGER_API_PATH}" ]; then
-            echo "::error::Could not auto-detect Hostinger public and API paths. Set HOSTINGER_PUBLIC_PATH and HOSTINGER_API_PATH secrets."
-            exit 1
-          fi
-
-          echo "Using public root: ${HOSTINGER_PUBLIC_PATH}"
-          echo "Using API root: ${HOSTINGER_API_PATH}"
-
-          ssh -p "${HOSTINGER_SSH_PORT}" -i ~/.ssh/id_rsa "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" \
-            "mkdir -p '${HOSTINGER_PUBLIC_PATH}' '${HOSTINGER_API_PATH}' && \
-             find '${HOSTINGER_PUBLIC_PATH}' -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} + && \
-             find '${HOSTINGER_API_PATH}' -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} +"
-
-          cp frontend/public/.htaccess frontend/dist/.htaccess
-
-          rsync -a --delete --compress --info=stats2 \
-            --exclude '.git' \
-            --exclude '.env' \
-            --exclude '.env.example' \
-            --exclude 'node_modules/' \
-            --exclude 'vendor/' \
-            --exclude 'storage/' \
-            --exclude 'bootstrap/cache/' \
-            --exclude 'tests/' \
-            -e "ssh -p ${HOSTINGER_SSH_PORT} -i ~/.ssh/id_rsa" \
-            frontend/dist/ "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_PUBLIC_PATH}/"
-
-          rsync -a --delete --compress --info=stats2 \
-            --exclude '.git' \
-            --exclude '.env' \
-            --exclude '.env.example' \
-            --exclude 'node_modules/' \
-            --exclude 'vendor/' \
-            --exclude 'storage/' \
-            --exclude 'bootstrap/cache/' \
-            --exclude 'tests/' \
-            -e "ssh -p ${HOSTINGER_SSH_PORT} -i ~/.ssh/id_rsa" \
-            backend/ "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_API_PATH}/"
-
-      - name: Post deployment note
+      - name: Deploy frontend to public_html
+        env:
+          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          HOSTINGER_PUBLIC_PATH: ${{ secrets.HOSTINGER_PUBLIC_PATH }}
         run: |
-          echo "SSH + rsync deployment started. This version uploads the app files only and does not run Laravel commands on the server."
-          echo "Please update the live Hostinger .env manually before testing the production app."
+          SSH_PORT="${HOSTINGER_SSH_PORT:-22}"
+          rsync -az --delete --compress \
+            --exclude '.well-known/' \
+            --exclude 'api/' \
+            -e "ssh -p ${SSH_PORT} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=accept-new" \
+            frontend/dist/ \
+            "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_PUBLIC_PATH}/"
+
+      # ── Deploy backend → ~/laravel (outside public_html) ─────────────────────
+      # --exclude '.env' preserves the server's production .env (DB creds etc.).
+      # vendor/ is excluded here; Composer runs on the server in a later step.
+
+      - name: Deploy backend to Laravel directory
+        env:
+          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          HOSTINGER_LARAVEL_PATH: ${{ secrets.HOSTINGER_LARAVEL_PATH }}
+        run: |
+          SSH_PORT="${HOSTINGER_SSH_PORT:-22}"
+          rsync -az --delete --compress \
+            --exclude '.env' \
+            --exclude '.env.*' \
+            --exclude 'vendor/' \
+            --exclude 'node_modules/' \
+            --exclude 'storage/logs/*' \
+            --exclude 'storage/framework/cache/*' \
+            --exclude 'storage/framework/sessions/*' \
+            --exclude 'storage/framework/views/*' \
+            --exclude 'bootstrap/cache/*' \
+            --exclude 'tests/' \
+            --exclude '.git' \
+            -e "ssh -p ${SSH_PORT} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=accept-new" \
+            backend/ \
+            "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_LARAVEL_PATH}/"
+
+      # ── Publish Laravel API entry point in public_html/api/ ──────────────────
+      # deploy/api-entry.php template has __LARAVEL_PATH__ replaced by sed.
+
+      - name: Publish Laravel API entry point
+        env:
+          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          HOSTINGER_PUBLIC_PATH: ${{ secrets.HOSTINGER_PUBLIC_PATH }}
+          HOSTINGER_LARAVEL_PATH: ${{ secrets.HOSTINGER_LARAVEL_PATH }}
+        run: |
+          SSH_PORT="${HOSTINGER_SSH_PORT:-22}"
+          SCP="scp -P ${SSH_PORT} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=accept-new"
+          SSH="ssh -p ${SSH_PORT} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=accept-new"
+          TARGET="${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}"
+
+          $SSH "$TARGET" "mkdir -p '${HOSTINGER_PUBLIC_PATH}/api'"
+
+          # Laravel's own rewrite rules handle routing inside api/
+          $SCP backend/public/.htaccess \
+            "$TARGET:${HOSTINGER_PUBLIC_PATH}/api/.htaccess"
+
+          # Inject the real server path and upload the entry point
+          sed "s|__LARAVEL_PATH__|${HOSTINGER_LARAVEL_PATH}|g" \
+            deploy/api-entry.php > /tmp/api-index.php
+          $SCP /tmp/api-index.php "$TARGET:${HOSTINGER_PUBLIC_PATH}/api/index.php"
+
+      # ── Server-side Composer + artisan ───────────────────────────────────────
+
+      - name: Install Composer dependencies on server
+        env:
+          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          HOSTINGER_LARAVEL_PATH: ${{ secrets.HOSTINGER_LARAVEL_PATH }}
+        run: |
+          SSH_PORT="${HOSTINGER_SSH_PORT:-22}"
+          ssh -p "${SSH_PORT}" -i ~/.ssh/id_rsa -o StrictHostKeyChecking=accept-new \
+            "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" \
+            "cd '${HOSTINGER_LARAVEL_PATH}' && \
+             composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader"
+
+      - name: Run Laravel post-deployment commands
+        env:
+          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          HOSTINGER_LARAVEL_PATH: ${{ secrets.HOSTINGER_LARAVEL_PATH }}
+        run: |
+          SSH_PORT="${HOSTINGER_SSH_PORT:-22}"
+          LARAVEL="${HOSTINGER_LARAVEL_PATH}"
+          ssh -p "${SSH_PORT}" -i ~/.ssh/id_rsa -o StrictHostKeyChecking=accept-new \
+            "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" \
+            "set -euo pipefail
+             cd '${LARAVEL}'
+             mkdir -p storage/app/public storage/framework/cache \
+                      storage/framework/sessions storage/framework/views \
+                      storage/logs bootstrap/cache
+             php artisan config:cache
+             php artisan route:cache
+             php artisan view:cache
+             php artisan migrate --force
+             [ -L public/storage ] || php artisan storage:link
+             chmod -R 775 storage bootstrap/cache
+             find storage -type f -exec chmod 664 {} \;
+             echo 'Deployment complete.'"
