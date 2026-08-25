@@ -15,7 +15,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # ── Frontend build ───────────────────────────────────────────────────────
+      # ── 1. Frontend Build ───────────────────────────────────────────────────
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -38,7 +38,7 @@ jobs:
           # Copy SPA rewrite rules into the build output
           cp public/.htaccess dist/.htaccess
 
-      # ── Backend preparation (Composer runs locally) ──────────────────────────
+      # ── 2. Backend Dependencies (Composer) ──────────────────────────────────
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -55,117 +55,99 @@ jobs:
             --no-dev \
             --optimize-autoloader
 
-      # ── Prepare API entry point & deploy webhook ─────────────────────────────
+      # ── 3. Package Archives for Fast FTP Transfer ───────────────────────────
 
-      - name: Prepare API entry point and webhook
+      - name: Install zip and lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq zip lftp
+
+      - name: Create deployment packages
         env:
-          HOSTINGER_DEPLOY_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
           DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
         run: |
-          mkdir -p frontend/dist/api
+          # Package frontend
+          cd frontend/dist
+          zip -r -q ../../frontend.zip .
+          cd ../..
 
-          # Laravel API entry point — replace placeholder path
-          sed "s|__LARAVEL_PATH__|${HOSTINGER_DEPLOY_PATH}|g" \
-            deploy/api-entry.php > frontend/dist/api/index.php
+          # Package backend (excluding local/temporary files)
+          cd backend
+          zip -r -q ../backend.zip . \
+            -x ".env*" \
+            -x ".git/*" \
+            -x "node_modules/*" \
+            -x "tests/*" \
+            -x "storage/logs/*" \
+            -x "storage/framework/cache/*" \
+            -x "storage/framework/sessions/*" \
+            -x "storage/framework/views/*" \
+            -x "bootstrap/cache/*"
+          cd ..
 
-          # Laravel's .htaccess for the api/ subdirectory
-          cp backend/public/.htaccess frontend/dist/api/.htaccess
+          # Prepare deploy runner script with secret
+          sed "s|__DEPLOY_SECRET__|${DEPLOY_WEBHOOK_SECRET}|g" \
+            deploy/deploy-runner.php > deploy-runner.php
 
-          # Deploy webhook — replace both placeholders
-          sed -e "s|__LARAVEL_PATH__|${HOSTINGER_DEPLOY_PATH}|g" \
-              -e "s|__DEPLOY_SECRET__|${DEPLOY_WEBHOOK_SECRET}|g" \
-            deploy/deploy-webhook.php > frontend/dist/api/deploy-hook.php
+          echo "Deployment package sizes:"
+          ls -lh frontend.zip backend.zip deploy-runner.php
 
-      # ── Install lftp ──────────────────────────────────────────────────────────
+      # ── 4. Upload Packages via FTP ──────────────────────────────────────────
 
-      - name: Install lftp
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
-
-      # ── Deploy frontend → public_html via FTP ───────────────────────────────
-      # Uses lftp mirror (similar to rsync --delete).
-      # Excludes .well-known/ (SSL certs) and api/ since we handle it below.
-
-      - name: Deploy frontend to public_html
+      - name: Upload deployment packages to Hostinger via FTP
         env:
           FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
           FTP_USER: ${{ secrets.HOSTINGER_FTP_USERNAME }}
           FTP_PASS: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
           FTP_PORT: ${{ secrets.HOSTINGER_FTP_PORT }}
-          PUBLIC_PATH: ${{ secrets.HOSTINGER_PUBLIC_PATH }}
+          RAW_PATH: ${{ secrets.HOSTINGER_PUBLIC_PATH }}
         run: |
+          # Normalize path: remove any leading /home/username/ prefix for FTP
+          CLEAN_PATH=$(echo "${RAW_PATH}" | sed -E 's|^/home/[^/]+/||' | sed -E 's|^/||' | sed -E 's|/$||')
+          echo "Connecting to FTP and navigating to: ${CLEAN_PATH}"
+
           lftp -c "
             set ftp:ssl-allow yes
             set ftp:ssl-force no
             set ssl:verify-certificate no
             set net:max-retries 3
             set net:reconnect-interval-base 5
-            set mirror:parallel-transfer-count 5
             open -u '${FTP_USER}','${FTP_PASS}' -p '${FTP_PORT}' '${FTP_HOST}'
-            mirror --reverse --delete --verbose \
-              --exclude-glob .well-known/ \
-              frontend/dist/ '${PUBLIC_PATH}/'
+            
+            # Try configured path, fallback to domains/inveniqlab.com/public_html or public_html
+            cd '${CLEAN_PATH}' || cd 'domains/inveniqlab.com/public_html' || cd 'public_html' || cd '/'
+            pwd
+            
+            # Upload deployment archives
+            put -O . frontend.zip
+            put -O . backend.zip
+            put -O . deploy-runner.php
+            
+            ls -la
             bye
           "
 
-      # ── Deploy backend → Laravel directory via FTP ──────────────────────────
-      # Excludes .env, storage runtime dirs, tests, .git etc.
+      # ── 5. Trigger Remote Extraction & Artisan Execution ────────────────────
 
-      - name: Deploy backend to Laravel directory
-        env:
-          FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
-          FTP_USER: ${{ secrets.HOSTINGER_FTP_USERNAME }}
-          FTP_PASS: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          FTP_PORT: ${{ secrets.HOSTINGER_FTP_PORT }}
-          DEPLOY_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
-        run: |
-          lftp -c "
-            set ftp:ssl-allow yes
-            set ftp:ssl-force no
-            set ssl:verify-certificate no
-            set net:max-retries 3
-            set net:reconnect-interval-base 5
-            set mirror:parallel-transfer-count 5
-            open -u '${FTP_USER}','${FTP_PASS}' -p '${FTP_PORT}' '${FTP_HOST}'
-            mirror --reverse --delete --verbose \
-              --exclude-glob .env \
-              --exclude-glob '.env.*' \
-              --exclude-glob node_modules/ \
-              --exclude-glob 'storage/logs/*' \
-              --exclude-glob 'storage/framework/cache/*' \
-              --exclude-glob 'storage/framework/sessions/*' \
-              --exclude-glob 'storage/framework/views/*' \
-              --exclude-glob 'bootstrap/cache/*' \
-              --exclude-glob tests/ \
-              --exclude-glob .git/ \
-              backend/ '${DEPLOY_PATH}/'
-            bye
-          "
-
-      # ── Run post-deployment artisan commands via webhook ────────────────────
-
-      - name: Run Laravel post-deployment commands
+      - name: Execute remote extraction and Laravel post-deployment
         env:
           DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
         run: |
-          echo "Waiting 10s for FTP to settle..."
-          sleep 10
-
+          echo "Calling deployment runner on server..."
+          
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            "https://inveniqlab.com/api/deploy-hook.php" \
+            "https://inveniqlab.com/deploy-runner.php" \
             -H "Authorization: Bearer ${DEPLOY_WEBHOOK_SECRET}" \
-            -H "Content-Type: application/json" \
-            --max-time 120)
+            --max-time 180)
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
           BODY=$(echo "$RESPONSE" | head -n -1)
 
-          echo "HTTP Status: ${HTTP_CODE}"
-          echo "Response:"
+          echo "HTTP Status Code: ${HTTP_CODE}"
+          echo "Server Response:"
           echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
 
           if [ "$HTTP_CODE" != "200" ]; then
-            echo "::error::Deploy webhook returned HTTP ${HTTP_CODE}"
+            echo "::error::Deployment runner failed with HTTP status ${HTTP_CODE}"
             exit 1
           fi
 
-          echo "Post-deployment commands completed successfully."
+          echo "Deployment and post-deployment commands completed successfully!"

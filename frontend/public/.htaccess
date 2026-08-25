@@ -6,6 +6,10 @@
     RewriteCond %{SERVER_PORT} 80
     RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
+    # Handle Authorization Header for PHP scripts
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
     # /api/* is served by the api/ subdirectory – do not rewrite to index.html
     # SPA fallback for all other non-file, non-directory requests
     RewriteRule ^index\.html$ - [L]
