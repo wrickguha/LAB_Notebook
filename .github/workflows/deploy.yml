@@ -38,7 +38,9 @@ jobs:
         working-directory: frontend
         env:
           VITE_API_URL: ${{ secrets.VITE_API_URL }}
-        run: npm run build
+        run: |
+          rm -rf dist
+          npm run build
 
       - name: Install backend dependencies
         working-directory: backend
@@ -104,7 +106,9 @@ jobs:
           ssh-keyscan -p "${HOSTINGER_SSH_PORT}" "${HOSTINGER_SSH_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
           ssh -p "${HOSTINGER_SSH_PORT}" -i ~/.ssh/id_rsa "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" \
-            "mkdir -p '${HOSTINGER_PUBLIC_PATH}' '${HOSTINGER_API_PATH}'"
+            "mkdir -p '${HOSTINGER_PUBLIC_PATH}' '${HOSTINGER_API_PATH}' && \
+             find '${HOSTINGER_PUBLIC_PATH}' -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} + && \
+             find '${HOSTINGER_API_PATH}' -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} +"
 
           rsync -a --delete --compress --info=stats2 \
             --exclude '.git' \
