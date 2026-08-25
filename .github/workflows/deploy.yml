@@ -127,6 +127,8 @@ jobs:
              find '${HOSTINGER_PUBLIC_PATH}' -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} + && \
              find '${HOSTINGER_API_PATH}' -mindepth 1 -maxdepth 1 ! -name '.well-known' -exec rm -rf {} +"
 
+          cp frontend/public/.htaccess frontend/dist/.htaccess
+
           rsync -a --delete --compress --info=stats2 \
             --exclude '.git' \
             --exclude '.env' \
