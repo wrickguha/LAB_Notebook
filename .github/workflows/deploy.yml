@@ -81,6 +81,11 @@ jobs:
           HOSTINGER_SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
           HOSTINGER_PUBLIC_PATH: ${{ secrets.HOSTINGER_PUBLIC_PATH }}
           HOSTINGER_API_PATH: ${{ secrets.HOSTINGER_API_PATH }}
+          DB_HOST: ${{ secrets.DB_HOST }}
+          DB_PORT: ${{ secrets.DB_PORT }}
+          DB_DATABASE: ${{ secrets.DB_DATABASE }}
+          DB_USERNAME: ${{ secrets.DB_USERNAME }}
+          DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
         run: |
           set -euo pipefail
 
@@ -126,9 +131,16 @@ jobs:
             backend/ "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_API_PATH}/"
 
           ssh -p "${HOSTINGER_SSH_PORT}" -i ~/.ssh/id_rsa "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" \
-            "cd '${HOSTINGER_API_PATH}' && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan migrate --force && php artisan storage:link"
+            "cd '${HOSTINGER_API_PATH}' && \
+            php artisan config:clear && php artisan config:cache && php artisan route:cache && php artisan view:cache && \
+            if [ -n '\"${DB_HOST:-}\"' ] && [ -n '\"${DB_DATABASE:-}\"' ] && [ -n '\"${DB_USERNAME:-}\"' ]; then \
+              php artisan migrate --force; \
+            else \
+              echo 'Skipping Laravel database migration because DB credentials are not configured in GitHub secrets.'; \
+            fi && \
+            php artisan storage:link"
 
       - name: Post deployment note
         run: |
           echo "SSH + rsync deployment started. This version skips the slow apt-get install step and uploads only the production-ready files."
-          echo "Make sure the live .env on Hostinger contains the correct MySQL values."
+          echo "If your Hostinger app has a live DB, keep its .env values there and do the migration manually from the server when needed."
