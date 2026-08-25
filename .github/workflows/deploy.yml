@@ -94,8 +94,6 @@ jobs:
           : "${HOSTINGER_SSH_HOST:?HOSTINGER_SSH_HOST is required for SSH deployment.}"
           : "${HOSTINGER_SSH_USER:?HOSTINGER_SSH_USER is required for SSH deployment.}"
           : "${HOSTINGER_SSH_KEY:?HOSTINGER_SSH_KEY is required for SSH deployment.}"
-          : "${HOSTINGER_PUBLIC_PATH:?HOSTINGER_PUBLIC_PATH is required for SSH deployment.}"
-          : "${HOSTINGER_API_PATH:?HOSTINGER_API_PATH is required for SSH deployment.}"
 
           HOSTINGER_SSH_PORT="${HOSTINGER_SSH_PORT:-22}"
 
@@ -104,6 +102,25 @@ jobs:
           printf '%s\n' "${HOSTINGER_SSH_KEY}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan -p "${HOSTINGER_SSH_PORT}" "${HOSTINGER_SSH_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
+
+          HOSTINGER_PUBLIC_PATH="${HOSTINGER_PUBLIC_PATH:-}"
+          HOSTINGER_API_PATH="${HOSTINGER_API_PATH:-}"
+
+          if [ -z "${HOSTINGER_PUBLIC_PATH}" ]; then
+            HOSTINGER_PUBLIC_PATH="$(ssh -p "${HOSTINGER_SSH_PORT}" -i ~/.ssh/id_rsa "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" "for p in \$HOME/public_html /home/*/public_html /home/*/domains/*/public_html; do [ -d \"\$p\" ] && { echo \"\$p\"; break; }; done")"
+          fi
+
+          if [ -z "${HOSTINGER_API_PATH}" ]; then
+            HOSTINGER_API_PATH="$(ssh -p "${HOSTINGER_SSH_PORT}" -i ~/.ssh/id_rsa "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" "for p in /home/*/domains/*/public_html /home/*/public_html /home/*/api/public_html; do [ -d \"\$p\" ] && { echo \"\$p\"; break; }; done")"
+          fi
+
+          if [ -z "${HOSTINGER_PUBLIC_PATH}" ] || [ -z "${HOSTINGER_API_PATH}" ]; then
+            echo "::error::Could not auto-detect Hostinger public and API paths. Set HOSTINGER_PUBLIC_PATH and HOSTINGER_API_PATH secrets."
+            exit 1
+          fi
+
+          echo "Using public root: ${HOSTINGER_PUBLIC_PATH}"
+          echo "Using API root: ${HOSTINGER_API_PATH}"
 
           ssh -p "${HOSTINGER_SSH_PORT}" -i ~/.ssh/id_rsa "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" \
             "mkdir -p '${HOSTINGER_PUBLIC_PATH}' '${HOSTINGER_API_PATH}' && \
