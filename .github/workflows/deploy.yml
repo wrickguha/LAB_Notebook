@@ -130,17 +130,7 @@ jobs:
             -e "ssh -p ${HOSTINGER_SSH_PORT} -i ~/.ssh/id_rsa" \
             backend/ "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_API_PATH}/"
 
-          ssh -p "${HOSTINGER_SSH_PORT}" -i ~/.ssh/id_rsa "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" \
-            "cd '${HOSTINGER_API_PATH}' && \
-            php artisan config:clear && php artisan config:cache && php artisan route:cache && php artisan view:cache && \
-            if [ -n '\"${DB_HOST:-}\"' ] && [ -n '\"${DB_DATABASE:-}\"' ] && [ -n '\"${DB_USERNAME:-}\"' ]; then \
-              php artisan migrate --force; \
-            else \
-              echo 'Skipping Laravel database migration because DB credentials are not configured in GitHub secrets.'; \
-            fi && \
-            php artisan storage:link"
-
       - name: Post deployment note
         run: |
-          echo "SSH + rsync deployment started. This version skips the slow apt-get install step and uploads only the production-ready files."
-          echo "If your Hostinger app has a live DB, keep its .env values there and do the migration manually from the server when needed."
+          echo "SSH + rsync deployment started. This version uploads the app files only and does not run Laravel commands on the server."
+          echo "Please update the live Hostinger .env manually before testing the production app."
