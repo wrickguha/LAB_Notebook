@@ -76,6 +76,11 @@ jobs:
               -e "s|__DEPLOY_SECRET__|${DEPLOY_WEBHOOK_SECRET}|g" \
             deploy/deploy-webhook.php > frontend/dist/api/deploy-hook.php
 
+      # ── Install lftp ──────────────────────────────────────────────────────────
+
+      - name: Install lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
       # ── Deploy frontend → public_html via FTP ───────────────────────────────
       # Uses lftp mirror (similar to rsync --delete).
       # Excludes .well-known/ (SSL certs) and api/ since we handle it below.
