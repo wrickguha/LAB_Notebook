@@ -38,130 +38,129 @@ jobs:
           # Copy SPA rewrite rules into the build output
           cp public/.htaccess dist/.htaccess
 
-      # ── SSH setup ────────────────────────────────────────────────────────────
+      # ── Backend preparation (Composer runs locally) ──────────────────────────
 
-      - name: Configure SSH agent
-        env:
-          HOSTINGER_SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
-          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          tools: composer:v2
+
+      - name: Install Composer dependencies locally
+        working-directory: backend
         run: |
-          mkdir -p ~/.ssh
-          chmod 700 ~/.ssh
-          printf '%s\n' "${HOSTINGER_SSH_KEY}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -p "${HOSTINGER_SSH_PORT:-22}" "${HOSTINGER_SSH_HOST}" \
-            >> ~/.ssh/known_hosts 2>/dev/null
+          composer install \
+            --no-interaction \
+            --prefer-dist \
+            --no-dev \
+            --optimize-autoloader
 
-      # ── Deploy React build → public_html ─────────────────────────────────────
-      # --exclude 'api/' preserves the Laravel entry point on re-deploys.
+      # ── Prepare API entry point & deploy webhook ─────────────────────────────
+
+      - name: Prepare API entry point and webhook
+        env:
+          HOSTINGER_DEPLOY_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
+          DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+        run: |
+          mkdir -p frontend/dist/api
+
+          # Laravel API entry point — replace placeholder path
+          sed "s|__LARAVEL_PATH__|${HOSTINGER_DEPLOY_PATH}|g" \
+            deploy/api-entry.php > frontend/dist/api/index.php
+
+          # Laravel's .htaccess for the api/ subdirectory
+          cp backend/public/.htaccess frontend/dist/api/.htaccess
+
+          # Deploy webhook — replace both placeholders
+          sed -e "s|__LARAVEL_PATH__|${HOSTINGER_DEPLOY_PATH}|g" \
+              -e "s|__DEPLOY_SECRET__|${DEPLOY_WEBHOOK_SECRET}|g" \
+            deploy/deploy-webhook.php > frontend/dist/api/deploy-hook.php
+
+      # ── Deploy frontend → public_html via FTP ───────────────────────────────
+      # Uses lftp mirror (similar to rsync --delete).
+      # Excludes .well-known/ (SSL certs) and api/ since we handle it below.
 
       - name: Deploy frontend to public_html
         env:
-          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
-          HOSTINGER_PUBLIC_PATH: ${{ secrets.HOSTINGER_PUBLIC_PATH }}
+          FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
+          FTP_USER: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          FTP_PORT: ${{ secrets.HOSTINGER_FTP_PORT }}
+          PUBLIC_PATH: ${{ secrets.HOSTINGER_PUBLIC_PATH }}
         run: |
-          SSH_PORT="${HOSTINGER_SSH_PORT:-22}"
-          rsync -az --delete --compress \
-            --exclude '.well-known/' \
-            --exclude 'api/' \
-            -e "ssh -p ${SSH_PORT} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=accept-new" \
-            frontend/dist/ \
-            "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_PUBLIC_PATH}/"
+          lftp -c "
+            set ftp:ssl-allow yes
+            set ftp:ssl-force no
+            set ssl:verify-certificate no
+            set net:max-retries 3
+            set net:reconnect-interval-base 5
+            set mirror:parallel-transfer-count 5
+            open -u '${FTP_USER}','${FTP_PASS}' -p '${FTP_PORT}' '${FTP_HOST}'
+            mirror --reverse --delete --verbose \
+              --exclude-glob .well-known/ \
+              frontend/dist/ '${PUBLIC_PATH}/'
+            bye
+          "
 
-      # ── Deploy backend → ~/laravel (outside public_html) ─────────────────────
-      # --exclude '.env' preserves the server's production .env (DB creds etc.).
-      # vendor/ is excluded here; Composer runs on the server in a later step.
+      # ── Deploy backend → Laravel directory via FTP ──────────────────────────
+      # Excludes .env, storage runtime dirs, tests, .git etc.
 
       - name: Deploy backend to Laravel directory
         env:
-          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
-          HOSTINGER_LARAVEL_PATH: ${{ secrets.HOSTINGER_LARAVEL_PATH }}
+          FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
+          FTP_USER: ${{ secrets.HOSTINGER_FTP_USERNAME }}
+          FTP_PASS: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          FTP_PORT: ${{ secrets.HOSTINGER_FTP_PORT }}
+          DEPLOY_PATH: ${{ secrets.HOSTINGER_DEPLOY_PATH }}
         run: |
-          SSH_PORT="${HOSTINGER_SSH_PORT:-22}"
-          rsync -az --delete --compress \
-            --exclude '.env' \
-            --exclude '.env.*' \
-            --exclude 'vendor/' \
-            --exclude 'node_modules/' \
-            --exclude 'storage/logs/*' \
-            --exclude 'storage/framework/cache/*' \
-            --exclude 'storage/framework/sessions/*' \
-            --exclude 'storage/framework/views/*' \
-            --exclude 'bootstrap/cache/*' \
-            --exclude 'tests/' \
-            --exclude '.git' \
-            -e "ssh -p ${SSH_PORT} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=accept-new" \
-            backend/ \
-            "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_LARAVEL_PATH}/"
+          lftp -c "
+            set ftp:ssl-allow yes
+            set ftp:ssl-force no
+            set ssl:verify-certificate no
+            set net:max-retries 3
+            set net:reconnect-interval-base 5
+            set mirror:parallel-transfer-count 5
+            open -u '${FTP_USER}','${FTP_PASS}' -p '${FTP_PORT}' '${FTP_HOST}'
+            mirror --reverse --delete --verbose \
+              --exclude-glob .env \
+              --exclude-glob '.env.*' \
+              --exclude-glob node_modules/ \
+              --exclude-glob 'storage/logs/*' \
+              --exclude-glob 'storage/framework/cache/*' \
+              --exclude-glob 'storage/framework/sessions/*' \
+              --exclude-glob 'storage/framework/views/*' \
+              --exclude-glob 'bootstrap/cache/*' \
+              --exclude-glob tests/ \
+              --exclude-glob .git/ \
+              backend/ '${DEPLOY_PATH}/'
+            bye
+          "
 
-      # ── Publish Laravel API entry point in public_html/api/ ──────────────────
-      # deploy/api-entry.php template has __LARAVEL_PATH__ replaced by sed.
-
-      - name: Publish Laravel API entry point
-        env:
-          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
-          HOSTINGER_PUBLIC_PATH: ${{ secrets.HOSTINGER_PUBLIC_PATH }}
-          HOSTINGER_LARAVEL_PATH: ${{ secrets.HOSTINGER_LARAVEL_PATH }}
-        run: |
-          SSH_PORT="${HOSTINGER_SSH_PORT:-22}"
-          SCP="scp -P ${SSH_PORT} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=accept-new"
-          SSH="ssh -p ${SSH_PORT} -i ~/.ssh/id_rsa -o StrictHostKeyChecking=accept-new"
-          TARGET="${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}"
-
-          $SSH "$TARGET" "mkdir -p '${HOSTINGER_PUBLIC_PATH}/api'"
-
-          # Laravel's own rewrite rules handle routing inside api/
-          $SCP backend/public/.htaccess \
-            "$TARGET:${HOSTINGER_PUBLIC_PATH}/api/.htaccess"
-
-          # Inject the real server path and upload the entry point
-          sed "s|__LARAVEL_PATH__|${HOSTINGER_LARAVEL_PATH}|g" \
-            deploy/api-entry.php > /tmp/api-index.php
-          $SCP /tmp/api-index.php "$TARGET:${HOSTINGER_PUBLIC_PATH}/api/index.php"
-
-      # ── Server-side Composer + artisan ───────────────────────────────────────
-
-      - name: Install Composer dependencies on server
-        env:
-          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
-          HOSTINGER_LARAVEL_PATH: ${{ secrets.HOSTINGER_LARAVEL_PATH }}
-        run: |
-          SSH_PORT="${HOSTINGER_SSH_PORT:-22}"
-          ssh -p "${SSH_PORT}" -i ~/.ssh/id_rsa -o StrictHostKeyChecking=accept-new \
-            "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" \
-            "cd '${HOSTINGER_LARAVEL_PATH}' && \
-             composer install --no-interaction --prefer-dist --no-dev --optimize-autoloader"
+      # ── Run post-deployment artisan commands via webhook ────────────────────
 
       - name: Run Laravel post-deployment commands
         env:
-          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
-          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
-          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
-          HOSTINGER_LARAVEL_PATH: ${{ secrets.HOSTINGER_LARAVEL_PATH }}
+          DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
         run: |
-          SSH_PORT="${HOSTINGER_SSH_PORT:-22}"
-          LARAVEL="${HOSTINGER_LARAVEL_PATH}"
-          ssh -p "${SSH_PORT}" -i ~/.ssh/id_rsa -o StrictHostKeyChecking=accept-new \
-            "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" \
-            "set -euo pipefail
-             cd '${LARAVEL}'
-             mkdir -p storage/app/public storage/framework/cache \
-                      storage/framework/sessions storage/framework/views \
-                      storage/logs bootstrap/cache
-             php artisan config:cache
-             php artisan route:cache
-             php artisan view:cache
-             php artisan migrate --force
-             [ -L public/storage ] || php artisan storage:link
-             chmod -R 775 storage bootstrap/cache
-             find storage -type f -exec chmod 664 {} \;
-             echo 'Deployment complete.'"
+          echo "Waiting 10s for FTP to settle..."
+          sleep 10
+
+          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
+            "https://inveniqlab.com/api/deploy-hook.php" \
+            -H "Authorization: Bearer ${DEPLOY_WEBHOOK_SECRET}" \
+            -H "Content-Type: application/json" \
+            --max-time 120)
+
+          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
+          BODY=$(echo "$RESPONSE" | head -n -1)
+
+          echo "HTTP Status: ${HTTP_CODE}"
+          echo "Response:"
+          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
+
+          if [ "$HTTP_CODE" != "200" ]; then
+            echo "::error::Deploy webhook returned HTTP ${HTTP_CODE}"
+            exit 1
+          fi
+
+          echo "Post-deployment commands completed successfully."
