@@ -10,6 +10,8 @@ The recommended deployment layout on Hostinger is:
 - Frontend (domain root): `public_html/`
 - Laravel API: `api.example.com/public_html` or another backend subdomain directory
 
+This project should deploy over SSH using `rsync` instead of FTP. FTP is much slower and more fragile on GitHub-hosted runners, and the workflow used to trigger `apt-get` package updates that could hang for hours. SSH + rsync keeps the upload incremental and much faster.
+
 ## 1) GitHub repository setup
 
 1. Push this repo to GitHub.

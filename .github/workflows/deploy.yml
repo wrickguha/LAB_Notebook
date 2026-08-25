@@ -72,57 +72,63 @@ jobs:
           MAIL_FROM_NAME="${{ secrets.APP_NAME }}"
           EOF
 
-      - name: Create deployment archive
-        run: |
-          mkdir -p deploy
-          cp -r backend deploy/backend
-          cp -r frontend/dist deploy/frontend
-          tar -czf deploy.tar.gz -C deploy .
-
-      - name: Deploy frontend and backend via FTP
+      - name: Deploy frontend and backend via SSH + rsync
         shell: bash
         env:
-          HOSTINGER_FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
-          HOSTINGER_FTP_USERNAME: ${{ secrets.HOSTINGER_FTP_USERNAME }}
-          HOSTINGER_FTP_PASSWORD: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
+          HOSTINGER_SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          HOSTINGER_SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          HOSTINGER_SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          HOSTINGER_SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
           HOSTINGER_PUBLIC_PATH: ${{ secrets.HOSTINGER_PUBLIC_PATH }}
           HOSTINGER_API_PATH: ${{ secrets.HOSTINGER_API_PATH }}
         run: |
-          set -e
+          set -euo pipefail
 
-          if [ -z "${HOSTINGER_FTP_HOST}" ] || [ -z "${HOSTINGER_FTP_USERNAME}" ] || [ -z "${HOSTINGER_FTP_PASSWORD}" ]; then
-            echo "::error::HOSTINGER_FTP_HOST, HOSTINGER_FTP_USERNAME, and HOSTINGER_FTP_PASSWORD must all be configured for FTP deployment."
-            exit 1
-          fi
+          : "${HOSTINGER_SSH_HOST:?HOSTINGER_SSH_HOST is required for SSH deployment.}"
+          : "${HOSTINGER_SSH_USER:?HOSTINGER_SSH_USER is required for SSH deployment.}"
+          : "${HOSTINGER_SSH_KEY:?HOSTINGER_SSH_KEY is required for SSH deployment.}"
+          : "${HOSTINGER_PUBLIC_PATH:?HOSTINGER_PUBLIC_PATH is required for SSH deployment.}"
+          : "${HOSTINGER_API_PATH:?HOSTINGER_API_PATH is required for SSH deployment.}"
 
-          if [ -z "${HOSTINGER_PUBLIC_PATH}" ] || [ -z "${HOSTINGER_API_PATH}" ]; then
-            echo "::error::HOSTINGER_PUBLIC_PATH and HOSTINGER_API_PATH must both be configured."
-            exit 1
-          fi
+          HOSTINGER_SSH_PORT="${HOSTINGER_SSH_PORT:-22}"
 
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq lftp >/dev/null
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "${HOSTINGER_SSH_KEY}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p "${HOSTINGER_SSH_PORT}" "${HOSTINGER_SSH_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-          rm -rf deploy-ftp
-          mkdir -p deploy-ftp/frontend
-          mkdir -p deploy-ftp/backend
+          ssh -p "${HOSTINGER_SSH_PORT}" -i ~/.ssh/id_rsa "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" \
+            "mkdir -p '${HOSTINGER_PUBLIC_PATH}' '${HOSTINGER_API_PATH}'"
 
-          cp -R frontend/dist/. deploy-ftp/frontend/
-          rsync -a \
-            --delete \
+          rsync -a --delete --compress --info=stats2 \
             --exclude '.git' \
             --exclude '.env' \
             --exclude '.env.example' \
+            --exclude 'node_modules/' \
             --exclude 'vendor/' \
             --exclude 'storage/' \
-            --exclude 'node_modules/' \
             --exclude 'bootstrap/cache/' \
             --exclude 'tests/' \
-            backend/ deploy-ftp/backend/
+            -e "ssh -p ${HOSTINGER_SSH_PORT} -i ~/.ssh/id_rsa" \
+            frontend/dist/ "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_PUBLIC_PATH}/"
 
-          lftp -e "set ftp:ssl-allow no; set ssl:verify-certificate false; open ${HOSTINGER_FTP_HOST}; user ${HOSTINGER_FTP_USERNAME} ${HOSTINGER_FTP_PASSWORD}; mkdir -p ${HOSTINGER_PUBLIC_PATH}; mkdir -p ${HOSTINGER_API_PATH}; mirror -R --delete --parallel=10 --exclude-glob .git --exclude-glob .env --exclude-glob .env.example --exclude-glob vendor --exclude-glob storage --exclude-glob node_modules --exclude-glob tests --exclude-glob bootstrap/cache deploy-ftp/frontend ${HOSTINGER_PUBLIC_PATH}; mirror -R --delete --parallel=10 --exclude-glob .git --exclude-glob .env --exclude-glob .env.example --exclude-glob vendor --exclude-glob storage --exclude-glob node_modules --exclude-glob tests --exclude-glob bootstrap/cache deploy-ftp/backend ${HOSTINGER_API_PATH}; bye"
+          rsync -a --delete --compress --info=stats2 \
+            --exclude '.git' \
+            --exclude '.env' \
+            --exclude '.env.example' \
+            --exclude 'node_modules/' \
+            --exclude 'vendor/' \
+            --exclude 'storage/' \
+            --exclude 'bootstrap/cache/' \
+            --exclude 'tests/' \
+            -e "ssh -p ${HOSTINGER_SSH_PORT} -i ~/.ssh/id_rsa" \
+            backend/ "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}:${HOSTINGER_API_PATH}/"
+
+          ssh -p "${HOSTINGER_SSH_PORT}" -i ~/.ssh/id_rsa "${HOSTINGER_SSH_USER}@${HOSTINGER_SSH_HOST}" \
+            "cd '${HOSTINGER_API_PATH}' && php artisan config:cache && php artisan route:cache && php artisan view:cache && php artisan migrate --force && php artisan storage:link"
 
       - name: Post deployment note
         run: |
-          echo "FTP deployment has started. The upload is reduced to the app files only, excluding vendor and storage to keep Hostinger uploads fast and reliable."
+          echo "SSH + rsync deployment started. This version skips the slow apt-get install step and uploads only the production-ready files."
           echo "Make sure the live .env on Hostinger contains the correct MySQL values."
