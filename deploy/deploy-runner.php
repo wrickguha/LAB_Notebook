@@ -233,7 +233,7 @@ HTACCESS;
 file_put_contents($apiDir . '/.htaccess', $apiHtaccess);
 $report['steps']['write_api_htaccess'] = 'success';
 
-// ── 4. Ensure Laravel Storage & Bootstrap Directories ─────────────────────────
+// ── 4. Ensure Laravel Storage, Bootstrap & Environment ────────────────────────
 $requiredDirs = [
     'storage/app/public',
     'storage/framework/cache/data',
@@ -251,13 +251,31 @@ foreach ($requiredDirs as $dir) {
 }
 $report['steps']['storage_dirs'] = 'created';
 
+// Ensure .env exists (copy from .env.example if missing)
+if (!file_exists($laravelDir . '/.env') && file_exists($laravelDir . '/.env.example')) {
+    @copy($laravelDir . '/.env.example', $laravelDir . '/.env');
+    $report['steps']['env_file'] = 'copied_from_example';
+}
+
 // ── 5. Run Artisan Commands ───────────────────────────────────────────────────
+// Resolve correct PHP CLI binary
+$phpBin = 'php';
+if (defined('PHP_BINARY') && !empty(PHP_BINARY) && file_exists(PHP_BINARY)) {
+    // If PHP_BINARY is php-fpm or php-cgi, try CLI binary in same bin directory
+    $phpDir = dirname(PHP_BINARY);
+    if (file_exists($phpDir . '/php')) {
+        $phpBin = $phpDir . '/php';
+    } else {
+        $phpBin = PHP_BINARY;
+    }
+}
+
 $commands = [
-    'storage:link' => "cd " . escapeshellarg($laravelDir) . " && php artisan storage:link 2>&1",
-    'config:cache' => "cd " . escapeshellarg($laravelDir) . " && php artisan config:cache 2>&1",
-    'route:cache'  => "cd " . escapeshellarg($laravelDir) . " && php artisan route:cache 2>&1",
-    'view:cache'   => "cd " . escapeshellarg($laravelDir) . " && php artisan view:cache 2>&1",
-    'migrate'      => "cd " . escapeshellarg($laravelDir) . " && php artisan migrate --force 2>&1",
+    'storage:link' => "cd " . escapeshellarg($laravelDir) . " && " . escapeshellarg($phpBin) . " artisan storage:link 2>&1",
+    'config:cache' => "cd " . escapeshellarg($laravelDir) . " && " . escapeshellarg($phpBin) . " artisan config:cache 2>&1",
+    'route:cache'  => "cd " . escapeshellarg($laravelDir) . " && " . escapeshellarg($phpBin) . " artisan route:cache 2>&1",
+    'view:cache'   => "cd " . escapeshellarg($laravelDir) . " && " . escapeshellarg($phpBin) . " artisan view:cache 2>&1",
+    'migrate'      => "cd " . escapeshellarg($laravelDir) . " && " . escapeshellarg($phpBin) . " artisan migrate --force 2>&1",
     'permissions'  => "cd " . escapeshellarg($laravelDir) . " && chmod -R 775 storage bootstrap/cache 2>&1",
 ];
 
