@@ -4,7 +4,7 @@
  * BioTech Post-Deployment Extractor & Artisan Runner
  *
  * Uploaded alongside frontend.zip and backend.zip to public_html/
- * Triggered by GitHub Actions via HTTP POST with Bearer token.
+ * Triggered by GitHub Actions via HTTP POST with Bearer token / X-Deploy-Token / Body Token.
  */
 
 // ── Security & Headers ─────────────────────────────────────────────────────────
@@ -12,14 +12,81 @@ header('Content-Type: application/json');
 
 $expectedToken = '__DEPLOY_SECRET__';
 
-$authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? '';
-if (empty($authHeader) && isset($_SERVER['REDIRECT_HTTP_AUTHORIZATION'])) {
-    $authHeader = $_SERVER['REDIRECT_HTTP_AUTHORIZATION'];
+// Helper: Extract token from multiple potential channels (fixes web server header stripping)
+function getReceivedToken(): string {
+    // 1. Direct server environment variables
+    $authHeader = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION'] ?? '';
+    if (!empty($authHeader) && preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches)) {
+        return trim($matches[1]);
+    }
+
+    // 2. Custom header X-Deploy-Token or X-Authorization (not stripped by LiteSpeed/Apache)
+    if (!empty($_SERVER['HTTP_X_DEPLOY_TOKEN'])) {
+        return trim($_SERVER['HTTP_X_DEPLOY_TOKEN']);
+    }
+    if (!empty($_SERVER['HTTP_X_AUTHORIZATION'])) {
+        if (preg_match('/^Bearer\s+(.+)$/i', $_SERVER['HTTP_X_AUTHORIZATION'], $matches)) {
+            return trim($matches[1]);
+        }
+        return trim($_SERVER['HTTP_X_AUTHORIZATION']);
+    }
+
+    // 3. getallheaders() or apache_request_headers() if available
+    $headers = [];
+    if (function_exists('getallheaders')) {
+        $headers = (array) getallheaders();
+    } elseif (function_exists('apache_request_headers')) {
+        $headers = (array) apache_request_headers();
+    }
+
+    if (!empty($headers)) {
+        $normalized = array_change_key_case($headers, CASE_LOWER);
+        if (!empty($normalized['authorization']) && preg_match('/^Bearer\s+(.+)$/i', $normalized['authorization'], $matches)) {
+            return trim($matches[1]);
+        }
+        if (!empty($normalized['x-deploy-token'])) {
+            return trim($normalized['x-deploy-token']);
+        }
+        if (!empty($normalized['x-authorization'])) {
+            if (preg_match('/^Bearer\s+(.+)$/i', $normalized['x-authorization'], $matches)) {
+                return trim($matches[1]);
+            }
+            return trim($normalized['x-authorization']);
+        }
+    }
+
+    // 4. POST body (JSON or Form URL encoded)
+    if (!empty($_POST['token'])) {
+        return trim((string) $_POST['token']);
+    }
+    $rawInput = file_get_contents('php://input');
+    if (!empty($rawInput)) {
+        $jsonData = json_decode($rawInput, true);
+        if (is_array($jsonData) && !empty($jsonData['token'])) {
+            return trim((string) $jsonData['token']);
+        }
+    }
+
+    // 5. Query string fallback (?token=...)
+    if (!empty($_GET['token'])) {
+        return trim((string) $_GET['token']);
+    }
+
+    return '';
 }
 
-if (!preg_match('/^Bearer\s+(.+)$/i', $authHeader, $matches) || !hash_equals($expectedToken, trim($matches[1]))) {
+$receivedToken = getReceivedToken();
+
+if (empty($expectedToken) || $expectedToken === '__DEPLOY_SECRET__' || empty($receivedToken) || !hash_equals($expectedToken, $receivedToken)) {
     http_response_code(403);
-    echo json_encode(['status' => 'error', 'message' => 'Unauthorized: Invalid or missing bearer token']);
+    echo json_encode([
+        'status'  => 'error',
+        'message' => 'Unauthorized: Invalid or missing bearer token',
+        'details' => [
+            'expected_configured' => (!empty($expectedToken) && $expectedToken !== '__DEPLOY_SECRET__'),
+            'token_received'      => (!empty($receivedToken)),
+        ],
+    ]);
     exit(1);
 }
 
@@ -32,8 +99,18 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 // ── Paths ──────────────────────────────────────────────────────────────────────
 $publicHtmlDir = __DIR__;
 $domainDir     = dirname($publicHtmlDir);
-$laravelDir    = $domainDir . '/laravel';
-$apiDir        = $publicHtmlDir . '/api';
+$parentDir     = dirname($domainDir);
+
+// Detect Laravel directory: check domain level first, fallback to home directory
+if (is_dir($domainDir . '/laravel')) {
+    $laravelDir = $domainDir . '/laravel';
+} elseif (is_dir($parentDir . '/laravel')) {
+    $laravelDir = $parentDir . '/laravel';
+} else {
+    $laravelDir = $domainDir . '/laravel';
+}
+
+$apiDir = $publicHtmlDir . '/api';
 
 $report = [
     'status'     => 'ok',
@@ -128,6 +205,11 @@ $apiHtaccess = <<<'HTACCESS'
 
     RewriteEngine On
 
+    # Pass Authorization header to FastCGI/PHP
+    <IfModule mod_setenvif.c>
+        SetEnvIfNoCase ^Authorization$ "(.+)" HTTP_AUTHORIZATION=$1
+    </IfModule>
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
@@ -190,6 +272,10 @@ foreach ($commands as $label => $cmd) {
     ];
 }
 $report['steps']['artisan_commands'] = $artisanResults;
+
+// Self-cleanup: remove deploy-runner.php from public_html after successful execution
+@unlink(__FILE__);
+$report['steps']['cleanup_runner'] = 'success';
 
 // Return final report
 echo json_encode($report, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);

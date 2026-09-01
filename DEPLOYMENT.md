@@ -126,17 +126,17 @@ LOG_LEVEL=error
 
 ## GitHub Secrets Required
 
-Set these in **GitHub → Settings → Secrets → Actions**:
+Set these in **GitHub → Settings → Secrets and variables → Actions**:
 
-| Secret | Description |
-|---|---|
-| `HOSTINGER_SSH_KEY` | Private SSH key (paste contents of `~/.ssh/id_rsa`) |
-| `HOSTINGER_SSH_HOST` | Hostinger SSH hostname (e.g. `srv123.hostinger.com`) |
-| `HOSTINGER_SSH_USER` | SSH username (e.g. `u123456789`) |
-| `HOSTINGER_SSH_PORT` | SSH port — Hostinger uses `65002` by default |
-| `HOSTINGER_PUBLIC_PATH` | Absolute path to public_html (e.g. `/home/u123456789/public_html`) |
-| `HOSTINGER_LARAVEL_PATH` | Absolute path for Laravel (e.g. `/home/u123456789/laravel`) |
-| `VITE_API_URL` | `https://inveniqlab.com/api` |
+| Secret | Description | Required |
+|---|---|---|
+| `HOSTINGER_FTP_HOST` | Hostinger FTP hostname (e.g. `ftp.inveniqlab.com` or server IP) | Yes |
+| `HOSTINGER_FTP_USERNAME` | Hostinger FTP username (e.g. `u123456789`) | Yes |
+| `HOSTINGER_FTP_PASSWORD` | Hostinger FTP password | Yes |
+| `HOSTINGER_FTP_PORT` | FTP port (usually `21`) | Yes |
+| `HOSTINGER_PUBLIC_PATH` | Path to public_html (e.g. `public_html` or `domains/inveniqlab.com/public_html`) | Yes |
+| `VITE_API_URL` | `https://inveniqlab.com/api` | Yes |
+| `DEPLOY_WEBHOOK_SECRET` | Secret token to authenticate the deploy runner (auto-generated if omitted) | Optional |
 
 ---
 

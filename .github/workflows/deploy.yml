@@ -64,12 +64,25 @@ jobs:
         env:
           DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
         run: |
-          # Package frontend
+          # 1. Resolve deployment secret (from GitHub Secrets or generate secure transient token)
+          TOKEN="${DEPLOY_WEBHOOK_SECRET:-}"
+          if [ -z "$TOKEN" ]; then
+            TOKEN=$(openssl rand -hex 32)
+            echo "DEPLOY_WEBHOOK_SECRET is not set in repository secrets; generated secure transient token for this deployment."
+          else
+            echo "Using configured DEPLOY_WEBHOOK_SECRET from repository secrets."
+          fi
+
+          # Mask the token so it does not appear in plain text in Actions logs
+          echo "::add-mask::${TOKEN}"
+          echo "DEPLOY_RUNNER_TOKEN=${TOKEN}" >> $GITHUB_ENV
+
+          # 2. Package frontend
           cd frontend/dist
           zip -r -q ../../frontend.zip .
           cd ../..
 
-          # Package backend (excluding local/temporary files)
+          # 3. Package backend (excluding local/temporary files)
           cd backend
           zip -r -q ../backend.zip . \
             -x ".env*" \
@@ -83,9 +96,13 @@ jobs:
             -x "bootstrap/cache/*"
           cd ..
 
-          # Prepare deploy runner script with secret
-          sed "s|__DEPLOY_SECRET__|${DEPLOY_WEBHOOK_SECRET}|g" \
-            deploy/deploy-runner.php > deploy-runner.php
+          # 4. Safely inject the secret into deploy-runner.php using PHP
+          php -r '
+            $token = getenv("DEPLOY_RUNNER_TOKEN");
+            $script = file_get_contents("deploy/deploy-runner.php");
+            $script = str_replace("__DEPLOY_SECRET__", $token, $script);
+            file_put_contents("deploy-runner.php", $script);
+          '
 
           echo "Deployment package sizes:"
           ls -lh frontend.zip backend.zip deploy-runner.php
@@ -129,13 +146,17 @@ jobs:
 
       - name: Execute remote extraction and Laravel post-deployment
         env:
-          DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
+          TOKEN: ${{ env.DEPLOY_RUNNER_TOKEN }}
         run: |
           echo "Calling deployment runner on server..."
           
+          # Send token through multiple headers and payload for maximum web server compatibility
           RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            "https://inveniqlab.com/deploy-runner.php" \
-            -H "Authorization: Bearer ${DEPLOY_WEBHOOK_SECRET}" \
+            "https://inveniqlab.com/deploy-runner.php?token=${TOKEN}" \
+            -H "Authorization: Bearer ${TOKEN}" \
+            -H "X-Deploy-Token: ${TOKEN}" \
+            -H "Content-Type: application/json" \
+            -d "{\"token\":\"${TOKEN}\"}" \
             --max-time 180)
 
           HTTP_CODE=$(echo "$RESPONSE" | tail -1)
