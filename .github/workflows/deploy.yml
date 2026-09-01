@@ -73,7 +73,8 @@ jobs:
             echo "Using configured DEPLOY_WEBHOOK_SECRET from repository secrets."
           fi
 
-          # Mask the token so it does not appear in plain text in Actions logs
+          # Export for current step and persist for subsequent steps in GITHUB_ENV
+          export DEPLOY_RUNNER_TOKEN="${TOKEN}"
           echo "::add-mask::${TOKEN}"
           echo "DEPLOY_RUNNER_TOKEN=${TOKEN}" >> $GITHUB_ENV
 
@@ -96,13 +97,23 @@ jobs:
             -x "bootstrap/cache/*"
           cd ..
 
-          # 4. Safely inject the secret into deploy-runner.php using PHP
+          # 4. Safely inject the secret into deploy-runner.php using PHP with direct CLI argument
           php -r '
-            $token = getenv("DEPLOY_RUNNER_TOKEN");
+            $token = $argv[1];
+            if (empty($token) || strlen($token) < 16) {
+              fwrite(STDERR, "Error: Deployment token is empty or invalid!\n");
+              exit(1);
+            }
             $script = file_get_contents("deploy/deploy-runner.php");
             $script = str_replace("__DEPLOY_SECRET__", $token, $script);
             file_put_contents("deploy-runner.php", $script);
-          '
+          ' "${TOKEN}"
+
+          # 5. Sanity check: ensure token is injected and not empty
+          if grep -q "__DEPLOY_SECRET__" deploy-runner.php || grep -q "\$expectedToken = '';" deploy-runner.php; then
+            echo "::error::deploy-runner.php token injection verification failed!"
+            exit 1
+          fi
 
           echo "Deployment package sizes:"
           ls -lh frontend.zip backend.zip deploy-runner.php
