@@ -124,19 +124,26 @@ LOG_LEVEL=error
 
 ---
 
-## GitHub Secrets Required
+## GitHub Secrets Configuration
 
 Set these in **GitHub → Settings → Secrets and variables → Actions**:
 
-| Secret | Description | Required |
+### Required Secrets for Deployment
+| Secret | Value from Hostinger | Description |
 |---|---|---|
-| `HOSTINGER_FTP_HOST` | Hostinger FTP hostname (e.g. `ftp.inveniqlab.com` or server IP) | Yes |
-| `HOSTINGER_FTP_USERNAME` | Hostinger FTP username (e.g. `u123456789`) | Yes |
-| `HOSTINGER_FTP_PASSWORD` | Hostinger FTP password | Yes |
-| `HOSTINGER_FTP_PORT` | FTP port (usually `21`) | Yes |
-| `HOSTINGER_PUBLIC_PATH` | Path to public_html (e.g. `public_html` or `domains/inveniqlab.com/public_html`) | Yes |
-| `VITE_API_URL` | `https://inveniqlab.com/api` | Yes |
-| `DEPLOY_WEBHOOK_SECRET` | Secret token to authenticate the deploy runner (auto-generated if omitted) | Optional |
+| `HOSTINGER_SSH_HOST` | e.g. `147.93.17.170` or Hostinger SSH IP | Hostinger SSH Host |
+| `HOSTINGER_SSH_USER` | `u107541232` | Hostinger SSH / Account Username |
+| `HOSTINGER_SSH_KEY` | Private SSH Key (`cat ~/.ssh/id_rsa` or generated key) | The private key matching the public key in Hostinger SSH Access |
+| `HOSTINGER_SSH_PORT` | `65002` (or `22`) | Hostinger SSH Port |
+| `VITE_API_URL` | `https://inveniqlab.com/api` | API Endpoint for Frontend |
+
+### Optional / Unused Secrets (Can be safely removed or ignored)
+| Secret | Status |
+|---|---|
+| `HOSTINGER_API_PATH` | Not needed (auto-handled) |
+| `HOSTINGER_DEPLOY_PATH` | Not needed |
+| `HOSTINGER_FTP_*` | Not needed (SSH replaces FTP) |
+| `DEPLOY_WEBHOOK_SECRET` | Not needed (SSH eliminates HTTP webhooks) |
 
 ---
 

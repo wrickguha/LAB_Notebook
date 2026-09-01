@@ -55,35 +55,16 @@ jobs:
             --no-dev \
             --optimize-autoloader
 
-      # ── 3. Package Archives for Fast FTP Transfer ───────────────────────────
-
-      - name: Install zip and lftp
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq zip lftp
+      # ── 3. Package Archives for Fast Transfer ───────────────────────────────
 
       - name: Create deployment packages
-        env:
-          DEPLOY_WEBHOOK_SECRET: ${{ secrets.DEPLOY_WEBHOOK_SECRET }}
         run: |
-          # 1. Resolve deployment secret (from GitHub Secrets or generate secure transient token)
-          TOKEN="${DEPLOY_WEBHOOK_SECRET:-}"
-          if [ -z "$TOKEN" ]; then
-            TOKEN=$(openssl rand -hex 32)
-            echo "DEPLOY_WEBHOOK_SECRET is not set in repository secrets; generated secure transient token for this deployment."
-          else
-            echo "Using configured DEPLOY_WEBHOOK_SECRET from repository secrets."
-          fi
-
-          # Export for current step and persist for subsequent steps in GITHUB_ENV
-          export DEPLOY_RUNNER_TOKEN="${TOKEN}"
-          echo "::add-mask::${TOKEN}"
-          echo "DEPLOY_RUNNER_TOKEN=${TOKEN}" >> $GITHUB_ENV
-
-          # 2. Package frontend
+          # Package frontend
           cd frontend/dist
           zip -r -q ../../frontend.zip .
           cd ../..
 
-          # 3. Package backend (excluding local/temporary files)
+          # Package backend (excluding local/temporary files)
           cd backend
           zip -r -q ../backend.zip . \
             -x ".env*" \
@@ -97,89 +78,124 @@ jobs:
             -x "bootstrap/cache/*"
           cd ..
 
-          # 4. Safely inject the secret into deploy-runner.php using PHP with direct CLI argument
-          php -r '
-            $token = $argv[1];
-            if (empty($token) || strlen($token) < 16) {
-              fwrite(STDERR, "Error: Deployment token is empty or invalid!\n");
-              exit(1);
-            }
-            $script = file_get_contents("deploy/deploy-runner.php");
-            $script = str_replace("__DEPLOY_SECRET__", $token, $script);
-            file_put_contents("deploy-runner.php", $script);
-          ' "${TOKEN}"
-
-          # 5. Sanity check: ensure token is injected and not empty
-          if grep -q "__DEPLOY_SECRET__" deploy-runner.php || grep -q "\$expectedToken = '';" deploy-runner.php; then
-            echo "::error::deploy-runner.php token injection verification failed!"
-            exit 1
-          fi
-
           echo "Deployment package sizes:"
-          ls -lh frontend.zip backend.zip deploy-runner.php
+          ls -lh frontend.zip backend.zip
 
-      # ── 4. Upload Packages via FTP ──────────────────────────────────────────
+      # ── 4. Direct SSH Deployment & Artisan Execution ────────────────────────
 
-      - name: Upload deployment packages to Hostinger via FTP
+      - name: Deploy to Hostinger via SSH
         env:
-          FTP_HOST: ${{ secrets.HOSTINGER_FTP_HOST }}
-          FTP_USER: ${{ secrets.HOSTINGER_FTP_USERNAME }}
-          FTP_PASS: ${{ secrets.HOSTINGER_FTP_PASSWORD }}
-          FTP_PORT: ${{ secrets.HOSTINGER_FTP_PORT }}
-          RAW_PATH: ${{ secrets.HOSTINGER_PUBLIC_PATH }}
+          SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+          SSH_KEY: ${{ secrets.HOSTINGER_SSH_KEY }}
+          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          PUBLIC_PATH: ${{ secrets.HOSTINGER_PUBLIC_PATH }}
         run: |
-          # Normalize path: remove any leading /home/username/ prefix for FTP
-          CLEAN_PATH=$(echo "${RAW_PATH}" | sed -E 's|^/home/[^/]+/||' | sed -E 's|^/||' | sed -E 's|/$||')
-          echo "Connecting to FTP and navigating to: ${CLEAN_PATH}"
+          # Fallback default port for Hostinger SSH is 65002
+          PORT="${SSH_PORT:-65002}"
 
-          lftp -c "
-            set ftp:ssl-allow yes
-            set ftp:ssl-force no
-            set ssl:verify-certificate no
-            set net:max-retries 3
-            set net:reconnect-interval-base 5
-            open -u '${FTP_USER}','${FTP_PASS}' -p '${FTP_PORT}' '${FTP_HOST}'
-            
-            # Try configured path, fallback to domains/inveniqlab.com/public_html or public_html
-            cd '${CLEAN_PATH}' || cd 'domains/inveniqlab.com/public_html' || cd 'public_html' || cd '/'
-            pwd
-            
-            # Upload deployment archives
-            put -O . frontend.zip
-            put -O . backend.zip
-            put -O . deploy-runner.php
-            
-            ls -la
-            bye
-          "
+          echo "Configuring SSH connection to ${SSH_USER}@${SSH_HOST}:${PORT}..."
+          mkdir -p ~/.ssh
+          echo "${SSH_KEY}" | tr -d '\r' > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -p "${PORT}" -H "${SSH_HOST}" >> ~/.ssh/known_hosts 2>/dev/null || true
 
-      # ── 5. Trigger Remote Extraction & Artisan Execution ────────────────────
+          echo "Transferring deployment packages via SCP..."
+          scp -P "${PORT}" -i ~/.ssh/id_rsa frontend.zip backend.zip "${SSH_USER}@${SSH_HOST}:~/"
 
-      - name: Execute remote extraction and Laravel post-deployment
-        env:
-          TOKEN: ${{ env.DEPLOY_RUNNER_TOKEN }}
-        run: |
-          echo "Calling deployment runner on server..."
-          
-          # Send token through multiple headers and payload for maximum web server compatibility
-          RESPONSE=$(curl -s -w "\n%{http_code}" -X POST \
-            "https://inveniqlab.com/deploy-runner.php?token=${TOKEN}" \
-            -H "Authorization: Bearer ${TOKEN}" \
-            -H "X-Deploy-Token: ${TOKEN}" \
-            -H "Content-Type: application/json" \
-            -d "{\"token\":\"${TOKEN}\"}" \
-            --max-time 180)
+          echo "Executing remote extraction and Laravel configuration on Hostinger..."
+          ssh -p "${PORT}" -i ~/.ssh/id_rsa "${SSH_USER}@${SSH_HOST}" 'bash -s' << 'ENDSSH'
+          set -e
 
-          HTTP_CODE=$(echo "$RESPONSE" | tail -1)
-          BODY=$(echo "$RESPONSE" | head -n -1)
-
-          echo "HTTP Status Code: ${HTTP_CODE}"
-          echo "Server Response:"
-          echo "$BODY" | python3 -m json.tool 2>/dev/null || echo "$BODY"
-
-          if [ "$HTTP_CODE" != "200" ]; then
-            echo "::error::Deployment runner failed with HTTP status ${HTTP_CODE}"
-            exit 1
+          # 1. Determine public_html directory
+          PUBLIC_DIR=""
+          for p in "$HOME/domains/inveniqlab.com/public_html" "$HOME/public_html"; do
+            if [ -d "$p" ]; then
+              PUBLIC_DIR="$p"
+              break
+            fi
+          done
+          if [ -z "$PUBLIC_DIR" ]; then
+            PUBLIC_DIR="$HOME/public_html"
+            mkdir -p "$PUBLIC_DIR"
           fi
 
-          echo "Deployment and post-deployment commands completed successfully!"
+          # 2. Determine laravel directory (outside public_html)
+          DOMAIN_DIR="$(dirname "$PUBLIC_DIR")"
+          LARAVEL_DIR="$DOMAIN_DIR/laravel"
+          mkdir -p "$LARAVEL_DIR" "$PUBLIC_DIR/api"
+
+          echo "Public directory: $PUBLIC_DIR"
+          echo "Laravel directory: $LARAVEL_DIR"
+
+          # 3. Extract Frontend into public_html
+          unzip -o -q ~/frontend.zip -d "$PUBLIC_DIR"
+          rm -f ~/frontend.zip
+
+          # 4. Extract Backend into laravel/
+          unzip -o -q ~/backend.zip -d "$LARAVEL_DIR"
+          rm -f ~/backend.zip
+
+          # 5. Write public_html/api/index.php
+          cat << 'EOF' > "$PUBLIC_DIR/api/index.php"
+<?php
+define('LARAVEL_START', microtime(true));
+
+$laravelPath = dirname(__DIR__, 2) . '/laravel';
+if (!is_dir($laravelPath)) {
+    $laravelPath = dirname(__DIR__) . '/laravel';
+}
+if (file_exists($m = $laravelPath . '/storage/framework/maintenance.php')) {
+    require $m;
+}
+require $laravelPath . '/vendor/autoload.php';
+$app = require_once $laravelPath . '/bootstrap/app.php';
+$app->handleRequest(Illuminate\Http\Request::capture());
+EOF
+
+          # 6. Write public_html/api/.htaccess
+          cat << 'EOF' > "$PUBLIC_DIR/api/.htaccess"
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+    RewriteEngine On
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+</IfModule>
+EOF
+
+          # 7. Create required Laravel directories
+          mkdir -p "$LARAVEL_DIR/storage/app/public" \
+                   "$LARAVEL_DIR/storage/framework/cache/data" \
+                   "$LARAVEL_DIR/storage/framework/sessions" \
+                   "$LARAVEL_DIR/storage/framework/views" \
+                   "$LARAVEL_DIR/storage/logs" \
+                   "$LARAVEL_DIR/bootstrap/cache"
+
+          # 8. Ensure .env exists
+          if [ ! -f "$LARAVEL_DIR/.env" ] && [ -f "$LARAVEL_DIR/.env.example" ]; then
+            cp "$LARAVEL_DIR/.env.example" "$LARAVEL_DIR/.env"
+            echo "Created initial .env from .env.example"
+          fi
+
+          # 9. Run Artisan Commands
+          cd "$LARAVEL_DIR"
+          php artisan storage:link 2>&1 || true
+          php artisan config:cache 2>&1 || true
+          php artisan route:cache 2>&1 || true
+          php artisan view:cache 2>&1 || true
+          php artisan migrate --force 2>&1 || true
+
+          # 10. Set proper permissions
+          chmod -R 775 storage bootstrap/cache
+          echo "Hostinger deployment and Laravel optimization completed successfully!"
+          ENDSSH
