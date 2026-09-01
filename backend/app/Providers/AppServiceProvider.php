@@ -11,7 +11,10 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        // Bind public_html directory if running on Hostinger production structure
+        if (is_dir(base_path('../public_html'))) {
+            $this->app->usePublicPath(base_path('../public_html'));
+        }
     }
 
     /**

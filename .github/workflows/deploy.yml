@@ -1,0 +1,186 @@
+name: Production Deployment to Hostinger
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    name: Build & Deploy Application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📥 Checkout Repository
+        uses: actions/checkout@v4
+
+      # --- 1. BACKEND BUILD ---
+      - name: 🐘 Setup PHP 8.2
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, pdo_mysql, dom, filter, json, openssl
+          coverage: none
+
+      - name: 📦 Install Composer Dependencies (Production)
+        run: |
+          cd backend
+          composer install --no-dev --prefer-dist --optimize-autoloader --no-interaction --no-progress
+
+      # --- 2. FRONTEND BUILD ---
+      - name: 🟢 Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: 🏗️ Install Node Dependencies & Build React
+        env:
+          VITE_API_URL: https://inveniqlab.com
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+
+      # --- 3. PREPARE DEPLOYMENT ARTIFACTS ---
+      - name: 📁 Prepare Public Web Assets & Routing
+        run: |
+          mkdir -p deploy_public
+
+          # 1. Copy compiled React assets (dist) to public folder
+          cp -r frontend/dist/* deploy_public/
+
+          # 2. Create the production Laravel entrypoint index.php
+          cat << 'EOF' > deploy_public/index.php
+          <?php
+
+          use Illuminate\Foundation\Application;
+          use Illuminate\Http\Request;
+
+          define('LARAVEL_START', microtime(true));
+
+          // Determine if the application is in maintenance mode...
+          if (file_exists($maintenance = __DIR__.'/../laravel/storage/framework/maintenance.php')) {
+              require $maintenance;
+          }
+
+          // Register the Composer autoloader...
+          require __DIR__.'/../laravel/vendor/autoload.php';
+
+          // Bootstrap Laravel and handle the request...
+          /** @var Application $app */
+          $app = require_once __DIR__.'/../laravel/bootstrap/app.php';
+
+          $app->handleRequest(Request::capture());
+          EOF
+
+          # 3. Create production .htaccess for React SPA + Laravel /api routing
+          cat << 'EOF' > deploy_public/.htaccess
+          <IfModule mod_rewrite.c>
+              <IfModule mod_negotiation.c>
+                  Options -MultiViews -Indexes
+              </IfModule>
+
+              RewriteEngine On
+
+              # 1. Force HTTPS
+              RewriteCond %{HTTPS} off
+              RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
+
+              # 2. Handle Authorization Header
+              RewriteCond %{HTTP:Authorization} .
+              RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+              # 3. Route API requests and health checks directly to Laravel index.php
+              RewriteCond %{REQUEST_URI} ^/api [NC,OR]
+              RewriteCond %{REQUEST_URI} ^/up [NC]
+              RewriteRule ^ index.php [L]
+
+              # 4. Serve existing static assets (JS, CSS, images, storage symlinks)
+              RewriteCond %{REQUEST_FILENAME} -f [OR]
+              RewriteCond %{REQUEST_FILENAME} -d
+              RewriteRule ^ - [L]
+
+              # 5. React SPA Fallback: Route all other frontend URLs to React index.html
+              RewriteRule ^ index.html [L]
+          </IfModule>
+
+          # Block sensitive files
+          <FilesMatch "^\.env|\.git|\.yml|\.json|\.lock">
+              Order allow,deny
+              Deny from all
+          </FilesMatch>
+
+          # Enable Gzip Compression
+          <IfModule mod_deflate.c>
+              AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css application/xml application/xhtml+xml application/rss+xml application/javascript application/x-javascript application/json
+          </IfModule>
+          EOF
+
+      # --- 4. DEPLOY VIA SSH / RSYNC ---
+      - name: 🔑 Configure SSH Key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.HOSTINGER_SSH_KEY }}
+
+      - name: 🚀 Sync Files to Hostinger Server
+        env:
+          SSH_HOST: ${{ secrets.HOSTINGER_SSH_HOST }}
+          SSH_PORT: ${{ secrets.HOSTINGER_SSH_PORT }}
+          SSH_USER: ${{ secrets.HOSTINGER_SSH_USER }}
+        run: |
+          # Add Hostinger to known_hosts
+          mkdir -p ~/.ssh
+          ssh-keyscan -p $SSH_PORT -H $SSH_HOST >> ~/.ssh/known_hosts
+
+          # 1. Sync Private Laravel Backend (excluding .env, .git, and local public web files)
+          echo "Syncing Laravel Backend..."
+          rsync -avz --delete \
+            --exclude='.env' \
+            --exclude='.git' \
+            --exclude='node_modules' \
+            --exclude='tests' \
+            -e "ssh -p $SSH_PORT" \
+            backend/ $SSH_USER@$SSH_HOST:/home/$SSH_USER/domains/inveniqlab.com/laravel/
+
+          # 2. Sync Public Web Assets (React + index.php + .htaccess)
+          echo "Syncing Public Web Assets..."
+          rsync -avz \
+            -e "ssh -p $SSH_PORT" \
+            deploy_public/ $SSH_USER@$SSH_HOST:/home/$SSH_USER/domains/inveniqlab.com/public_html/
+
+      # --- 5. POST-DEPLOYMENT LARAVEL ARTISAN TASKS ---
+      - name: ⚡ Execute Post-Deployment Commands on Server
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.HOSTINGER_SSH_HOST }}
+          port: ${{ secrets.HOSTINGER_SSH_PORT }}
+          username: ${{ secrets.HOSTINGER_SSH_USER }}
+          key: ${{ secrets.HOSTINGER_SSH_KEY }}
+          script: |
+            cd /home/${{ secrets.HOSTINGER_SSH_USER }}/domains/inveniqlab.com/laravel
+
+            # 1. Generate APP_KEY if not yet generated in .env
+            if ! grep -q "^APP_KEY=base64:" .env; then
+                echo "Generating Laravel APP_KEY..."
+                php artisan key:generate --force
+            fi
+
+            # 2. Run Database Migrations safely
+            echo "Running database migrations..."
+            php artisan migrate --force
+
+            # 3. Create Storage Symlink to public_html/storage
+            echo "Creating storage symlink..."
+            php artisan storage:link || true
+
+            # 4. Clear and rebuild optimized caches
+            echo "Optimizing Laravel configuration & routes..."
+            php artisan optimize:clear
+            php artisan config:cache
+            php artisan route:cache
+            php artisan view:cache
+
+            echo "✅ Production Deployment Complete!"
