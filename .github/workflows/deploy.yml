@@ -166,6 +166,10 @@ jobs:
           script: |
             cd /home/${{ secrets.HOSTINGER_SSH_USER }}/domains/inveniqlab.com/laravel
 
+            # Detect Hostinger PHP 8.2+ CLI binary
+            PHP_BIN=$(which php8.2 2>/dev/null || which php8.3 2>/dev/null || ls -1 /opt/alt/php8*/usr/bin/php 2>/dev/null | tail -n 1 || which php)
+            echo "Using PHP Binary: $PHP_BIN"
+
             # 0. Ensure storage & cache directories exist with correct write permissions
             mkdir -p storage/framework/{sessions,views,cache/data} storage/logs bootstrap/cache
             chmod -R 775 storage bootstrap/cache
@@ -173,22 +177,22 @@ jobs:
             # 1. Generate APP_KEY if not yet generated in .env
             if ! grep -q "^APP_KEY=base64:" .env; then
                 echo "Generating Laravel APP_KEY..."
-                php artisan key:generate --force
+                $PHP_BIN artisan key:generate --force
             fi
 
             # 2. Run Database Migrations safely
             echo "Running database migrations..."
-            php artisan migrate --force
+            $PHP_BIN artisan migrate --force
 
             # 3. Create Storage Symlink to public_html/storage
             echo "Creating storage symlink..."
-            php artisan storage:link || true
+            $PHP_BIN artisan storage:link || true
 
             # 4. Clear and rebuild optimized caches
             echo "Optimizing Laravel configuration & routes..."
-            php artisan optimize:clear
-            php artisan config:cache
-            php artisan route:cache
-            php artisan view:cache
+            $PHP_BIN artisan optimize:clear
+            $PHP_BIN artisan config:cache
+            $PHP_BIN artisan route:cache
+            $PHP_BIN artisan view:cache
 
             echo "✅ Production Deployment Complete!"
