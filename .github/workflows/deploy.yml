@@ -78,6 +78,10 @@ jobs:
 
           # 3. Create production .htaccess for React SPA + Laravel /api routing
           cat << 'EOF' > deploy_public/.htaccess
+          <IfModule mod_dir.c>
+              DirectoryIndex index.html index.php
+          </IfModule>
+
           <IfModule mod_rewrite.c>
               <IfModule mod_negotiation.c>
                   Options -MultiViews -Indexes
@@ -161,6 +165,10 @@ jobs:
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
             cd /home/${{ secrets.HOSTINGER_SSH_USER }}/domains/inveniqlab.com/laravel
+
+            # 0. Ensure storage & cache directories exist with correct write permissions
+            mkdir -p storage/framework/{sessions,views,cache/data} storage/logs bootstrap/cache
+            chmod -R 775 storage bootstrap/cache
 
             # 1. Generate APP_KEY if not yet generated in .env
             if ! grep -q "^APP_KEY=base64:" .env; then
