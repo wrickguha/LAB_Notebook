@@ -38,8 +38,8 @@ export const AppDataProvider = ({ children }) => {
   const defaultUser = {
     name: 'Dr. Evelyn Thorne',
     role: 'Principal Investigator',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
-    email: 'evelyn.thorne@labnotebook.ai',
+    avatar: null,
+    email: 'evelyn.thorne@inveniqlab.ai',
     institution: 'Institute of Biomolecular Sciences',
     lab: 'Thorne Genomics Lab',
   };
@@ -165,6 +165,19 @@ export const AppDataProvider = ({ children }) => {
       showToast(`Project "${newProject.name}" initialized`, 'success');
     } catch (err) {
       showToast(err.message, 'error');
+    }
+  };
+
+  const updateProject = async (id, projectData) => {
+    try {
+      await projectsApi.update(id, projectData);
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      showToast(`Project "${projectData.name || 'Project'}" updated successfully`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+      throw err;
     }
   };
 
@@ -324,6 +337,7 @@ export const AppDataProvider = ({ children }) => {
         projects,
         setProjects,
         addProject,
+        updateProject,
         notebookFolders,
         addNotebookFolder,
         notebookEntries,

@@ -88,7 +88,7 @@ class AuthController extends Controller
             'email' => $user->email,
             'institution' => $user->institution ?? '',
             'lab' => $user->lab ?? '',
-            'avatar' => $user->avatar ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+            'avatar' => $user->avatar ?? null,
         ];
     }
 }

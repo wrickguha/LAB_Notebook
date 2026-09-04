@@ -77,8 +77,8 @@ export default function LandingPage() {
 
   const faqs = [
     {
-      q: "Is LAB Notebook compliant with regulatory standards like FDA 21 CFR Part 11?",
-      a: "Yes. LAB Notebook delivers automated audit logs, secure cryptographic digital signatures, role-based access control (RBAC), and immutable version history logs. These satisfy strict digital records guidelines required by global pharmaceutical and clinical research bodies."
+      q: "Is InveniqLab compliant with regulatory standards like FDA 21 CFR Part 11?",
+      a: "Yes. InveniqLab delivers automated audit logs, secure cryptographic digital signatures, role-based access control (RBAC), and immutable version history logs. These satisfy strict digital records guidelines required by global pharmaceutical and clinical research bodies."
     },
     {
       q: "Can we migrate our existing spreadsheets and documents into the platform?",
@@ -187,11 +187,11 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-7xl h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
           
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 shadow-md shadow-blue-500/20 text-white font-extrabold text-lg">
-              L
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 shadow-md shadow-blue-500/20 text-white font-extrabold text-lg">
+              I
             </div>
             <span className="font-extrabold text-base tracking-tight text-slate-900">
-              LAB<span className="text-blue-600 font-medium">Notebook</span>
+              Inveniq<span className="text-blue-600 font-semibold">Lab</span>
             </span>
           </div>
 
@@ -523,7 +523,7 @@ export default function LandingPage() {
           {/* Solutions Card */}
           <div className="bg-blue-50/40 border border-blue-100 rounded-2xl p-6 sm:p-8 space-y-6 shadow-sm">
             <h3 className="text-xs font-bold text-blue-700 flex items-center gap-2 uppercase tracking-wider">
-              <CheckCircle className="w-4 h-4" /> The Unified LAB Notebook System
+              <CheckCircle className="w-4 h-4" /> The Unified InveniqLab System
             </h3>
 
             <div className="space-y-4 text-xs">
@@ -801,7 +801,7 @@ export default function LandingPage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
               {
-                quote: "LAB Notebook saved our department from binder overflow. We can query transfections records from years ago in seconds. The built-in compliance signature logs satisfy FDA standards seamlessly.",
+                quote: "InveniqLab saved our department from binder overflow. We can query transfections records from years ago in seconds. The built-in compliance signature logs satisfy FDA standards seamlessly.",
                 name: "Dr. Evelyn Thorne",
                 title: "Lead Scientist, Thorne Genomics Lab",
                 avatar: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150"
@@ -1033,11 +1033,11 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-6 gap-8 text-[11px]">
           <div className="col-span-2 space-y-3">
             <div className="flex items-center gap-1.5 text-white">
-              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-white font-extrabold text-sm">L</div>
-              <span className="font-extrabold text-base tracking-tight">LAB<span className="text-blue-500 font-medium">Notebook</span></span>
+              <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-tr from-blue-700 to-indigo-600 text-white font-extrabold text-sm">I</div>
+              <span className="font-extrabold text-base tracking-tight">Inveniq<span className="text-blue-500 font-semibold">Lab</span></span>
             </div>
-            <p className="text-slate-500 leading-relaxed max-w-sm">LAB Notebook is the leading Digital Lab Notebook and Research ERP platform for biotechnology, materials science, and engineering teams.</p>
-            <div className="text-slate-600 pt-2">© 2026 LAB Notebook Inc. All rights reserved.</div>
+            <p className="text-slate-500 leading-relaxed max-w-sm">InveniqLab is the leading Digital Lab Notebook and Research ERP platform for biotechnology, materials science, and engineering teams.</p>
+            <div className="text-slate-600 pt-2">© 2026 InveniqLab Inc. All rights reserved.</div>
           </div>
           {[
             { title: 'Product', links: [{ h: '#features', l: 'Features' }, { h: '#modules', l: 'Modules' }, { h: '#pricing', l: 'Pricing' }] },

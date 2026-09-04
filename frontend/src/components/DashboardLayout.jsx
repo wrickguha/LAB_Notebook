@@ -78,12 +78,12 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
         {/* Sidebar Header */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200/85">
           <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-600 shadow-md shadow-blue-500/20 text-white font-extrabold text-lg">
-              L
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 shadow-md shadow-blue-500/20 text-white font-extrabold text-lg tracking-tight">
+              I
             </div>
             {!sidebarCollapsed && (
               <span className="font-extrabold text-base tracking-tight text-slate-900">
-                LAB<span className="text-blue-600 font-medium">Notebook</span>
+                Inveniq<span className="text-blue-600 font-semibold">Lab</span>
               </span>
             )}
           </div>

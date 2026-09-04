@@ -7,9 +7,9 @@ export const authApi = {
         email: credentials.email,
         password: credentials.password,
         full_name: credentials.name,
-        role: credentials.role,
-        institution: credentials.institution,
-        lab: credentials.lab,
+        role: credentials.role || 'Principal Investigator',
+        institution: credentials.institution || '',
+        lab: credentials.lab || '',
       };
       return await api.post('/api/auth/signup', payload);
     } else {
@@ -49,6 +49,9 @@ export const projectsApi = {
   },
   create: async (projectData) => {
     return await api.post('/api/projects', projectData);
+  },
+  update: async (projectId, projectData) => {
+    return await api.put(`/api/projects/${projectId}`, projectData);
   },
   toggleMilestone: async (projectId, milestoneId) => {
     return await api.patch(`/api/projects/${projectId}/milestones/${milestoneId}`);

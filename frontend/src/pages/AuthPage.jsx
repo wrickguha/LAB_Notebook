@@ -67,14 +67,6 @@ export default function AuthPage() {
         setValidationError('Full Name is required.');
         return;
       }
-      if (!institution) {
-        setValidationError('Institution is required.');
-        return;
-      }
-      if (!lab) {
-        setValidationError('Laboratory is required.');
-        return;
-      }
     }
 
     setLoading(true);
@@ -84,10 +76,7 @@ export default function AuthPage() {
           signup: true,
           name,
           email,
-          password,
-          role,
-          institution,
-          lab
+          password
         });
       } else {
         await login({
@@ -116,11 +105,11 @@ export default function AuthPage() {
 
         {/* Header/Logo */}
         <div className="flex items-center gap-2 cursor-pointer" onClick={() => navigate('/')}>
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 shadow-md shadow-blue-500/20 text-white font-extrabold text-lg">
-            L
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 shadow-md shadow-blue-500/20 text-white font-extrabold text-lg">
+            I
           </div>
           <span className="font-extrabold text-base tracking-tight text-slate-900">
-            LAB<span className="text-blue-600 font-medium">Notebook</span>
+            Inveniq<span className="text-blue-600 font-semibold">Lab</span>
           </span>
         </div>
 
@@ -212,50 +201,6 @@ export default function AuthPage() {
                     />
                   </div>
                 </div>
-
-                {/* Institution */}
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-450 uppercase mb-1.5 tracking-wider">Institution</label>
-                  <div className="relative">
-                    <Building className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Institute of Biomolecular Sciences"
-                      value={institution}
-                      onChange={(e) => setInstitution(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-xs text-slate-800 focus-ring"
-                    />
-                  </div>
-                </div>
-
-                {/* Laboratory */}
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-450 uppercase mb-1.5 tracking-wider">Laboratory</label>
-                  <div className="relative">
-                    <Beaker className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      placeholder="e.g. Thorne Genomics Lab"
-                      value={lab}
-                      onChange={(e) => setLab(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-xs text-slate-800 focus-ring"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[9px] font-bold text-slate-450 uppercase mb-1.5 tracking-wider">Role</label>
-                  <div className="relative">
-                    <Briefcase className="absolute left-3.5 top-3.5 w-4 h-4 text-slate-400" />
-                    <input
-                      type="text"
-                      value={role}
-                      onChange={(e) => setRole(e.target.value)}
-                      placeholder="e.g. Principal Investigator"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-xs text-slate-800 focus-ring"
-                    />
-                  </div>
-                </div>
               </motion.div>
             )}
 
@@ -266,7 +211,7 @@ export default function AuthPage() {
                 <Mail className="absolute left-3.5 top-3 w-4 h-4 text-slate-400" />
                 <input
                   type="email"
-                  placeholder="name@labnotebook.ai"
+                  placeholder="name@inveniqlab.ai"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="w-full bg-slate-50 border border-slate-200 rounded-xl py-3 pl-10 pr-4 text-xs text-slate-800 focus-ring"

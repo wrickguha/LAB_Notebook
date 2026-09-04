@@ -22,12 +22,12 @@ class BiotechSeeder extends Seeder
 
         $user = User::create([
             'name' => 'Dr. Evelyn Thorne',
-            'email' => 'evelyn.thorne@labnotebook.ai',
+            'email' => 'evelyn.thorne@inveniqlab.ai',
             'password' => Hash::make('password123'),
             'role' => 'Principal Investigator',
             'institution' => 'Institute of Biomolecular Sciences',
             'lab' => 'Thorne Genomics Lab',
-            'avatar' => 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+            'avatar' => null,
         ]);
 
         $project1 = Project::create([

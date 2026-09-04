@@ -22,6 +22,7 @@ class UserController extends Controller
             'email' => ['sometimes', 'email', 'unique:users,email,' . $user->id],
             'institution' => ['sometimes', 'nullable', 'string', 'max:255'],
             'lab' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'avatar' => ['sometimes', 'nullable', 'string'],
         ]);
 
         $user->fill($validated);
@@ -34,7 +35,7 @@ class UserController extends Controller
             'email' => $user->email,
             'institution' => $user->institution ?? '',
             'lab' => $user->lab ?? '',
-            'avatar' => $user->avatar ?? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150',
+            'avatar' => $user->avatar ?? null,
         ]);
     }
 }

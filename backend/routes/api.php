@@ -27,6 +27,7 @@ Route::middleware('web')->group(function () {
 
     Route::get('/projects', [ProjectController::class, 'index']);
     Route::post('/projects', [ProjectController::class, 'store']);
+    Route::put('/projects/{project}', [ProjectController::class, 'update']);
     Route::patch('/projects/{project}/milestones/{milestone}', [ProjectController::class, 'toggleMilestone']);
 
     Route::get('/notebook/folders', [NotebookController::class, 'listFolders']);
