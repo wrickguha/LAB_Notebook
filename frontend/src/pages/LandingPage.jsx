@@ -46,7 +46,21 @@ export default function LandingPage() {
         <section id="contact" className="contact-section page-width"><div className="contact-icon"><Mail size={22} /></div><div><div className="section-label">05 / Get in touch</div><h2>Have a question or want to learn more?</h2><p>We would love to hear from you. Tell us about your laboratory or research team.</p></div><a className="secondary-button" href="mailto:hello@inveniq-lab.com">Contact us <ArrowRight size={16} /></a></section>
         <section className="final-cta"><div className="page-width"><span className="section-kicker"><span className="kicker-dot" /> Make research easier</span><h2>Bring your research<br /><span>into one place.</span></h2><button type="button" className="primary-button" onClick={() => goToAuth(true)}>Get Started Free <ArrowRight size={17} /></button></div></section>
       </main>
-      <footer className="landing-footer page-width"><a className="landing-logo" href="#top"><span>I</span><strong>Inveniq <em>Lab</em></strong></a><p>Digital tools for better research.</p><span>© 2026 Inveniq Lab</span></footer>
+      <footer className="landing-footer">
+        <div className="page-width">
+          <div className="footer-main">
+            <div className="footer-brand">
+              <a className="landing-logo" href="#top"><span>I</span><strong>Inveniq <em>Lab</em></strong></a>
+              <p>Digital tools for better research.</p>
+              <a className="footer-email" href="mailto:hello@inveniq-lab.com"><Mail size={14} /> hello@inveniq-lab.com</a>
+            </div>
+            <div className="footer-column"><h3>Explore</h3><a href="#about">About Inveniq Lab</a><a href="#features">Features</a><a href="#tools">Scientific Tools</a><a href="#pricing">Pricing</a></div>
+            <div className="footer-column"><h3>Product</h3><a href="#features">Electronic Lab Notebook</a><a href="#features">Research Management</a><a href="#features">Resource Sharing</a><a href="#features">Research Papers</a></div>
+            <div className="footer-connect"><h3>Ready to get organized?</h3><p>Bring your research into one focused workspace.</p><button type="button" className="primary-button compact" onClick={() => goToAuth(true)}>Get Started Free <ArrowRight size={15} /></button></div>
+          </div>
+          <div className="footer-bottom"><span>© 2026 Inveniq Lab. All rights reserved.</span><div><a href="#contact">Contact</a><a href="#top">Privacy</a><a href="#top">Terms</a></div><span>Built for better research.</span></div>
+        </div>
+      </footer>
     </div>
   );
 }
