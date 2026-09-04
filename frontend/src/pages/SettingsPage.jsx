@@ -13,10 +13,6 @@ import {
   Save,
   ShieldCheck,
   AlertCircle,
-  FileCheck2,
-  KeyRound,
-  Lock,
-  Sparkles,
   Upload
 } from 'lucide-react';
 
@@ -359,40 +355,6 @@ export default function SettingsPage() {
 
         </div>
 
-        {/* Credentials & Compliance Status Highlights */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-150 text-xs">
-          
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
-            <div className="flex items-center gap-2 text-slate-700 font-bold text-xs">
-              <FileCheck2 className="w-4 h-4 text-blue-600" />
-              <span>Digital Ledger Stamp</span>
-            </div>
-            <p className="text-[10px] text-slate-500 leading-relaxed">
-              Every notebook entry signed with this identity generates a cryptographic SHA-256 validation seal.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
-            <div className="flex items-center gap-2 text-slate-700 font-bold text-xs">
-              <Lock className="w-4 h-4 text-indigo-600" />
-              <span>Granular RBAC</span>
-            </div>
-            <p className="text-[10px] text-slate-500 leading-relaxed">
-              Assigned role dictates folder creation, project review authorization, and resource sharing rights.
-            </p>
-          </div>
-
-          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1.5">
-            <div className="flex items-center gap-2 text-slate-700 font-bold text-xs">
-              <Sparkles className="w-4 h-4 text-amber-600" />
-              <span>Profile Image Rules</span>
-            </div>
-            <p className="text-[10px] text-slate-500 leading-relaxed">
-              Custom photos are stored securely (&le; 1MB). Initials avatars are auto-rendered when no photo is uploaded.
-            </p>
-          </div>
-
-        </div>
 
         {/* Action Bar */}
         <div className="pt-6 border-t border-slate-150 flex flex-col sm:flex-row items-center justify-between gap-4">

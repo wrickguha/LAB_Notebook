@@ -4,8 +4,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
   Layers,
-  Beaker,
-  CheckSquare,
   Share2,
   Calculator,
   BookOpen,
@@ -18,8 +16,7 @@ import {
   Search,
   LogOut,
   User,
-  X,
-  FileText
+  X
 } from 'lucide-react';
 
 export default function DashboardLayout({ children, activeTab, setActiveTab }) {
@@ -43,7 +40,6 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
   const menuItems = [
     { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
     { id: 'projects', name: 'Projects', icon: Layers },
-    { id: 'notebook', name: 'Lab Notebook', icon: Beaker },
     { id: 'resources', name: 'Resource Sharing', icon: Share2 },
     { id: 'calculators', name: 'Calculators', icon: Calculator },
     { id: 'papers', name: 'Research Papers', icon: BookOpen },
@@ -51,10 +47,6 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
     { id: 'settings', name: 'Settings & Logs', icon: Settings },
   ];
 
-  const getPageTitle = () => {
-    const activeItem = menuItems.find(item => item.id === activeTab);
-    return activeItem ? activeItem.name : 'Workspace';
-  };
 
   return (
     <div className="min-h-screen bg-slate-50 flex text-slate-800 antialiased font-sans">
@@ -184,13 +176,9 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
             >
               <Menu className="w-5 h-5" />
             </button>
-            
-            <h1 className="text-base sm:text-lg font-bold text-slate-900 hidden sm:block">
-              {getPageTitle()}
-            </h1>
 
             {/* Global Search Bar */}
-            <div className="relative max-w-xs w-full ml-4 hidden md:block">
+            <div className="relative max-w-xs w-full hidden md:block">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-450" />
               <input
                 type="text"
