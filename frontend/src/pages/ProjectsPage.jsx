@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import ProjectEditPage from './ProjectEditPage';
 import {
   Grid,
   List,
@@ -15,20 +16,13 @@ import {
   Image as ImageIcon,
   Edit3,
   Trash2,
-  Check,
-  Percent,
-  Layers,
-  Sparkles,
-  ShieldCheck,
-  CheckCircle2
 } from 'lucide-react';
 
 export default function ProjectsPage() {
   const { projects, setProjects, addProject, updateProject } = useApp();
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list' | 'timeline'
   const [createModalOpen, setCreateModalOpen] = useState(false);
-  const [editModalOpen, setEditModalOpen] = useState(false);
-  const [selectedProject, setSelectedProject] = useState(null);
+  const [editingProject, setEditingProject] = useState(null); // null = list view, project obj = edit page
 
   // Create Project Form States
   const [projName, setProjName] = useState('');
@@ -37,17 +31,6 @@ export default function ProjectsPage() {
   const [projStatus, setProjStatus] = useState('Active');
   const [projMilestones, setProjMilestones] = useState('');
   const [projBanner, setProjBanner] = useState('https://images.unsplash.com/photo-1532187643603-ba119ca4109e?w=800');
-
-  // Edit Project Form States
-  const [editName, setEditName] = useState('');
-  const [editCode, setEditCode] = useState('');
-  const [editDesc, setEditDesc] = useState('');
-  const [editStatus, setEditStatus] = useState('Active');
-  const [editBanner, setEditBanner] = useState('');
-  const [editProgress, setEditProgress] = useState(0);
-  const [editMilestonesList, setEditMilestonesList] = useState([]);
-  const [newMilestoneInput, setNewMilestoneInput] = useState('');
-  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   const banners = [
     { name: 'Genomics Teal', url: 'https://images.unsplash.com/photo-1532187643603-ba119ca4109e?w=800' },
@@ -88,84 +71,12 @@ export default function ProjectsPage() {
   };
 
   const handleOpenEditModal = (project) => {
-    setSelectedProject(project);
-    setEditName(project.name || '');
-    setEditCode(project.code || '');
-    setEditDesc(project.description || '');
-    setEditStatus(project.status || 'Active');
-    setEditBanner(project.banner || banners[0].url);
-    setEditProgress(project.progress ?? 0);
-    setEditMilestonesList(
-      (project.milestones || []).map(m => ({
-        id: m.id,
-        name: m.name,
-        completed: Boolean(m.completed)
-      }))
-    );
-    setNewMilestoneInput('');
-    setEditModalOpen(true);
+    setEditingProject(project);
   };
 
-  const handleAddMilestoneToEdit = () => {
-    if (!newMilestoneInput.trim()) return;
-    setEditMilestonesList([
-      ...editMilestonesList,
-      {
-        id: `m-new-${Date.now()}`,
-        name: newMilestoneInput.trim(),
-        completed: false
-      }
-    ]);
-    setNewMilestoneInput('');
-  };
-
-  const handleToggleEditMilestone = (index) => {
-    const updated = [...editMilestonesList];
-    updated[index].completed = !updated[index].completed;
-    setEditMilestonesList(updated);
-
-    const completedCount = updated.filter(m => m.completed).length;
-    const totalCount = updated.length;
-    if (totalCount > 0) {
-      setEditProgress(Math.round((completedCount / totalCount) * 100));
-    }
-  };
-
-  const handleRemoveEditMilestone = (index) => {
-    const updated = editMilestonesList.filter((_, idx) => idx !== index);
-    setEditMilestonesList(updated);
-  };
-
-  const handleUpdateEditMilestoneName = (index, newName) => {
-    const updated = [...editMilestonesList];
-    updated[index].name = newName;
-    setEditMilestonesList(updated);
-  };
-
-  const handleSaveProjectEdit = async (e) => {
-    e.preventDefault();
-    if (!selectedProject || !editName.trim() || !editCode.trim()) return;
-
-    setIsSubmittingEdit(true);
-    try {
-      await updateProject(selectedProject.id, {
-        name: editName.trim(),
-        code: editCode.trim().toUpperCase(),
-        description: editDesc.trim(),
-        status: editStatus,
-        banner: editBanner,
-        progress: Number(editProgress),
-        milestones: editMilestonesList,
-        members: selectedProject.members
-      });
-
-      setEditModalOpen(false);
-      setSelectedProject(null);
-    } catch (err) {
-      console.error('Error saving project edits:', err);
-    } finally {
-      setIsSubmittingEdit(false);
-    }
+  const handleSaveProjectEdit = async (payload) => {
+    if (!editingProject) return;
+    await updateProject(editingProject.id, payload);
   };
 
   const toggleMilestone = (projectID, milestoneID) => {
@@ -202,6 +113,20 @@ export default function ProjectsPage() {
       default: return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
+
+  // ── If a project is being edited, swap to the full edit page ──
+  if (editingProject) {
+    return (
+      <AnimatePresence mode="wait">
+        <ProjectEditPage
+          key={`edit-${editingProject.id}`}
+          project={editingProject}
+          onSave={handleSaveProjectEdit}
+          onCancel={() => setEditingProject(null)}
+        />
+      </AnimatePresence>
+    );
+  }
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in-up font-sans">
@@ -609,216 +534,7 @@ export default function ProjectsPage() {
         )}
       </AnimatePresence>
 
-      {/* EDIT PROJECT MODAL */}
-      <AnimatePresence>
-        {editModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setEditModalOpen(false)}
-              className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
-            />
 
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-white border border-slate-200 rounded-3xl shadow-2xl relative w-full max-w-xl max-h-[90vh] overflow-y-auto p-6 sm:p-8 z-10 text-xs no-scrollbar"
-            >
-              <div className="flex justify-between items-center border-b border-slate-150 pb-4 mb-6">
-                <div>
-                  <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
-                    <Edit3 className="w-5 h-5 text-teal-600" />
-                    Edit Project: {selectedProject?.name}
-                  </h3>
-                  <p className="text-[10px] text-slate-400 mt-0.5">Modify parameters, completion velocity, and milestones.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setEditModalOpen(false)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-
-              <form onSubmit={handleSaveProjectEdit} className="space-y-5">
-                
-                {/* Name & Code */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Project Title *</label>
-                    <input
-                      type="text"
-                      required
-                      value={editName}
-                      onChange={(e) => setEditName(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-800 focus-ring"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Project Code *</label>
-                    <input
-                      type="text"
-                      required
-                      value={editCode}
-                      onChange={(e) => setEditCode(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-800 focus-ring uppercase"
-                    />
-                  </div>
-                </div>
-
-                {/* Scope */}
-                <div className="space-y-1">
-                  <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Scope & Objectives</label>
-                  <textarea
-                    rows={3}
-                    value={editDesc}
-                    onChange={(e) => setEditDesc(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-800 focus-ring"
-                  />
-                </div>
-
-                {/* Status & Banner */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Status</label>
-                    <select
-                      value={editStatus}
-                      onChange={(e) => setEditStatus(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 focus-ring cursor-pointer"
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Planning">Planning</option>
-                      <option value="On Hold">On Hold</option>
-                      <option value="Completed">Completed</option>
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Cover Visual</label>
-                    <select
-                      value={editBanner}
-                      onChange={(e) => setEditBanner(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-bold text-slate-800 focus-ring cursor-pointer"
-                    >
-                      {banners.map((b, i) => (
-                        <option key={i} value={b.url}>{b.name}</option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Progress Slider */}
-                <div className="space-y-2 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-                  <div className="flex justify-between items-center text-xs">
-                    <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Research Progress</label>
-                    <span className="font-mono font-black text-teal-700 text-sm">{editProgress}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0"
-                    max="100"
-                    step="1"
-                    value={editProgress}
-                    onChange={(e) => setEditProgress(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
-                  />
-                </div>
-
-                {/* Milestones Management */}
-                <div className="space-y-3 pt-2 border-t border-slate-150">
-                  <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">
-                    Milestones Checklist ({editMilestonesList.length})
-                  </label>
-
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Add milestone step..."
-                      value={newMilestoneInput}
-                      onChange={(e) => setNewMilestoneInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
-                          e.preventDefault();
-                          handleAddMilestoneToEdit();
-                        }
-                      }}
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-800 focus-ring"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddMilestoneToEdit}
-                      className="px-3.5 py-2 bg-teal-50 text-teal-700 hover:bg-teal-100 font-bold rounded-xl text-xs transition-colors cursor-pointer shrink-0"
-                    >
-                      + Add
-                    </button>
-                  </div>
-
-                  <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar">
-                    {editMilestonesList.length === 0 ? (
-                      <p className="text-[11px] text-slate-400 text-center py-2">No milestones defined yet.</p>
-                    ) : (
-                      editMilestonesList.map((m, idx) => (
-                        <div
-                          key={m.id || idx}
-                          className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200 hover:bg-slate-100/70 transition-colors text-xs"
-                        >
-                          <div className="flex items-center gap-2.5 flex-1 min-w-0">
-                            <input
-                              type="checkbox"
-                              checked={m.completed}
-                              onChange={() => handleToggleEditMilestone(idx)}
-                              className="h-4 w-4 text-teal-600 rounded border-slate-300 focus:ring-0 cursor-pointer shrink-0"
-                            />
-                            <input
-                              type="text"
-                              value={m.name}
-                              onChange={(e) => handleUpdateEditMilestoneName(idx, e.target.value)}
-                              className={`w-full bg-transparent border-none p-0 text-xs font-semibold focus:ring-0 ${
-                                m.completed ? 'text-slate-400 line-through' : 'text-slate-800'
-                              }`}
-                            />
-                          </div>
-
-                          <button
-                            type="button"
-                            onClick={() => handleRemoveEditMilestone(idx)}
-                            className="p-1 text-slate-400 hover:text-rose-600 transition-colors shrink-0 cursor-pointer"
-                            title="Delete Milestone"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-
-                {/* Modal Action Buttons */}
-                <div className="pt-4 border-t border-slate-150 flex justify-end gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => setEditModalOpen(false)}
-                    className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl focus-ring cursor-pointer"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmittingEdit}
-                    className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all focus-ring disabled:opacity-50 cursor-pointer"
-                  >
-                    {isSubmittingEdit ? 'Saving Changes...' : 'Save Project Changes'}
-                  </button>
-                </div>
-
-              </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
 
     </div>
   );
