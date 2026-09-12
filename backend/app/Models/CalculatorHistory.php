@@ -3,12 +3,12 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CalculatorHistory extends Model
 {
-    protected $table = 'calculator_history';
-
     protected $fillable = [
+        'user_id',
         'type',
         'calculator_name',
         'formula',
@@ -20,8 +20,12 @@ class CalculatorHistory extends Model
     ];
 
     protected $casts = [
-        'input_json' => 'array',
+        'input_json'  => 'array',
         'output_json' => 'array',
-        'project_id' => 'integer',
     ];
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
 }

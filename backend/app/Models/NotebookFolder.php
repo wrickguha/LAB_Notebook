@@ -3,14 +3,14 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class NotebookFolder extends Model
 {
-    protected $fillable = ['name'];
+    protected $fillable = ['user_id', 'name'];
 
-    public function entries(): HasMany
+    public function user(): BelongsTo
     {
-        return $this->hasMany(NotebookEntry::class);
+        return $this->belongsTo(User::class);
     }
 }

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class NotebookEntry extends Model
 {
     protected $fillable = [
+        'user_id',
         'folder_id',
         'project_id',
         'title',
@@ -17,13 +18,8 @@ class NotebookEntry extends Model
         'date',
     ];
 
-    public function folder(): BelongsTo
+    public function user(): BelongsTo
     {
-        return $this->belongsTo(NotebookFolder::class, 'folder_id');
-    }
-
-    public function project(): BelongsTo
-    {
-        return $this->belongsTo(Project::class, 'project_id');
+        return $this->belongsTo(User::class);
     }
 }

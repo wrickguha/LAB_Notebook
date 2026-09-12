@@ -9,11 +9,14 @@ use Illuminate\Support\Facades\Auth;
 
 class ProjectController extends Controller
 {
+    /** Return only the authenticated user''s projects. */
     public function index()
     {
-        $projects = Project::with('milestones')->orderByDesc('updated_at')->get()->map(function ($project) {
-            return $this->serializeProject($project);
-        });
+        $projects = Project::with(''milestones'')
+            ->where(''user_id'', Auth::id())
+            ->orderByDesc(''updated_at'')
+            ->get()
+            ->map(fn ($p) => $this->serializeProject($p));
 
         return response()->json($projects);
     }
@@ -21,88 +24,98 @@ class ProjectController extends Controller
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'name' => ['required', 'string'],
-            'code' => ['required', 'string'],
-            'description' => ['nullable', 'string'],
-            'status' => ['nullable', 'string'],
-            'banner' => ['nullable', 'string'],
-            'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
-            'milestones' => ['nullable', 'array'],
-            'members' => ['nullable', 'array'],
+            ''name''        => [''required'', ''string''],
+            ''code''        => [''required'', ''string''],
+            ''description'' => [''nullable'', ''string''],
+            ''status''      => [''nullable'', ''string''],
+            ''banner''      => [''nullable'', ''string''],
+            ''progress''    => [''nullable'', ''integer'', ''min:0'', ''max:100''],
+            ''milestones''  => [''nullable'', ''array''],
+            ''members''     => [''nullable'', ''array''],
         ]);
 
         $project = Project::create([
-            'name' => $validated['name'],
-            'code' => $validated['code'],
-            'description' => $validated['description'] ?? '',
-            'status' => $validated['status'] ?? 'Active',
-            'banner' => $validated['banner'] ?? 'https://images.unsplash.com/photo-1532187643603-ba119ca4109e?w=800',
-            'progress' => $validated['progress'] ?? 0,
-            'members' => $validated['members'] ?? [
-                ['name' => 'Dr. Evelyn Thorne', 'role' => 'Principal Investigator', 'avatar' => 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'],
+            ''user_id''       => Auth::id(),
+            ''name''          => $validated[''name''],
+            ''code''          => $validated[''code''],
+            ''description''   => $validated[''description''] ?? '''',
+            ''status''        => $validated[''status''] ?? ''Active'',
+            ''banner''        => $validated[''banner''] ?? ''https://images.unsplash.com/photo-1532187643603-ba119ca4109e?w=800'',
+            ''progress''      => $validated[''progress''] ?? 0,
+            ''members''       => $validated[''members''] ?? [
+                [''name'' => Auth::user()->name, ''role'' => ''Principal Investigator'', ''avatar'' => Auth::user()->avatar ?? ''https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150''],
             ],
-            'last_activity' => now(),
+            ''last_activity'' => now(),
         ]);
 
-        foreach ($validated['milestones'] ?? [] as $milestone) {
+        foreach ($validated[''milestones''] ?? [] as $milestone) {
             $project->milestones()->create([
-                'name' => $milestone['name'] ?? '',
-                'completed' => (bool) ($milestone['completed'] ?? false),
+                ''name''      => $milestone[''name''] ?? '''',
+                ''completed'' => (bool) ($milestone[''completed''] ?? false),
             ]);
         }
 
-        return response()->json($this->serializeProject($project->load('milestones')));
+        return response()->json($this->serializeProject($project->load(''milestones'')));
     }
 
     public function update(Request $request, Project $project)
     {
+        // Ensure the project belongs to the authenticated user
+        if ($project->user_id !== null && $project->user_id !== Auth::id()) {
+            return response()->json([''message'' => ''Forbidden''], 403);
+        }
+
         $validated = $request->validate([
-            'name' => ['sometimes', 'required', 'string'],
-            'code' => ['sometimes', 'required', 'string'],
-            'description' => ['nullable', 'string'],
-            'status' => ['nullable', 'string'],
-            'banner' => ['nullable', 'string'],
-            'progress' => ['nullable', 'integer', 'min:0', 'max:100'],
-            'milestones' => ['nullable', 'array'],
-            'members' => ['nullable', 'array'],
+            ''name''        => [''sometimes'', ''required'', ''string''],
+            ''code''        => [''sometimes'', ''required'', ''string''],
+            ''description'' => [''nullable'', ''string''],
+            ''status''      => [''nullable'', ''string''],
+            ''banner''      => [''nullable'', ''string''],
+            ''progress''    => [''nullable'', ''integer'', ''min:0'', ''max:100''],
+            ''milestones''  => [''nullable'', ''array''],
+            ''members''     => [''nullable'', ''array''],
         ]);
 
         $project->fill([
-            'name' => $validated['name'] ?? $project->name,
-            'code' => $validated['code'] ?? $project->code,
-            'description' => array_key_exists('description', $validated) ? $validated['description'] : $project->description,
-            'status' => $validated['status'] ?? $project->status,
-            'banner' => $validated['banner'] ?? $project->banner,
-            'progress' => array_key_exists('progress', $validated) ? $validated['progress'] : $project->progress,
-            'members' => $validated['members'] ?? $project->members,
-            'last_activity' => now(),
+            ''name''          => $validated[''name'']        ?? $project->name,
+            ''code''          => $validated[''code'']        ?? $project->code,
+            ''description''   => array_key_exists(''description'', $validated) ? $validated[''description''] : $project->description,
+            ''status''        => $validated[''status'']      ?? $project->status,
+            ''banner''        => $validated[''banner'']      ?? $project->banner,
+            ''progress''      => array_key_exists(''progress'', $validated) ? $validated[''progress''] : $project->progress,
+            ''members''       => $validated[''members'']     ?? $project->members,
+            ''last_activity'' => now(),
         ]);
         $project->save();
 
-        if (isset($validated['milestones'])) {
+        if (isset($validated[''milestones''])) {
             $project->milestones()->delete();
-            foreach ($validated['milestones'] as $milestone) {
-                if (is_array($milestone) && !empty($milestone['name'])) {
+            foreach ($validated[''milestones''] as $milestone) {
+                if (is_array($milestone) && !empty($milestone[''name''])) {
                     $project->milestones()->create([
-                        'name' => $milestone['name'],
-                        'completed' => (bool) ($milestone['completed'] ?? false),
+                        ''name''      => $milestone[''name''],
+                        ''completed'' => (bool) ($milestone[''completed''] ?? false),
                     ]);
-                } elseif (is_string($milestone) && trim($milestone) !== '') {
+                } elseif (is_string($milestone) && trim($milestone) !== '''') {
                     $project->milestones()->create([
-                        'name' => trim($milestone),
-                        'completed' => false,
+                        ''name''      => trim($milestone),
+                        ''completed'' => false,
                     ]);
                 }
             }
         }
 
-        return response()->json($this->serializeProject($project->load('milestones')));
+        return response()->json($this->serializeProject($project->load(''milestones'')));
     }
 
     public function toggleMilestone(Project $project, ProjectMilestone $milestone)
     {
+        if ($project->user_id !== null && $project->user_id !== Auth::id()) {
+            return response()->json([''message'' => ''Forbidden''], 403);
+        }
+
         if ($milestone->project_id !== $project->id) {
-            return response()->json(['message' => 'Milestone not found for project'], 404);
+            return response()->json([''message'' => ''Milestone not found for project''], 404);
         }
 
         $milestone->completed = ! $milestone->completed;
@@ -110,38 +123,36 @@ class ProjectController extends Controller
 
         $project->refresh();
         $milestones = $project->milestones()->get();
-        $completed = $milestones->where('completed', true)->count();
-        $total = $milestones->count();
-        $project->progress = $total > 0 ? (int) round(($completed / $total) * 100) : 0;
+        $completed  = $milestones->where(''completed'', true)->count();
+        $total      = $milestones->count();
+        $project->progress      = $total > 0 ? (int) round(($completed / $total) * 100) : 0;
         $project->last_activity = now();
         $project->save();
 
-        return response()->json($this->serializeProject($project->load('milestones')));
+        return response()->json($this->serializeProject($project->load(''milestones'')));
     }
 
     protected function serializeProject(Project $project): array
     {
-        $milestones = $project->milestones()->get()->map(function ($item) {
-            return [
-                'id' => (string) $item->id,
-                'name' => $item->name,
-                'completed' => (bool) $item->completed,
-            ];
-        })->values()->all();
+        $milestones = $project->milestones()->get()->map(fn ($item) => [
+            ''id''        => (string) $item->id,
+            ''name''      => $item->name,
+            ''completed'' => (bool) $item->completed,
+        ])->values()->all();
 
         return [
-            'id' => (string) $project->id,
-            'name' => $project->name,
-            'code' => $project->code,
-            'description' => $project->description,
-            'status' => $project->status,
-            'banner' => $project->banner,
-            'progress' => (int) $project->progress,
-            'lastActivity' => $project->last_activity?->toISOString(),
-            'members' => $project->members ?? [
-                ['name' => 'Dr. Evelyn Thorne', 'role' => 'Principal Investigator', 'avatar' => 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150'],
+            ''id''           => (string) $project->id,
+            ''name''         => $project->name,
+            ''code''         => $project->code,
+            ''description''  => $project->description,
+            ''status''       => $project->status,
+            ''banner''       => $project->banner,
+            ''progress''     => (int) $project->progress,
+            ''lastActivity'' => $project->last_activity?->toISOString(),
+            ''members''      => $project->members ?? [
+                [''name'' => ''Dr. Evelyn Thorne'', ''role'' => ''Principal Investigator'', ''avatar'' => ''https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=150''],
             ],
-            'milestones' => $milestones,
+            ''milestones''   => $milestones,
         ];
     }
 }
