@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProjectEditPage from './ProjectEditPage';
@@ -401,23 +402,24 @@ export default function ProjectsPage() {
       )}
 
       {/* CREATE PROJECT MODAL */}
-      <AnimatePresence>
-        {createModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setCreateModalOpen(false)}
-              className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
-            />
+      {createPortal(
+        <AnimatePresence>
+          {createModalOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto p-4 sm:p-6">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setCreateModalOpen(false)}
+                className="absolute inset-0 bg-slate-950/45 backdrop-blur-sm"
+              />
 
-            <motion.div
-              initial={{ scale: 0.95, opacity: 0, y: 10 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-white border border-slate-200 rounded-3xl shadow-2xl relative w-full max-w-lg p-6 sm:p-8 z-10 text-xs no-scrollbar"
-            >
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0, y: 10 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 0.95, opacity: 0, y: 10 }}
+                className="relative z-10 my-auto w-full max-w-lg max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 text-xs shadow-2xl sm:p-8 no-scrollbar"
+              >
               <div className="flex justify-between items-center border-b border-slate-150 pb-4 mb-6">
                 <div>
                   <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
@@ -529,10 +531,12 @@ export default function ProjectsPage() {
                   </button>
                 </div>
               </form>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
 
 
 
