@@ -553,30 +553,30 @@ export default function CalculatorsPage() {
     : calculatorsMap[activeCategory] || [];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 font-sans animate-fade-in-up pb-12">
       
       {/* LEFT: Calculators Area */}
       <div className="lg:col-span-8 space-y-6">
 
         {/* Top Bar: Search + Project Selector */}
-        <div className="bg-white border border-slate-200 p-4 rounded-2xl shadow-xs flex flex-wrap items-center justify-between gap-4">
+        <div className="bg-white border border-slate-200/80 p-4 rounded-3xl shadow-xs flex flex-wrap items-center justify-between gap-4">
           <div className="relative flex-1 min-w-[240px]">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
               placeholder="Search among 19 molecular biology calculators..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs focus-ring text-slate-800"
+              className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl pl-9.5 pr-4 py-2 text-xs focus-ring text-slate-800 font-medium transition-colors"
             />
           </div>
 
           <div className="flex items-center gap-2 text-xs">
-            <FolderPlus className="w-4 h-4 text-blue-600" />
+            <FolderPlus className="w-4 h-4 text-teal-600 shrink-0" />
             <select
               value={selectedProjectId}
               onChange={(e) => setSelectedProjectId(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus-ring"
+              className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-semibold text-slate-700 focus-ring cursor-pointer"
             >
               <option value="">-- Associate Run with Project --</option>
               {projects.map((p) => (
@@ -588,24 +588,27 @@ export default function CalculatorsPage() {
 
         {/* Category Tabs (shown if search query is empty) */}
         {!searchQuery && (
-          <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-xs flex flex-wrap gap-2">
+          <div className="bg-white border border-slate-200/80 p-3.5 rounded-3xl shadow-xs grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2">
             {categories.map((cat) => (
               <button
                 key={cat.id}
+                type="button"
                 onClick={() => {
                   setActiveCategory(cat.id);
                   setSelectedCalc(calculatorsMap[cat.id][0].id);
                   setCalcResult(null);
                   setCalcError(null);
                 }}
-                className={`flex-1 min-w-[130px] text-left p-3 rounded-xl border transition-all ${
+                className={`text-left p-3 rounded-2xl border transition-all cursor-pointer ${
                   activeCategory === cat.id
-                    ? 'bg-blue-50 border-blue-300 shadow-xs scale-[1.01]'
-                    : 'bg-slate-50 border-slate-200 hover:bg-slate-100'
+                    ? 'bg-teal-50 border-teal-300 shadow-xs ring-1 ring-teal-200'
+                    : 'bg-slate-50/70 border-slate-200/70 hover:bg-slate-100/60'
                 }`}
               >
-                <h3 className="font-extrabold text-slate-800 text-xs">{cat.name}</h3>
-                <p className="text-[10px] text-slate-500 mt-1">{cat.desc}</p>
+                <h3 className={`font-extrabold text-xs truncate ${activeCategory === cat.id ? 'text-teal-900' : 'text-slate-800'}`}>
+                  {cat.name}
+                </h3>
+                <p className="text-[10px] text-slate-400 mt-0.5 truncate">{cat.desc}</p>
               </button>
             ))}
           </div>
@@ -616,14 +619,15 @@ export default function CalculatorsPage() {
           {filteredCalculators.map((c) => (
             <button
               key={c.id}
+              type="button"
               onClick={() => {
                 setSelectedCalc(c.id);
                 setCalcResult(null);
                 setCalcError(null);
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border ${
+              className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
                 selectedCalc === c.id
-                  ? 'bg-blue-600 text-white border-blue-600 shadow-xs'
+                  ? 'bg-teal-600 text-white border-teal-600 shadow-sm shadow-teal-500/20'
                   : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
               }`}
             >
@@ -633,12 +637,12 @@ export default function CalculatorsPage() {
         </div>
 
         {/* CALCULATOR WORKSPACE */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-xs min-h-[350px] space-y-6">
+        <div className="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-xs min-h-[350px] space-y-6">
 
           {/* Validation Error Banner */}
           {calcError && (
-            <div className="bg-red-50 border border-red-200 text-red-700 p-3.5 rounded-xl text-xs flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 shrink-0 text-red-500" />
+            <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3.5 rounded-2xl text-xs flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 shrink-0 text-rose-500" />
               <span className="font-medium">{calcError}</span>
             </div>
           )}
@@ -665,7 +669,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate PCR Mix</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate PCR Mix</button>
               </div>
             </form>
           )}
@@ -708,7 +712,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Compile qPCR Mix</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Compile qPCR Mix</button>
               </div>
             </form>
           )}
@@ -755,7 +759,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Compile LAMP Mix</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Compile LAMP Mix</button>
               </div>
             </form>
           )}
@@ -778,7 +782,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate Solvent Volume</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate Solvent Volume</button>
               </div>
             </form>
           )}
@@ -805,7 +809,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Solve Dilution</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Solve Dilution</button>
               </div>
             </form>
           )}
@@ -822,7 +826,7 @@ export default function CalculatorsPage() {
                 <input type="text" value={tmSeq} onChange={e => setTmSeq(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono uppercase" placeholder="e.g. ATGCGATCGATCGATCGATC" />
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate Tm & Ta</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate Tm & Ta</button>
               </div>
             </form>
           )}
@@ -839,7 +843,7 @@ export default function CalculatorsPage() {
                 <input type="text" value={gcSeq} onChange={e => setGcSeq(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono uppercase" placeholder="e.g. GCATCGATCGATCGATC" />
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Analyze GC Content</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Analyze GC Content</button>
               </div>
             </form>
           )}
@@ -870,7 +874,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate DNA Conc</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate DNA Conc</button>
               </div>
             </form>
           )}
@@ -901,7 +905,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate RNA Conc</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate RNA Conc</button>
               </div>
             </form>
           )}
@@ -924,7 +928,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate Copy Count</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate Copy Count</button>
               </div>
             </form>
           )}
@@ -951,7 +955,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Solve Normalization</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Solve Normalization</button>
               </div>
             </form>
           )}
@@ -986,7 +990,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate Digest Mix</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate Digest Mix</button>
               </div>
             </form>
           )}
@@ -1017,7 +1021,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate Ligation Ratio</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate Ligation Ratio</button>
               </div>
             </form>
           )}
@@ -1040,7 +1044,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate Agarose Powder</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate Agarose Powder</button>
               </div>
             </form>
           )}
@@ -1057,7 +1061,7 @@ export default function CalculatorsPage() {
                 <textarea rows="3" value={revSeq} onChange={e => setRevSeq(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono uppercase" placeholder="e.g. ATGCGATCGATCGATC"></textarea>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Generate Reverse Complement</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Generate Reverse Complement</button>
               </div>
             </form>
           )}
@@ -1088,7 +1092,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate Serial Series</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate Serial Series</button>
               </div>
             </form>
           )}
@@ -1119,7 +1123,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate Molarity & Normality</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate Molarity & Normality</button>
               </div>
             </form>
           )}
@@ -1166,7 +1170,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Convert Units</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Convert Units</button>
               </div>
             </form>
           )}
@@ -1197,7 +1201,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate Titrant Volume</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate Titrant Volume</button>
               </div>
             </form>
           )}
@@ -1224,7 +1228,7 @@ export default function CalculatorsPage() {
                 </div>
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate Decay State</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate Decay State</button>
               </div>
             </form>
           )}
@@ -1241,7 +1245,7 @@ export default function CalculatorsPage() {
                 <input type="text" value={statsData} onChange={e => setStatsData(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 font-mono" placeholder="e.g. 12.4, 15.6, 14.2, 18.9, 13.5" />
               </div>
               <div className="flex justify-end pt-2">
-                <button type="submit" className="rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-5 py-2.5 shadow">Calculate Statistics</button>
+                <button type="submit" className="rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-5 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">Calculate Statistics</button>
               </div>
             </form>
           )}
@@ -1249,15 +1253,15 @@ export default function CalculatorsPage() {
 
           {/* RESULTS DISPLAY PANEL */}
           {calcResult && (
-            <div className="bg-blue-50/70 border border-blue-200 rounded-2xl p-5 space-y-4 text-xs animate-fade-in-up">
+            <div className="bg-teal-50/70 border border-teal-200/80 rounded-3xl p-6 space-y-4 text-xs animate-fade-in-up">
               
-              <div className="flex justify-between items-center border-b border-blue-200/70 pb-3">
+              <div className="flex justify-between items-center border-b border-teal-200/70 pb-3">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-blue-600" />
-                  <span className="font-extrabold text-blue-900 text-xs uppercase tracking-wider">Calculation Results</span>
+                  <Sparkles className="w-4 h-4 text-teal-600" />
+                  <span className="font-mono font-bold text-teal-900 text-xs uppercase tracking-wider">CALCULATION VERIFIED</span>
                 </div>
                 {selectedProjectId && (
-                  <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2.5 py-1 rounded-full border border-blue-200">
+                  <span className="bg-teal-100/80 text-teal-800 text-[10px] font-mono font-bold px-2.5 py-1 rounded-full border border-teal-300">
                     Linked to Project
                   </span>
                 )}
@@ -1265,38 +1269,40 @@ export default function CalculatorsPage() {
 
               {/* Text Summary if present */}
               {calcResult.summary && (
-                <div className="p-3 bg-white border border-blue-150 rounded-xl text-slate-800 font-semibold shadow-xs flex justify-between items-center">
+                <div className="p-3.5 bg-white border border-teal-150 rounded-2xl text-slate-800 font-semibold shadow-xs flex justify-between items-center">
                   <span>{calcResult.summary}</span>
                   <button
+                    type="button"
                     onClick={() => handleCopy(calcResult.summary, 'res-summary')}
-                    className="p-1.5 hover:bg-blue-50 rounded-lg text-blue-600 transition-colors"
+                    className="p-1.5 hover:bg-teal-50 rounded-lg text-teal-600 transition-colors cursor-pointer"
+                    title="Copy Summary"
                   >
-                    {copiedId === 'res-summary' ? <Check className="w-4 h-4 text-green-600" /> : <Clipboard className="w-4 h-4" />}
+                    {copiedId === 'res-summary' ? <Check className="w-4 h-4 text-emerald-600" /> : <Clipboard className="w-4 h-4" />}
                   </button>
                 </div>
               )}
 
               {/* Recipe / Reagents Table if present (PCR, qPCR, LAMP, Restriction Digest) */}
               {calcResult.components && (
-                <div className="border border-slate-200 rounded-xl overflow-hidden shadow-xs bg-white">
-                  <div className="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-xs font-bold text-slate-700">
+                <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-xs bg-white">
+                  <div className="p-3 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-xs font-bold text-slate-800">
                     <span>Total Mix Volume: {calcResult.totalMixVolume || calcResult.totalVolume} µL</span>
-                    {calcResult.totalReactions && <span>Total Reactions: {calcResult.totalReactions}x</span>}
+                    {calcResult.totalReactions && <span className="font-mono text-teal-700">Total Reactions: {calcResult.totalReactions}x</span>}
                   </div>
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
-                      <tr className="border-b border-slate-200 font-bold text-[9px] uppercase tracking-wider text-slate-400 bg-slate-50/50">
+                      <tr className="border-b border-slate-200 font-mono font-bold text-[9px] uppercase tracking-wider text-slate-400 bg-slate-50/50">
                         <th className="p-3">Component / Reagent</th>
                         <th className="p-3">Per Reaction</th>
-                        <th className="p-3 font-bold text-blue-700">Total Mix Volume</th>
+                        <th className="p-3 font-bold text-teal-700">Total Mix Volume</th>
                       </tr>
                     </thead>
                     <tbody>
                       {calcResult.components.map((c, idx) => (
                         <tr key={idx} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/60">
                           <td className="p-3 font-semibold text-slate-800">{c.name}</td>
-                          <td className="p-3 text-slate-500">{c.perRxn || c.volume} {c.unit || 'µL'}</td>
-                          <td className="p-3 font-black text-blue-700">{c.total || c.volume} {c.unit || 'µL'}</td>
+                          <td className="p-3 text-slate-500 font-mono">{c.perRxn || c.volume} {c.unit || 'µL'}</td>
+                          <td className="p-3 font-mono font-black text-teal-700">{c.total || c.volume} {c.unit || 'µL'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1306,13 +1312,13 @@ export default function CalculatorsPage() {
 
               {/* Serial Dilution Tube Table */}
               {calcResult.steps && (
-                <div className="border border-slate-200 rounded-xl overflow-hidden bg-white shadow-xs">
-                  <div className="p-3 bg-slate-50 border-b border-slate-200 font-bold text-xs text-slate-700">
+                <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs">
+                  <div className="p-3 bg-slate-50 border-b border-slate-200 font-bold text-xs text-slate-800">
                     Serial Dilution Step Table (Transfer: {calcResult.transferVol} µL, Diluent: {calcResult.diluentVol} µL)
                   </div>
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-slate-200 font-bold text-[9px] uppercase tracking-wider text-slate-400 bg-slate-50/50">
+                      <tr className="border-b border-slate-200 font-mono font-bold text-[9px] uppercase tracking-wider text-slate-400 bg-slate-50/50">
                         <th className="p-3">Tube #</th>
                         <th className="p-3">Concentration</th>
                         <th className="p-3">Transfer Vol</th>
@@ -1322,10 +1328,10 @@ export default function CalculatorsPage() {
                     <tbody>
                       {calcResult.steps.map((s) => (
                         <tr key={s.tube} className="border-b border-slate-100 last:border-0">
-                          <td className="p-3 font-bold text-slate-700">Tube {s.tube}</td>
-                          <td className="p-3 font-black text-blue-700">{s.conc}</td>
-                          <td className="p-3 text-slate-500">{s.transferVol} µL</td>
-                          <td className="p-3 text-slate-500">{s.diluentVol} µL</td>
+                          <td className="p-3 font-bold text-slate-800">Tube {s.tube}</td>
+                          <td className="p-3 font-mono font-black text-teal-700">{s.conc}</td>
+                          <td className="p-3 text-slate-500 font-mono">{s.transferVol} µL</td>
+                          <td className="p-3 text-slate-500 font-mono">{s.diluentVol} µL</td>
                         </tr>
                       ))}
                     </tbody>
@@ -1336,68 +1342,68 @@ export default function CalculatorsPage() {
               {/* Key Values Grid */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                 {calcResult.volumeUl && (
-                  <div className="bg-white p-3 rounded-xl border border-blue-150 shadow-xs">
-                    <span className="text-[10px] text-blue-600 font-bold uppercase block">Solvent Vol</span>
-                    <span className="font-black text-slate-800 mt-1 block">{calcResult.volumeUl} µL</span>
+                  <div className="bg-white p-3 rounded-2xl border border-teal-200/80 shadow-xs">
+                    <span className="text-[10px] font-mono text-teal-700 font-bold uppercase block">Solvent Vol</span>
+                    <span className="font-mono font-black text-slate-900 mt-1 block">{calcResult.volumeUl} µL</span>
                   </div>
                 )}
                 {calcResult.v1 && (
-                  <div className="bg-white p-3 rounded-xl border border-blue-150 shadow-xs">
-                    <span className="text-[10px] text-blue-600 font-bold uppercase block">Stock Vol (V1)</span>
-                    <span className="font-black text-slate-800 mt-1 block">{calcResult.v1} µL</span>
+                  <div className="bg-white p-3 rounded-2xl border border-teal-200/80 shadow-xs">
+                    <span className="text-[10px] font-mono text-teal-700 font-bold uppercase block">Stock Vol (V1)</span>
+                    <span className="font-mono font-black text-slate-900 mt-1 block">{calcResult.v1} µL</span>
                   </div>
                 )}
                 {calcResult.diluent && (
-                  <div className="bg-white p-3 rounded-xl border border-blue-150 shadow-xs">
-                    <span className="text-[10px] text-blue-600 font-bold uppercase block">Diluent Vol</span>
-                    <span className="font-black text-slate-800 mt-1 block">{calcResult.diluent} µL</span>
+                  <div className="bg-white p-3 rounded-2xl border border-teal-200/80 shadow-xs">
+                    <span className="text-[10px] font-mono text-teal-700 font-bold uppercase block">Diluent Vol</span>
+                    <span className="font-mono font-black text-slate-900 mt-1 block">{calcResult.diluent} µL</span>
                   </div>
                 )}
                 {calcResult.tm && (
-                  <div className="bg-white p-3 rounded-xl border border-blue-150 shadow-xs">
-                    <span className="text-[10px] text-blue-600 font-bold uppercase block">Melting Temp (Tm)</span>
-                    <span className="font-black text-slate-800 mt-1 block">{calcResult.tm} °C</span>
+                  <div className="bg-white p-3 rounded-2xl border border-teal-200/80 shadow-xs">
+                    <span className="text-[10px] font-mono text-teal-700 font-bold uppercase block">Melting Temp (Tm)</span>
+                    <span className="font-mono font-black text-slate-900 mt-1 block">{calcResult.tm} °C</span>
                   </div>
                 )}
                 {calcResult.taMin && (
-                  <div className="bg-white p-3 rounded-xl border border-blue-150 shadow-xs">
-                    <span className="text-[10px] text-blue-600 font-bold uppercase block">Ta Range</span>
-                    <span className="font-black text-slate-800 mt-1 block">{calcResult.taMin} - {calcResult.taMax} °C</span>
+                  <div className="bg-white p-3 rounded-2xl border border-teal-200/80 shadow-xs">
+                    <span className="text-[10px] font-mono text-teal-700 font-bold uppercase block">Ta Range</span>
+                    <span className="font-mono font-black text-slate-900 mt-1 block">{calcResult.taMin} - {calcResult.taMax} °C</span>
                   </div>
                 )}
                 {calcResult.gcPercent && (
-                  <div className="bg-white p-3 rounded-xl border border-blue-150 shadow-xs">
-                    <span className="text-[10px] text-blue-600 font-bold uppercase block">GC Content</span>
-                    <span className="font-black text-slate-800 mt-1 block">{calcResult.gcPercent}%</span>
+                  <div className="bg-white p-3 rounded-2xl border border-teal-200/80 shadow-xs">
+                    <span className="text-[10px] font-mono text-teal-700 font-bold uppercase block">GC Content</span>
+                    <span className="font-mono font-black text-slate-900 mt-1 block">{calcResult.gcPercent}%</span>
                   </div>
                 )}
                 {calcResult.concNgUl && (
-                  <div className="bg-white p-3 rounded-xl border border-blue-150 shadow-xs">
-                    <span className="text-[10px] text-blue-600 font-bold uppercase block">Concentration</span>
-                    <span className="font-black text-slate-800 mt-1 block">{calcResult.concNgUl} ng/µL</span>
+                  <div className="bg-white p-3 rounded-2xl border border-teal-200/80 shadow-xs">
+                    <span className="text-[10px] font-mono text-teal-700 font-bold uppercase block">Concentration</span>
+                    <span className="font-mono font-black text-slate-900 mt-1 block">{calcResult.concNgUl} ng/µL</span>
                   </div>
                 )}
                 {calcResult.ratio260280 && calcResult.ratio260280 !== 'N/A' && (
-                  <div className="bg-white p-3 rounded-xl border border-blue-150 shadow-xs">
-                    <span className="text-[10px] text-blue-600 font-bold uppercase block">A260/A280 Ratio</span>
-                    <span className="font-black text-slate-800 mt-1 block">{calcResult.ratio260280}</span>
+                  <div className="bg-white p-3 rounded-2xl border border-teal-200/80 shadow-xs">
+                    <span className="text-[10px] font-mono text-teal-700 font-bold uppercase block">A260/A280 Ratio</span>
+                    <span className="font-mono font-black text-slate-900 mt-1 block">{calcResult.ratio260280}</span>
                   </div>
                 )}
                 {calcResult.insertMassNg && (
-                  <div className="bg-white p-3 rounded-xl border border-blue-150 shadow-xs">
-                    <span className="text-[10px] text-blue-600 font-bold uppercase block">Insert DNA Mass</span>
-                    <span className="font-black text-slate-800 mt-1 block">{calcResult.insertMassNg} ng</span>
+                  <div className="bg-white p-3 rounded-2xl border border-teal-200/80 shadow-xs">
+                    <span className="text-[10px] font-mono text-teal-700 font-bold uppercase block">Insert DNA Mass</span>
+                    <span className="font-mono font-black text-slate-900 mt-1 block">{calcResult.insertMassNg} ng</span>
                   </div>
                 )}
                 {calcResult.agaroseGrams && (
-                  <div className="bg-white p-3 rounded-xl border border-blue-150 shadow-xs">
-                    <span className="text-[10px] text-blue-600 font-bold uppercase block">Agarose Powder</span>
-                    <span className="font-black text-slate-800 mt-1 block">{calcResult.agaroseGrams} g</span>
+                  <div className="bg-white p-3 rounded-2xl border border-teal-200/80 shadow-xs">
+                    <span className="text-[10px] font-mono text-teal-700 font-bold uppercase block">Agarose Powder</span>
+                    <span className="font-mono font-black text-slate-900 mt-1 block">{calcResult.agaroseGrams} g</span>
                   </div>
                 )}
                 {calcResult.reverseComplement && (
-                  <div className="col-span-2 sm:col-span-4 bg-white p-3 rounded-xl border border-blue-150 shadow-xs space-y-1">
-                    <span className="text-[10px] text-blue-600 font-bold uppercase block">Reverse Complement Sequence</span>
+                  <div className="col-span-2 sm:col-span-4 bg-white p-3.5 rounded-2xl border border-teal-200/80 shadow-xs space-y-1">
+                    <span className="text-[10px] font-mono text-teal-700 font-bold uppercase block">Reverse Complement Sequence</span>
                     <span className="font-mono font-bold text-slate-800 text-xs break-all block">{calcResult.reverseComplement}</span>
                   </div>
                 )}
@@ -1411,42 +1417,43 @@ export default function CalculatorsPage() {
       </div>
 
       {/* RIGHT: Calculation History Ledger */}
-      <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-5 shadow-xs space-y-4">
+      <div className="lg:col-span-4 bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-slate-150 pb-3">
-          <h3 className="font-bold text-slate-800 text-xs flex items-center gap-1.5">
-            <History className="w-4 h-4 text-slate-400" /> Calculation Ledger
+          <h3 className="font-bold text-slate-900 text-xs flex items-center gap-1.5">
+            <History className="w-4 h-4 text-teal-600" /> 
+            <span>Calculation Ledger</span>
           </h3>
-          <span className="text-[10px] bg-slate-100 text-slate-600 font-bold px-2 py-0.5 rounded-full">
-            {calcHistory.length} Saved Runs
+          <span className="text-[10px] font-mono bg-teal-50 text-teal-800 border border-teal-200 font-bold px-2 py-0.5 rounded-full">
+            {(calcHistory || []).length} Runs
           </span>
         </div>
 
-        <div className="space-y-3.5 max-h-[600px] overflow-y-auto no-scrollbar">
-          {calcHistory.length === 0 ? (
-            <div className="text-center py-10 text-slate-400 text-xs">
+        <div className="space-y-3 max-h-[620px] overflow-y-auto no-scrollbar">
+          {(calcHistory || []).length === 0 ? (
+            <div className="text-center py-12 text-slate-400 text-xs">
               No calculations saved yet.<br />Run any calculator to log to ledger.
             </div>
           ) : (
-            calcHistory.map((item) => (
-              <div key={item.id} className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl space-y-2 text-[10px] text-slate-600 shadow-2xs">
+            (calcHistory || []).map((item) => (
+              <div key={item.id} className="p-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl space-y-2 text-[10px] text-slate-600 shadow-2xs hover:border-teal-500/30 transition-colors">
                 <div className="flex justify-between items-center border-b border-slate-200/60 pb-1.5">
-                  <span className="font-extrabold text-slate-850 uppercase">{item.calculator_name || item.type}</span>
-                  <span className="text-[9px] text-slate-400 font-bold">{item.date || item.timestamp}</span>
+                  <span className="font-extrabold text-slate-900 uppercase truncate max-w-[180px]">{item.calculator_name || item.type}</span>
+                  <span className="text-[9px] font-mono text-slate-400 font-bold">{item.date || item.timestamp}</span>
                 </div>
                 {item.project_name && (
-                  <div className="inline-block bg-blue-50 text-blue-700 text-[9px] font-bold px-2 py-0.5 rounded border border-blue-150">
+                  <div className="inline-block bg-teal-50 text-teal-800 text-[9px] font-bold px-2 py-0.5 rounded border border-teal-200">
                     Project: {item.project_name}
                   </div>
                 )}
                 {item.formula && (
-                  <div className="font-mono bg-white p-1.5 rounded border border-slate-200 text-slate-500 overflow-x-auto text-[9px]">
+                  <div className="font-mono bg-white p-1.5 rounded-lg border border-slate-200 text-slate-500 overflow-x-auto text-[9px]">
                     Formula: {item.formula}
                   </div>
                 )}
-                <div className="text-[9px] text-slate-500">
+                <div className="text-[9px] text-slate-500 truncate">
                   Inputs: {item.input}
                 </div>
-                <div className="font-black text-blue-750 text-xs pt-1">
+                <div className="font-black text-teal-700 text-xs pt-1 font-mono">
                   Result: {item.result}
                 </div>
               </div>

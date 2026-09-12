@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard,
   Layers,
+  NotebookPen,
   Share2,
   Calculator,
   BookOpen,
@@ -16,7 +17,12 @@ import {
   Search,
   LogOut,
   User,
-  X
+  X,
+  ShieldCheck,
+  Plus,
+  Sparkles,
+  Command,
+  ExternalLink
 } from 'lucide-react';
 
 export default function DashboardLayout({ children, activeTab, setActiveTab }) {
@@ -26,7 +32,7 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
-  const unreadNotifCount = notifications.filter(n => !n.read).length;
+  const unreadNotifCount = (notifications || []).filter(n => !n.read).length;
 
   const getInitials = (name) => {
     if (!name) return 'U';
@@ -34,233 +40,335 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
     if (parts.length >= 2) {
       return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
     }
-    return name[0].toUpperCase();
+    return name.slice(0, 2).toUpperCase();
   };
 
-  const menuItems = [
-    { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
-    { id: 'projects', name: 'Projects', icon: Layers },
-    { id: 'resources', name: 'Resource Sharing', icon: Share2 },
-    { id: 'calculators', name: 'Calculators', icon: Calculator },
-    { id: 'papers', name: 'Research Papers', icon: BookOpen },
-    { id: 'analytics', name: 'Analytics', icon: BarChart3 },
-    { id: 'settings', name: 'Settings & Logs', icon: Settings },
+  const menuSections = [
+    {
+      title: 'CORE WORKSPACE',
+      items: [
+        { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
+        { id: 'projects', name: 'Research Projects', icon: Layers },
+        { id: 'notebook', name: 'Lab Notebook', icon: NotebookPen, badge: '21 CFR' },
+      ]
+    },
+    {
+      title: 'SCIENTIFIC TOOLS',
+      items: [
+        { id: 'resources', name: 'Resource Sharing', icon: Share2 },
+        { id: 'calculators', name: 'Scientific Calculators', icon: Calculator, badge: '19 Tools' },
+        { id: 'papers', name: 'Research Papers', icon: BookOpen },
+      ]
+    },
+    {
+      title: 'INTELLIGENCE & ADMIN',
+      items: [
+        { id: 'analytics', name: 'Bench Analytics', icon: BarChart3 },
+        { id: 'settings', name: 'Settings & Logs', icon: Settings },
+      ]
+    }
   ];
 
+  const getActiveTitle = () => {
+    for (const section of menuSections) {
+      const match = section.items.find(i => i.id === activeTab);
+      if (match) return match.name;
+    }
+    return 'Research Space';
+  };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-800 antialiased font-sans">
+    <div className="min-h-screen bg-slate-50 flex text-slate-900 antialiased font-sans selection:bg-teal-500 selection:text-white">
       
-      {/* Mobile Sidebar Overlay */}
+      {/* Mobile Sidebar Backdrop Overlay */}
       {mobileSidebarOpen && (
         <div 
-          className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm lg:hidden"
+          className="fixed inset-0 z-40 bg-slate-950/50 backdrop-blur-sm lg:hidden transition-opacity"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar Navigation */}
+      {/* Modern Sidebar Navigation */}
       <aside 
-        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200/80 transition-all duration-300
+        className={`fixed inset-y-0 left-0 z-50 flex flex-col bg-white border-r border-slate-200/80 transition-all duration-300 shadow-sm
           ${sidebarCollapsed ? 'w-20' : 'w-64'} 
           ${mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
           lg:relative
         `}
       >
         {/* Sidebar Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-200/85">
-          <div className="flex items-center gap-2">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-600 shadow-md shadow-blue-500/20 text-white font-extrabold text-lg tracking-tight">
+        <div className="h-16 flex items-center justify-between px-4 border-b border-slate-150">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-gradient-to-tr from-teal-600 to-teal-500 shadow-md shadow-teal-500/20 text-white font-extrabold text-lg tracking-tight">
               I
             </div>
             {!sidebarCollapsed && (
-              <span className="font-extrabold text-base tracking-tight text-slate-900">
-                Inveniq<span className="text-blue-600 font-semibold">Lab</span>
-              </span>
+              <div className="flex flex-col min-w-0">
+                <span className="font-extrabold text-base tracking-tight text-slate-900 truncate">
+                  Inveniq<span className="text-teal-600 font-semibold">Lab</span>
+                </span>
+                <span className="text-[9px] font-mono text-slate-400 font-semibold tracking-wider">
+                  RESEARCH ERP
+                </span>
+              </div>
             )}
           </div>
           
           <button 
+            type="button"
             onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="hidden lg:flex h-6 w-6 items-center justify-center rounded border border-slate-200 bg-slate-50 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors"
+            className="hidden lg:flex h-6 w-6 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer"
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             {sidebarCollapsed ? <ChevronRight className="w-3.5 h-3.5" /> : <ChevronLeft className="w-3.5 h-3.5" />}
           </button>
 
           <button 
+            type="button"
             onClick={() => setMobileSidebarOpen(false)}
-            className="lg:hidden p-1 rounded text-slate-400 hover:bg-slate-150"
+            className="lg:hidden p-1 rounded text-slate-400 hover:bg-slate-100 cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Sidebar Nav List */}
-        <nav className="flex-1 px-3 py-4 space-y-1.5 overflow-y-auto no-scrollbar">
-          {menuItems.map((item) => {
-            const isActive = activeTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => {
-                  setActiveTab(item.id);
-                  setMobileSidebarOpen(false);
-                }}
-                className={`w-full flex items-center rounded-xl px-3 py-2.5 text-xs font-semibold tracking-wide transition-colors relative group focus-ring ${
-                  isActive
-                    ? 'text-blue-650 font-bold'
-                    : 'text-slate-550 hover:bg-slate-50/50 hover:text-slate-900'
-                }`}
-              >
-                {isActive && (
-                  <motion.div
-                    layoutId="activeTabPill"
-                    className="absolute inset-0 bg-blue-50 border-l-2 border-blue-600 rounded-xl"
-                    transition={{ type: 'spring', stiffness: 350, damping: 32 }}
-                  />
-                )}
-                <span className="relative z-10 flex items-center w-full">
-                  <item.icon className={`h-4.5 w-4.5 mr-3 transition-colors ${
-                    isActive ? 'text-blue-600' : 'text-slate-400 group-hover:text-slate-700'
-                  }`} />
-                  {!sidebarCollapsed && <span>{item.name}</span>}
-                </span>
-              </button>
-            );
-          })}
+        {/* Quick Action Button (Expanded) */}
+        {!sidebarCollapsed && (
+          <div className="p-3 border-b border-slate-100 bg-slate-50/50">
+            <button
+              type="button"
+              onClick={() => {
+                setActiveTab('notebook');
+                setMobileSidebarOpen(false);
+              }}
+              className="w-full flex items-center justify-center gap-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white py-2 text-xs font-bold shadow-sm shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              <span>New Lab Entry</span>
+            </button>
+          </div>
+        )}
+
+        {/* Sidebar Navigation Items with Categorization */}
+        <nav className="flex-1 px-3 py-4 space-y-5 overflow-y-auto no-scrollbar">
+          {menuSections.map((section, sIdx) => (
+            <div key={sIdx} className="space-y-1">
+              {!sidebarCollapsed && (
+                <p className="px-2.5 pb-1 text-[9px] font-mono font-bold tracking-wider text-slate-400 uppercase">
+                  {section.title}
+                </p>
+              )}
+              {section.items.map((item) => {
+                const isActive = activeTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      setActiveTab(item.id);
+                      setMobileSidebarOpen(false);
+                    }}
+                    title={sidebarCollapsed ? item.name : undefined}
+                    className={`w-full flex items-center rounded-xl px-3 py-2.5 text-xs font-semibold tracking-normal transition-all relative group focus-ring cursor-pointer ${
+                      isActive
+                        ? 'text-teal-700 font-bold bg-teal-50/80 shadow-xs'
+                        : 'text-slate-600 hover:bg-slate-100/70 hover:text-slate-900'
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeSidebarIndicator"
+                        className="absolute left-0 top-1.5 bottom-1.5 w-1 bg-teal-600 rounded-r-full"
+                        transition={{ type: 'spring', stiffness: 350, damping: 30 }}
+                      />
+                    )}
+                    <item.icon className={`h-4.5 w-4.5 shrink-0 transition-colors ${
+                      isActive ? 'text-teal-600' : 'text-slate-400 group-hover:text-slate-600'
+                    } ${sidebarCollapsed ? 'mx-auto' : 'mr-3'}`} />
+                    
+                    {!sidebarCollapsed && (
+                      <span className="flex-1 text-left truncate">{item.name}</span>
+                    )}
+
+                    {!sidebarCollapsed && item.badge && (
+                      <span className={`text-[9px] font-mono px-1.5 py-0.5 rounded font-bold ${
+                        isActive ? 'bg-teal-100 text-teal-800' : 'bg-slate-100 text-slate-500'
+                      }`}>
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ))}
         </nav>
 
-        {/* Sidebar Footer User Panel */}
-        <div className="p-4 border-t border-slate-200/80 bg-slate-50/50">
-          <div className="flex items-center gap-3">
-            {user.avatar ? (
+        {/* Sidebar User Identity Card */}
+        <div className="p-3 border-t border-slate-200/80 bg-slate-50/70">
+          <div className="flex items-center gap-2.5">
+            {user?.avatar ? (
               <img 
                 src={user.avatar} 
                 alt={user.name} 
-                className="h-9 w-9 rounded-full object-cover ring-2 ring-slate-100 shadow-sm"
+                className="h-9 w-9 rounded-full object-cover ring-2 ring-white shadow-sm shrink-0"
               />
             ) : (
-              <div className="h-9 w-9 rounded-full bg-blue-600 text-white flex items-center justify-center text-xs font-bold ring-2 ring-slate-100 shadow-sm">
-                {getInitials(user.name)}
+              <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-teal-700 to-teal-500 text-white flex items-center justify-center text-xs font-bold ring-2 ring-white shadow-sm shrink-0">
+                {getInitials(user?.name)}
               </div>
             )}
             {!sidebarCollapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-800 truncate">{user.name}</p>
-                <p className="text-[10px] text-slate-400 truncate">{user.role}</p>
+                <p className="text-xs font-bold text-slate-900 truncate">{user?.name || 'Investigator'}</p>
+                <p className="text-[10px] text-slate-500 truncate">{user?.role || 'Senior Scientist'}</p>
               </div>
             )}
           </div>
+
           {!sidebarCollapsed && (
-            <button 
-              onClick={logout}
-              className="mt-4 w-full flex items-center justify-center gap-2 rounded-lg border border-slate-200 hover:border-red-200 bg-white hover:bg-red-50 text-slate-500 hover:text-red-650 py-2 text-xs font-bold transition-all shadow-sm active:scale-[0.98]"
-            >
-              <LogOut className="w-3.5 h-3.5" />
-              Sign Out
-            </button>
+            <div className="mt-3 flex items-center gap-1.5">
+              <button 
+                type="button"
+                onClick={() => setActiveTab('settings')}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-100/80 text-slate-600 py-1.5 text-[11px] font-semibold transition-colors cursor-pointer"
+              >
+                <Settings className="w-3.5 h-3.5 text-slate-400" />
+                Settings
+              </button>
+              <button 
+                type="button"
+                onClick={logout}
+                className="flex items-center justify-center p-1.5 rounded-lg border border-slate-200 hover:border-red-200 bg-white hover:bg-red-50 text-slate-400 hover:text-red-600 transition-colors cursor-pointer"
+                title="Sign out of workspace"
+              >
+                <LogOut className="w-3.5 h-3.5" />
+              </button>
+            </div>
           )}
         </div>
       </aside>
 
-      {/* Main Content Pane */}
+      {/* Main Content Workspace Pane */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
         
-        {/* Top Header */}
-        <header className="h-16 bg-white border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 z-30">
+        {/* Top Header Navigation Bar */}
+        <header className="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 z-30 sticky top-0">
           
-          <div className="flex items-center gap-3 flex-1">
+          {/* Left: Mobile trigger & Breadcrumbs */}
+          <div className="flex items-center gap-3 min-w-0">
             <button 
+              type="button"
               onClick={() => setMobileSidebarOpen(true)}
-              className="lg:hidden p-2 -ml-2 rounded-md text-slate-650 hover:bg-slate-100"
+              className="lg:hidden p-2 -ml-2 rounded-lg text-slate-600 hover:bg-slate-100 cursor-pointer"
+              aria-label="Open mobile menu"
             >
               <Menu className="w-5 h-5" />
             </button>
 
-            {/* Global Search Bar */}
-            <div className="relative max-w-xs w-full hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-450" />
+            {/* Breadcrumbs */}
+            <div className="flex items-center gap-2 text-xs">
+              <span className="text-slate-400 font-medium hidden sm:inline">Workspace</span>
+              <span className="text-slate-300 hidden sm:inline">/</span>
+              <span className="font-bold text-slate-900 flex items-center gap-2">
+                {getActiveTitle()}
+              </span>
+            </div>
+          </div>
+
+          {/* Right: Search, Compliance Tag, Notifications, User */}
+          <div className="flex items-center gap-3">
+            
+            {/* Global Search Bar with keyboard shortcut hint */}
+            <div className="relative w-64 lg:w-72 hidden md:block">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
               <input
                 type="text"
-                placeholder="Search experiments, resources..."
+                placeholder="Search logs, resources, SOPs..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 hover:bg-slate-100/70 border border-slate-200/80 hover:border-slate-300 rounded-xl py-1.5 pl-9 pr-4 text-xs font-medium text-slate-600 transition-colors"
+                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200/80 rounded-xl py-1.5 pl-9 pr-14 text-xs font-medium text-slate-700 transition-colors focus-ring"
               />
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-[10px] font-mono text-slate-400 bg-slate-200/60 px-1.5 py-0.5 rounded">
+                <Command className="w-2.5 h-2.5" /> K
+              </div>
               {searchQuery && (
                 <button 
+                  type="button"
                   onClick={() => setSearchQuery('')}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                  className="absolute right-12 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
                 >
                   <X className="w-3 h-3" />
                 </button>
               )}
             </div>
-          </div>
 
-          {/* Right utility items */}
-          <div className="flex items-center gap-4">
-            
-            {/* Search Input for Mobile/Tablet */}
-            <div className="relative md:hidden max-w-[150px] sm:max-w-xs">
-              <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1.5 pl-8 pr-2 text-xs font-medium text-slate-600"
-              />
+            {/* 21 CFR Part 11 Compliance Pill */}
+            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+              <span>FDA 21 CFR PART 11 SECURE</span>
             </div>
 
-            {/* Notifications Alert Dropdown */}
+            {/* Notifications Bell Dropdown */}
             <div className="relative">
               <button
+                type="button"
                 onClick={() => {
                   setNotificationsOpen(!notificationsOpen);
                   setUserDropdownOpen(false);
                 }}
-                className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 relative transition-colors shadow-sm"
+                className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 relative transition-colors shadow-xs cursor-pointer"
+                aria-label="View notifications"
               >
                 <Bell className="w-4 h-4" />
                 {unreadNotifCount > 0 && (
-                  <span className="absolute top-0.5 right-0.5 bg-blue-600 text-white font-extrabold text-[8px] h-4 w-4 rounded-full flex items-center justify-center border border-white">
+                  <span className="absolute -top-1 -right-1 bg-teal-600 text-white font-extrabold text-[8px] h-4.5 w-4.5 rounded-full flex items-center justify-center border-2 border-white shadow-xs">
                     {unreadNotifCount}
                   </span>
                 )}
               </button>
 
-              {/* Notification Drawer */}
+              {/* Notification Popover Drawer */}
               {notificationsOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setNotificationsOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-80 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-4 space-y-3">
-                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                      <span className="font-bold text-xs text-slate-800">Research Notifications</span>
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-4 space-y-3">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-2.5">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-xs text-slate-900">Lab Notifications</span>
+                        {unreadNotifCount > 0 && (
+                          <span className="text-[9px] font-bold bg-teal-50 text-teal-700 border border-teal-200 px-1.5 py-0.2 rounded-full">
+                            {unreadNotifCount} new
+                          </span>
+                        )}
+                      </div>
                       <button 
+                        type="button"
                         onClick={markNotificationsAsRead}
-                        className="text-[10px] text-blue-600 hover:text-blue-700 font-semibold"
+                        className="text-[10px] text-teal-600 hover:text-teal-700 font-bold cursor-pointer"
                       >
-                        Mark all read
+                        Mark all as read
                       </button>
                     </div>
 
-                    <div className="max-h-60 overflow-y-auto space-y-2 no-scrollbar">
+                    <div className="max-h-72 overflow-y-auto space-y-2 no-scrollbar">
                       {notifications.length === 0 ? (
-                        <p className="text-xs text-slate-400 text-center py-4">No notifications</p>
+                        <p className="text-xs text-slate-400 text-center py-6">No notifications currently</p>
                       ) : (
                         notifications.map((notif) => (
                           <div 
                             key={notif.id} 
-                            className={`p-2.5 rounded-xl border text-xs flex gap-2.5 transition-all ${
-                              notif.read ? 'bg-slate-50/50 border-slate-100' : 'bg-blue-50/20 border-blue-100 shadow-sm'
+                            className={`p-3 rounded-xl border text-xs flex gap-2.5 transition-all ${
+                              notif.read ? 'bg-slate-50/50 border-slate-100' : 'bg-teal-50/30 border-teal-150 shadow-xs'
                             }`}
                           >
-                            <span className="mt-0.5">🔔</span>
-                            <div>
-                              <div className="font-bold text-slate-800">{notif.title}</div>
-                              <div className="text-[10px] text-slate-500 mt-0.5 leading-relaxed">{notif.message}</div>
-                              <span className="text-[9px] text-slate-400 mt-1 block">{notif.time}</span>
+                            <div className="h-6 w-6 rounded-lg bg-teal-100/70 text-teal-700 flex items-center justify-center text-xs shrink-0 mt-0.5">
+                              🔬
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="font-bold text-slate-900 truncate">{notif.title}</div>
+                              <div className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">{notif.message}</div>
+                              <span className="text-[9px] font-mono text-slate-400 mt-1 block">{notif.time}</span>
                             </div>
                           </div>
                         ))
@@ -274,25 +382,26 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
             {/* Profile Avatar User Menu */}
             <div className="relative">
               <button
+                type="button"
                 onClick={() => {
                   setUserDropdownOpen(!userDropdownOpen);
                   setNotificationsOpen(false);
                 }}
-                className="flex items-center gap-1.5 p-1 rounded-xl hover:bg-slate-50 border border-slate-100 transition-colors cursor-pointer"
+                className="flex items-center gap-2 p-1.5 rounded-xl hover:bg-slate-50 border border-slate-200 transition-colors cursor-pointer"
               >
-                {user.avatar ? (
+                {user?.avatar ? (
                   <img 
                     src={user.avatar} 
                     alt={user.name} 
                     className="h-7 w-7 rounded-full object-cover ring-1 ring-slate-200"
                   />
                 ) : (
-                  <div className="h-7 w-7 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px] font-bold ring-1 ring-slate-200">
-                    {getInitials(user.name)}
+                  <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-teal-700 to-teal-500 text-white flex items-center justify-center text-[10px] font-bold ring-1 ring-teal-200">
+                    {getInitials(user?.name)}
                   </div>
                 )}
-                <span className="text-xs font-semibold text-slate-700 hidden lg:inline">
-                  {user.name ? (user.name.split(' ')[1] || user.name) : 'User'}
+                <span className="text-xs font-bold text-slate-800 hidden md:inline">
+                  {user?.name ? (user.name.split(' ')[0] || user.name) : 'Scientist'}
                 </span>
               </button>
 
@@ -300,22 +409,25 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
               {userDropdownOpen && (
                 <>
                   <div className="fixed inset-0 z-40" onClick={() => setUserDropdownOpen(false)} />
-                  <div className="absolute right-0 mt-2 w-56 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 text-xs text-slate-750">
+                  <div className="absolute right-0 mt-2 w-64 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-2 text-xs text-slate-700">
                     <div className="p-3 border-b border-slate-100">
-                      <p className="font-bold text-slate-800">{user.name}</p>
-                      <p className="text-[10px] text-slate-450">{user.email}</p>
+                      <p className="font-bold text-slate-900 truncate">{user?.name}</p>
+                      <p className="text-[10px] text-slate-500 truncate">{user?.email}</p>
+                      <p className="text-[9px] font-mono text-teal-600 font-semibold mt-1 truncate">{user?.institution || 'Genomics Lab'}</p>
                     </div>
                     <div className="py-1">
                       <button 
+                        type="button"
                         onClick={() => { setActiveTab('settings'); setUserDropdownOpen(false); }}
-                        className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg font-medium text-slate-650 flex items-center gap-2"
+                        className="w-full text-left px-3 py-2 hover:bg-slate-50 rounded-lg font-medium text-slate-700 flex items-center gap-2 cursor-pointer"
                       >
-                        <User className="w-3.5 h-3.5" />
-                        My Profile Settings
+                        <User className="w-3.5 h-3.5 text-slate-400" />
+                        Scientist Profile Settings
                       </button>
                       <button 
+                        type="button"
                         onClick={logout}
-                        className="w-full text-left px-3 py-2 hover:bg-red-50 hover:text-red-700 rounded-lg font-medium text-slate-650 flex items-center gap-2"
+                        className="w-full text-left px-3 py-2 hover:bg-red-50 hover:text-red-700 rounded-lg font-medium text-slate-700 flex items-center gap-2 cursor-pointer"
                       >
                         <LogOut className="w-3.5 h-3.5 text-red-500" />
                         Sign Out
@@ -329,15 +441,15 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
           </div>
         </header>
 
-        {/* Content Render Area */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50 grid-bg">
+        {/* Main Content Render Area */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-slate-50">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -8 }}
-              transition={{ duration: 0.12 }}
+              transition={{ duration: 0.15, ease: [0.16, 1, 0.3, 1] }}
               className="h-full"
             >
               {children}

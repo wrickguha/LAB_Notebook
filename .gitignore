@@ -23,3 +23,6 @@ frontend/dist/
 frontend/dist-ssr/
 frontend/.env.local
 frontend/.env.*.local
+
+
+.codex

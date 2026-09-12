@@ -18,7 +18,9 @@ import {
   Check,
   Percent,
   Layers,
-  Sparkles
+  Sparkles,
+  ShieldCheck,
+  CheckCircle2
 } from 'lucide-react';
 
 export default function ProjectsPage() {
@@ -48,10 +50,10 @@ export default function ProjectsPage() {
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
 
   const banners = [
-    { name: 'Biotech Blue', url: 'https://images.unsplash.com/photo-1532187643603-ba119ca4109e?w=800' },
+    { name: 'Genomics Teal', url: 'https://images.unsplash.com/photo-1532187643603-ba119ca4109e?w=800' },
     { name: 'Microscopy Emerald', url: 'https://images.unsplash.com/photo-1576086213369-97a306d36557?w=800' },
-    { name: 'Diagnostics Purple', url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800' },
-    { name: 'Neural Violet', url: 'https://images.unsplash.com/photo-1617155093730-a8bf47be792d?w=800' }
+    { name: 'Bioprocess Indigo', url: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800' },
+    { name: 'Molecular Violet', url: 'https://images.unsplash.com/photo-1617155093730-a8bf47be792d?w=800' }
   ];
 
   const handleCreateProject = (e) => {
@@ -122,7 +124,6 @@ export default function ProjectsPage() {
     updated[index].completed = !updated[index].completed;
     setEditMilestonesList(updated);
 
-    // Recalculate suggested progress
     const completedCount = updated.filter(m => m.completed).length;
     const totalCount = updated.length;
     if (totalCount > 0) {
@@ -194,22 +195,22 @@ export default function ProjectsPage() {
 
   const getStatusColor = (status) => {
     switch (status) {
-      case 'Active': return 'bg-emerald-50 text-emerald-700 border-emerald-200';
-      case 'Planning': return 'bg-blue-50 text-blue-700 border-blue-200';
-      case 'Completed': return 'bg-purple-50 text-purple-700 border-purple-200';
-      case 'On Hold': return 'bg-amber-50 text-amber-700 border-amber-200';
-      default: return 'bg-slate-50 text-slate-650 border-slate-200';
+      case 'Active': return 'bg-teal-50 text-teal-800 border-teal-200';
+      case 'Planning': return 'bg-sky-50 text-sky-800 border-sky-200';
+      case 'Completed': return 'bg-purple-50 text-purple-800 border-purple-200';
+      case 'On Hold': return 'bg-amber-50 text-amber-800 border-amber-200';
+      default: return 'bg-slate-50 text-slate-700 border-slate-200';
     }
   };
 
   return (
-    <div className="space-y-6 pb-12 animate-fade-in-up">
+    <div className="space-y-6 pb-12 animate-fade-in-up font-sans">
       
       {/* Top Controls Toolbar */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-200/90 p-3.5 rounded-2xl shadow-sm">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white border border-slate-200/80 p-3.5 rounded-2xl shadow-xs">
         
         {/* Layout View Toggles */}
-        <div className="inline-flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/60">
+        <div className="inline-flex items-center bg-slate-100/80 p-1 rounded-xl border border-slate-200/60">
           {[
             { mode: 'grid', label: 'Grid', icon: Grid },
             { mode: 'list', label: 'List', icon: List },
@@ -217,9 +218,10 @@ export default function ProjectsPage() {
           ].map((btn) => (
             <button
               key={btn.mode}
+              type="button"
               onClick={() => setViewMode(btn.mode)}
               className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 focus-ring cursor-pointer ${
-                viewMode === btn.mode ? 'bg-white text-blue-600 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                viewMode === btn.mode ? 'bg-white text-teal-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
               <btn.icon className="w-3.5 h-3.5" />
@@ -228,55 +230,59 @@ export default function ProjectsPage() {
           ))}
         </div>
 
+        {/* Add Project CTA */}
         <button
+          type="button"
           onClick={() => setCreateModalOpen(true)}
-          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-xs font-bold text-white px-4 py-2.5 shadow-md shadow-blue-500/20 hover:scale-[1.01] active:scale-[0.99] transition-all focus-ring cursor-pointer"
+          className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-xs font-bold text-white px-4 py-2.5 shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all focus-ring cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> Add Project
+          <Plus className="w-4 h-4" /> 
+          <span>Initialize Project</span>
         </button>
       </div>
 
       {/* GRID VIEW */}
       {viewMode === 'grid' && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {projects.map((proj) => (
+          {(projects || []).map((proj) => (
             <div
               key={proj.id}
-              className="bg-white border border-slate-200/90 rounded-3xl overflow-hidden shadow-xs hover:shadow-md flex flex-col justify-between transition-all duration-300 group"
+              className="bg-white border border-slate-200/80 rounded-3xl overflow-hidden shadow-xs hover:shadow-md flex flex-col justify-between transition-all duration-200 group"
             >
               <div>
                 {/* Banner & Floating Actions */}
-                <div className="h-32 relative overflow-hidden bg-slate-900">
+                <div className="h-36 relative overflow-hidden bg-slate-900">
                   <img
                     src={proj.banner}
                     alt={proj.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
                   
                   {/* Project Code Badge */}
-                  <span className="absolute bottom-3 left-4 text-[9px] font-black text-white tracking-widest uppercase bg-blue-600/90 backdrop-blur px-2.5 py-1 rounded-md shadow-sm">
+                  <span className="absolute bottom-3 left-4 text-[9px] font-mono font-bold text-white tracking-widest uppercase bg-teal-600/90 backdrop-blur px-2.5 py-1 rounded-md shadow-sm">
                     {proj.code}
                   </span>
 
-                  {/* Edit Button on Top Right of Banner */}
+                  {/* Edit Button on Top Right */}
                   <button
+                    type="button"
                     onClick={() => handleOpenEditModal(proj)}
-                    className="absolute top-3 right-3 inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-white/80 hover:bg-white text-slate-800 text-[10px] font-bold backdrop-blur shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                    title="Edit Project"
+                    className="absolute top-3 right-3 inline-flex items-center gap-1.5 px-3 py-1.2 rounded-xl bg-white/90 hover:bg-white text-slate-800 text-[11px] font-bold backdrop-blur shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                    title="Edit Project Configuration"
                   >
-                    <Edit3 className="w-3 h-3 text-blue-600" />
+                    <Edit3 className="w-3.5 h-3.5 text-teal-600" />
                     <span>Edit</span>
                   </button>
                 </div>
 
-                {/* Scope and Info */}
+                {/* Scope and Details */}
                 <div className="p-6 space-y-4">
                   <div className="flex justify-between items-start gap-3">
-                    <h3 className="font-extrabold text-slate-900 text-sm leading-snug group-hover:text-blue-600 transition-colors">
+                    <h3 className="font-extrabold text-slate-900 text-sm leading-snug group-hover:text-teal-700 transition-colors">
                       {proj.name}
                     </h3>
-                    <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-extrabold shrink-0 ${getStatusColor(proj.status)}`}>
+                    <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-mono font-bold shrink-0 ${getStatusColor(proj.status)}`}>
                       {proj.status}
                     </span>
                   </div>
@@ -285,43 +291,44 @@ export default function ProjectsPage() {
 
                   {/* Progress bar */}
                   <div className="space-y-1.5">
-                    <div className="flex justify-between items-center text-[10px] font-extrabold text-slate-500">
-                      <span>Research Progress</span>
-                      <span className="text-blue-600 font-black">{proj.progress}%</span>
+                    <div className="flex justify-between items-center text-[10px] font-mono font-bold text-slate-500">
+                      <span>COMPLETION VELOCITY</span>
+                      <span className="text-teal-700 font-mono font-black">{proj.progress}%</span>
                     </div>
                     <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
                       <div
                         style={{ width: `${proj.progress}%` }}
-                        className="bg-blue-600 h-full rounded-full transition-all duration-300"
+                        className="bg-teal-600 h-full rounded-full transition-all duration-300"
                       />
                     </div>
                   </div>
 
-                  {/* Checkable Milestones */}
+                  {/* Interactive Milestones Checklist */}
                   {proj.milestones && proj.milestones.length > 0 && (
                     <div className="border-t border-slate-100 pt-3.5 space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[9px] font-extrabold text-slate-400 uppercase tracking-widest block">
-                          Activity Checklist ({proj.milestones.filter(m => m.completed).length}/{proj.milestones.length})
+                        <span className="text-[9px] font-mono font-bold text-slate-400 uppercase tracking-widest block">
+                          BENCH CHECKPOINTS ({proj.milestones.filter(m => m.completed).length}/{proj.milestones.length})
                         </span>
-                        <span className="text-[9px] text-blue-600 font-semibold">Click to toggle</span>
+                        <span className="text-[9px] text-teal-600 font-bold">Toggle to update ledger</span>
                       </div>
                       
                       <div className="space-y-1.5 max-h-36 overflow-y-auto no-scrollbar">
                         {proj.milestones.map((m) => (
                           <button
                             key={m.id}
+                            type="button"
                             onClick={() => toggleMilestone(proj.id, m.id)}
-                            className="w-full text-left flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all text-xs text-slate-650 focus-ring cursor-pointer"
+                            className="w-full text-left flex items-start gap-2.5 p-2 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition-all text-xs text-slate-700 focus-ring cursor-pointer"
                             aria-label={`Toggle milestone ${m.name}`}
                           >
                             <input
                               type="checkbox"
                               checked={m.completed}
                               readOnly
-                              className="mt-0.5 h-3.5 w-3.5 text-blue-600 border-slate-300 rounded pointer-events-none focus:ring-0"
+                              className="mt-0.5 h-3.5 w-3.5 text-teal-600 border-slate-300 rounded pointer-events-none focus:ring-0"
                             />
-                            <span className={m.completed ? 'text-slate-400 line-through' : 'font-semibold text-slate-700'}>
+                            <span className={m.completed ? 'text-slate-400 line-through' : 'font-semibold text-slate-800'}>
                               {m.name}
                             </span>
                           </button>
@@ -346,21 +353,22 @@ export default function ProjectsPage() {
                       />
                     ))}
                   </div>
-                  <span className="text-[10px] text-slate-400 font-bold">{(proj.members || []).length} members</span>
+                  <span className="text-[10px] text-slate-400 font-bold">{(proj.members || []).length} assigned</span>
                 </div>
                 
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium">
+                  <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium font-mono">
                     <Clock className="w-3 h-3" />
                     {proj.lastActivity ? new Date(proj.lastActivity).toLocaleDateString() : 'Active'}
                   </span>
                   
                   <button
+                    type="button"
                     onClick={() => handleOpenEditModal(proj)}
-                    className="text-blue-600 hover:text-blue-700 font-bold text-[11px] flex items-center gap-0.5 cursor-pointer"
+                    className="text-teal-600 hover:text-teal-700 font-bold text-[11px] flex items-center gap-0.5 cursor-pointer"
                   >
                     <Edit3 className="w-3 h-3" />
-                    Edit
+                    Manage
                   </button>
                 </div>
               </div>
@@ -371,50 +379,51 @@ export default function ProjectsPage() {
 
       {/* LIST VIEW */}
       {viewMode === 'list' && (
-        <div className="bg-white border border-slate-200/90 rounded-3xl shadow-sm overflow-x-auto">
+        <div className="bg-white border border-slate-200/80 rounded-3xl shadow-xs overflow-x-auto">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50/80 font-bold text-slate-500 uppercase tracking-widest text-[9px]">
+              <tr className="border-b border-slate-200 bg-slate-50/80 font-bold text-slate-500 uppercase tracking-widest text-[9px] font-mono">
                 <th className="p-4 pl-6 w-28">Code</th>
                 <th className="p-4">Project Title</th>
                 <th className="p-4 w-32">Status</th>
-                <th className="p-4 w-44">Progress</th>
+                <th className="p-4 w-48">Progress</th>
                 <th className="p-4 w-32 text-center">Milestones</th>
                 <th className="p-4 w-32">Last Activity</th>
                 <th className="p-4 w-24 text-right pr-6">Action</th>
               </tr>
             </thead>
             <tbody>
-              {projects.map((proj) => (
-                <tr key={proj.id} className="border-b border-slate-150 last:border-0 hover:bg-slate-50/60 transition-colors">
-                  <td className="p-4 pl-6 font-black text-blue-600">{proj.code}</td>
+              {(projects || []).map((proj) => (
+                <tr key={proj.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/70 transition-colors">
+                  <td className="p-4 pl-6 font-mono font-black text-teal-700">{proj.code}</td>
                   <td className="p-4">
                     <div className="font-bold text-slate-900 text-xs">{proj.name}</div>
-                    <div className="text-[10px] text-slate-450 mt-0.5 line-clamp-1 max-w-sm">{proj.description}</div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 line-clamp-1 max-w-sm">{proj.description}</div>
                   </td>
                   <td className="p-4">
-                    <span className={`px-2.5 py-0.5 rounded-full border text-[8px] font-extrabold ${getStatusColor(proj.status)}`}>
+                    <span className={`px-2.5 py-0.5 rounded-full border text-[9px] font-mono font-bold ${getStatusColor(proj.status)}`}>
                       {proj.status}
                     </span>
                   </td>
                   <td className="p-4">
                     <div className="flex items-center gap-2.5">
                       <div className="w-24 bg-slate-100 h-2 rounded-full overflow-hidden">
-                        <div style={{ width: `${proj.progress}%` }} className="bg-blue-600 h-full rounded-full" />
+                        <div style={{ width: `${proj.progress}%` }} className="bg-teal-600 h-full rounded-full" />
                       </div>
-                      <span className="font-extrabold text-slate-700 text-[11px]">{proj.progress}%</span>
+                      <span className="font-mono font-bold text-slate-700 text-[11px]">{proj.progress}%</span>
                     </div>
                   </td>
-                  <td className="p-4 text-center text-slate-500 font-semibold text-[11px]">
+                  <td className="p-4 text-center text-slate-600 font-mono text-[11px]">
                     {(proj.milestones || []).filter(m => m.completed).length} / {(proj.milestones || []).length}
                   </td>
-                  <td className="p-4 text-slate-450 font-medium text-[11px]">
+                  <td className="p-4 text-slate-400 font-mono text-[11px]">
                     {proj.lastActivity ? new Date(proj.lastActivity).toLocaleDateString() : 'Active'}
                   </td>
                   <td className="p-4 text-right pr-6">
                     <button
+                      type="button"
                       onClick={() => handleOpenEditModal(proj)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-blue-50 text-slate-600 hover:text-blue-600 text-[11px] font-bold transition-colors cursor-pointer"
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-teal-50 text-slate-600 hover:text-teal-700 text-[11px] font-bold transition-colors cursor-pointer"
                     >
                       <Edit3 className="w-3 h-3" />
                       Edit
@@ -429,39 +438,35 @@ export default function ProjectsPage() {
 
       {/* TIMELINE SCHEDULER VIEW */}
       {viewMode === 'timeline' && (
-        <div className="bg-white border border-slate-200/90 rounded-3xl shadow-sm p-6 space-y-6">
+        <div className="bg-white border border-slate-200/80 rounded-3xl shadow-xs p-6 space-y-6">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="font-black text-slate-900 text-sm">Gantt Milestone Schedule</h3>
-              <p className="text-[10px] text-slate-450 mt-0.5">Chronological sequencing of active research pipelines</p>
+              <h3 className="font-black text-slate-900 text-sm">Gantt Milestone Roadmap</h3>
+              <p className="text-[10px] text-slate-400 mt-0.5">Sequential timeline of active research pipelines and bench targets</p>
             </div>
-            <span className="text-[10px] font-bold text-slate-400 bg-slate-100 px-2.5 py-1 rounded-full">
-              {projects.length} Pipelines Tracked
+            <span className="text-[10px] font-mono font-bold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
+              {(projects || []).length} Pipelines Tracked
             </span>
           </div>
           
           <div className="space-y-4 pt-4 border-t border-slate-150">
-            {projects.map((proj, idx) => (
-              <div key={proj.id} className="grid grid-cols-12 items-center gap-4 text-xs p-2 rounded-2xl hover:bg-slate-50/80 transition-colors">
+            {(projects || []).map((proj) => (
+              <div key={proj.id} className="grid grid-cols-12 items-center gap-4 text-xs p-3 rounded-2xl hover:bg-slate-50/80 transition-colors border border-transparent hover:border-slate-100">
                 <div className="col-span-4 sm:col-span-3">
-                  <p className="font-bold text-slate-800 truncate text-xs">{proj.name}</p>
-                  <p className="text-[10px] text-slate-400">{proj.code} • {proj.status}</p>
+                  <p className="font-bold text-slate-900 truncate text-xs">{proj.name}</p>
+                  <p className="text-[10px] font-mono text-slate-400">{proj.code} • {proj.status}</p>
                 </div>
                 <div className="col-span-8 sm:col-span-9 relative py-2">
-                  <div className="w-full bg-slate-100 h-8 rounded-xl relative overflow-hidden flex items-center px-3 shadow-inner">
-                    <motion.div
-                      initial={{ opacity: 0, width: 0 }}
-                      animate={{
-                        opacity: 1,
-                        width: `${Math.max(proj.progress, 15)}%`,
-                        marginLeft: `${idx * 8}%`
-                      }}
-                      transition={{ duration: 0.5, ease: 'easeOut' }}
-                      className="absolute inset-y-1 bg-gradient-to-r from-blue-500/20 to-indigo-500/30 border-l-4 border-blue-600 rounded-lg flex items-center justify-between px-3 text-[10px] font-black text-blue-800 shadow-sm"
-                    >
-                      <span className="truncate">{proj.code}</span>
-                      <span>{proj.progress}%</span>
-                    </motion.div>
+                  <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
+                    <div
+                      style={{ width: `${Math.max(proj.progress || 0, 5)}%` }}
+                      className="bg-gradient-to-r from-teal-600 to-teal-500 h-full rounded-full"
+                    />
+                  </div>
+                  <div className="flex justify-between items-center text-[9px] font-mono text-slate-400 mt-1">
+                    <span>Q1 Kickoff</span>
+                    <span>Q2 Assay Trials</span>
+                    <span>Q3 Sign-off</span>
                   </div>
                 </div>
               </div>
@@ -479,32 +484,36 @@ export default function ProjectsPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setCreateModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs"
+              className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
             />
 
             <motion.div
               initial={{ scale: 0.95, opacity: 0, y: 10 }}
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.95, opacity: 0, y: 10 }}
-              className="bg-white border border-slate-200 rounded-3xl shadow-2xl relative w-full max-w-lg p-6 sm:p-8 z-10 text-xs"
+              className="bg-white border border-slate-200 rounded-3xl shadow-2xl relative w-full max-w-lg p-6 sm:p-8 z-10 text-xs no-scrollbar"
             >
               <div className="flex justify-between items-center border-b border-slate-150 pb-4 mb-6">
                 <div>
-                  <h3 className="font-black text-slate-900 text-base">Initialize Research Pipeline</h3>
-                  <p className="text-[10px] text-slate-450 mt-0.5">Create a structured tracking workspace for experimental milestones.</p>
+                  <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-teal-600" />
+                    Initialize New Research Project
+                  </h3>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Register a new scientific project ledger into the laboratory cluster.</p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setCreateModalOpen(false)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus-ring cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateProject} className="space-y-4 text-slate-750">
+              <form onSubmit={handleCreateProject} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Project Name *</label>
+                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Project Name *</label>
                     <input
                       type="text"
                       required
@@ -515,23 +524,23 @@ export default function ProjectsPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Project Code *</label>
+                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Project Code *</label>
                     <input
                       type="text"
                       required
-                      placeholder="e.g. CRISPR-01"
+                      placeholder="e.g. PRJ-CRISPR-01"
                       value={projCode}
                       onChange={(e) => setProjCode(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-800 focus-ring"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-800 focus-ring uppercase"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Scope & Objective</label>
+                  <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Scope & Objective</label>
                   <textarea
                     rows={3}
-                    placeholder="Describe targets, vector sequences, or polymer formulations."
+                    placeholder="Describe targets, vector sequences, or formulations."
                     value={projDesc}
                     onChange={(e) => setProjDesc(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-800 focus-ring"
@@ -540,7 +549,7 @@ export default function ProjectsPage() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</label>
+                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Status</label>
                     <select
                       value={projStatus}
                       onChange={(e) => setProjStatus(e.target.value)}
@@ -553,7 +562,7 @@ export default function ProjectsPage() {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Banner Theme</label>
+                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Banner Theme</label>
                     <select
                       value={projBanner}
                       onChange={(e) => setProjBanner(e.target.value)}
@@ -567,17 +576,16 @@ export default function ProjectsPage() {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                    Activity Milestones (Comma separated)
+                  <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">
+                    Milestones (Comma separated)
                   </label>
                   <input
                     type="text"
-                    placeholder="Vector design review, Cell transfection calibration, Sequencing validation"
+                    placeholder="Design vectors, Transfection run, Sequence validation"
                     value={projMilestones}
                     onChange={(e) => setProjMilestones(e.target.value)}
                     className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-800 focus-ring"
                   />
-                  <span className="text-[10px] text-slate-400">Separate items with commas to add multiple milestones at once.</span>
                 </div>
 
                 <div className="pt-4 border-t border-slate-150 flex justify-end gap-2.5">
@@ -590,7 +598,7 @@ export default function ProjectsPage() {
                   </button>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all focus-ring cursor-pointer"
+                    className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all focus-ring cursor-pointer"
                   >
                     Create Project
                   </button>
@@ -610,7 +618,7 @@ export default function ProjectsPage() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setEditModalOpen(false)}
-              className="absolute inset-0 bg-slate-900/40 backdrop-blur-xs"
+              className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
             />
 
             <motion.div
@@ -622,25 +630,26 @@ export default function ProjectsPage() {
               <div className="flex justify-between items-center border-b border-slate-150 pb-4 mb-6">
                 <div>
                   <h3 className="font-black text-slate-900 text-base flex items-center gap-2">
-                    <Edit3 className="w-5 h-5 text-blue-600" />
+                    <Edit3 className="w-5 h-5 text-teal-600" />
                     Edit Project: {selectedProject?.name}
                   </h3>
-                  <p className="text-[10px] text-slate-450 mt-0.5">Modify project details, scope, status, progress, and milestones.</p>
+                  <p className="text-[10px] text-slate-400 mt-0.5">Modify parameters, completion velocity, and milestones.</p>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setEditModalOpen(false)}
-                  className="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 focus-ring cursor-pointer"
+                  className="p-1.5 rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              <form onSubmit={handleSaveProjectEdit} className="space-y-5 text-slate-750">
+              <form onSubmit={handleSaveProjectEdit} className="space-y-5">
                 
-                {/* Project Name & Code */}
+                {/* Name & Code */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Project Title *</label>
+                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Project Title *</label>
                     <input
                       type="text"
                       required
@@ -650,20 +659,20 @@ export default function ProjectsPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Project Code *</label>
+                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Project Code *</label>
                     <input
                       type="text"
                       required
                       value={editCode}
                       onChange={(e) => setEditCode(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-800 focus-ring"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-800 focus-ring uppercase"
                     />
                   </div>
                 </div>
 
-                {/* Scope / Description */}
+                {/* Scope */}
                 <div className="space-y-1">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Scope & Objectives</label>
+                  <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Scope & Objectives</label>
                   <textarea
                     rows={3}
                     value={editDesc}
@@ -675,7 +684,7 @@ export default function ProjectsPage() {
                 {/* Status & Banner */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Status</label>
+                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Status</label>
                     <select
                       value={editStatus}
                       onChange={(e) => setEditStatus(e.target.value)}
@@ -688,7 +697,7 @@ export default function ProjectsPage() {
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">Banner Visual</label>
+                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Cover Visual</label>
                     <select
                       value={editBanner}
                       onChange={(e) => setEditBanner(e.target.value)}
@@ -701,11 +710,11 @@ export default function ProjectsPage() {
                   </div>
                 </div>
 
-                {/* Research Progress Slider */}
+                {/* Progress Slider */}
                 <div className="space-y-2 p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
                   <div className="flex justify-between items-center text-xs">
-                    <label className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Research Progress</label>
-                    <span className="font-black text-blue-600 text-sm">{editProgress}%</span>
+                    <label className="text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Research Progress</label>
+                    <span className="font-mono font-black text-teal-700 text-sm">{editProgress}%</span>
                   </div>
                   <input
                     type="range"
@@ -714,17 +723,16 @@ export default function ProjectsPage() {
                     step="1"
                     value={editProgress}
                     onChange={(e) => setEditProgress(Number(e.target.value))}
-                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
+                    className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-teal-600"
                   />
                 </div>
 
                 {/* Milestones Management */}
                 <div className="space-y-3 pt-2 border-t border-slate-150">
-                  <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                  <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">
                     Milestones Checklist ({editMilestonesList.length})
                   </label>
 
-                  {/* Add Milestone Inline */}
                   <div className="flex gap-2">
                     <input
                       type="text"
@@ -742,13 +750,12 @@ export default function ProjectsPage() {
                     <button
                       type="button"
                       onClick={handleAddMilestoneToEdit}
-                      className="px-3 py-2 bg-blue-50 text-blue-700 hover:bg-blue-100 font-bold rounded-xl text-xs transition-colors cursor-pointer shrink-0"
+                      className="px-3.5 py-2 bg-teal-50 text-teal-700 hover:bg-teal-100 font-bold rounded-xl text-xs transition-colors cursor-pointer shrink-0"
                     >
                       + Add
                     </button>
                   </div>
 
-                  {/* Milestones List */}
                   <div className="space-y-2 max-h-48 overflow-y-auto no-scrollbar">
                     {editMilestonesList.length === 0 ? (
                       <p className="text-[11px] text-slate-400 text-center py-2">No milestones defined yet.</p>
@@ -763,7 +770,7 @@ export default function ProjectsPage() {
                               type="checkbox"
                               checked={m.completed}
                               onChange={() => handleToggleEditMilestone(idx)}
-                              className="h-4 w-4 text-blue-600 rounded border-slate-300 focus:ring-0 cursor-pointer shrink-0"
+                              className="h-4 w-4 text-teal-600 rounded border-slate-300 focus:ring-0 cursor-pointer shrink-0"
                             />
                             <input
                               type="text"
@@ -778,7 +785,7 @@ export default function ProjectsPage() {
                           <button
                             type="button"
                             onClick={() => handleRemoveEditMilestone(idx)}
-                            className="p-1 text-slate-400 hover:text-red-600 transition-colors shrink-0 cursor-pointer"
+                            className="p-1 text-slate-400 hover:text-rose-600 transition-colors shrink-0 cursor-pointer"
                             title="Delete Milestone"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -801,7 +808,7 @@ export default function ProjectsPage() {
                   <button
                     type="submit"
                     disabled={isSubmittingEdit}
-                    className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl shadow-md shadow-blue-500/20 active:scale-[0.98] transition-all focus-ring disabled:opacity-50 cursor-pointer"
+                    className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all focus-ring disabled:opacity-50 cursor-pointer"
                   >
                     {isSubmittingEdit ? 'Saving Changes...' : 'Save Project Changes'}
                   </button>
