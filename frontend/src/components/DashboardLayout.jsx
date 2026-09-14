@@ -49,14 +49,14 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
       items: [
         { id: 'dashboard', name: 'Dashboard', icon: LayoutDashboard },
         { id: 'projects', name: 'Research Projects', icon: Layers },
-        { id: 'notebook', name: 'Lab Notebook', icon: NotebookPen, badge: '21 CFR' },
+        { id: 'notebook', name: 'Lab Notebook', icon: NotebookPen},
       ]
     },
     {
       title: 'SCIENTIFIC TOOLS',
       items: [
         { id: 'resources', name: 'Resource Sharing', icon: Share2 },
-        { id: 'calculators', name: 'Scientific Calculators', icon: Calculator, badge: '19 Tools' },
+        { id: 'calculators', name: 'Scientific Calculators', icon: Calculator },
         { id: 'papers', name: 'Research Papers', icon: BookOpen },
       ]
     },
@@ -278,36 +278,6 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
 
           {/* Right: Search, Compliance Tag, Notifications, User */}
           <div className="flex items-center gap-3">
-            
-            {/* Global Search Bar with keyboard shortcut hint */}
-            <div className="relative w-64 lg:w-72 hidden md:block">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                placeholder="Search logs, resources, SOPs..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-slate-50 hover:bg-slate-100/60 focus:bg-white border border-slate-200/80 rounded-xl py-1.5 pl-9 pr-14 text-xs font-medium text-slate-700 transition-colors focus-ring"
-              />
-              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-0.5 text-[10px] font-mono text-slate-400 bg-slate-200/60 px-1.5 py-0.5 rounded">
-                <Command className="w-2.5 h-2.5" /> K
-              </div>
-              {searchQuery && (
-                <button 
-                  type="button"
-                  onClick={() => setSearchQuery('')}
-                  className="absolute right-12 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              )}
-            </div>
-
-            {/* 21 CFR Part 11 Compliance Pill */}
-            <div className="hidden xl:flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-              <span>FDA 21 CFR PART 11 SECURE</span>
-            </div>
 
             {/* Notifications Bell Dropdown */}
             <div className="relative">
