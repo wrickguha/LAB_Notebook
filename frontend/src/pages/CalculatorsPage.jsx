@@ -2729,7 +2729,6 @@ export default function CalculatorsPage() {
                     type="submit"
                     className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-teal-600 to-teal-700 hover:from-teal-500 hover:to-teal-600 active:scale-[0.98] text-white font-bold text-xs shadow-md shadow-teal-700/20 cursor-pointer transition-all"
                   >
-                    <Sparkles className="w-4 h-4" />
                     <span>Calculate Now</span>
                   </button>
                 </div>

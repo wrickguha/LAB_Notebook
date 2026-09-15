@@ -22,13 +22,15 @@ import {
   Plus,
   Sparkles,
   Command,
-  ExternalLink
+  ExternalLink,
+  CalendarDays
 } from 'lucide-react';
 
 export default function DashboardLayout({ children, activeTab, setActiveTab }) {
   const { logout, user, notifications, markNotificationsAsRead, searchQuery, setSearchQuery } = useApp();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -347,6 +349,113 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
                   </div>
                 </>
               )}
+
+                <button
+    type="button"
+    onClick={() => {
+      setCalendarOpen(!calendarOpen);
+      setNotificationsOpen(false);
+      setUserDropdownOpen(false);
+    }}
+    className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 relative transition-colors shadow-xs cursor-pointer"
+    aria-label="View calendar"
+  >
+    <CalendarDays className="w-4 h-4" />
+  </button>
+
+  {/* Calendar Popover */}
+  {calendarOpen && (
+    <>
+      <div
+        className="fixed inset-0 z-40"
+        onClick={() => setCalendarOpen(false)}
+      />
+
+      <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-4">
+
+        {/* Header */}
+        <div className="flex justify-between items-center border-b border-slate-100 pb-2.5">
+          <div className="flex items-center gap-2">
+            <CalendarDays className="w-4 h-4 text-teal-600" />
+            <span className="font-bold text-xs text-slate-900">
+              Lab Calendar
+            </span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setCalendarOpen(false)}
+            className="text-[10px] text-teal-600 hover:text-teal-700 font-bold cursor-pointer"
+          >
+            Close
+          </button>
+        </div>
+
+        {/* Calendar Content */}
+        <div className="mt-3">
+
+          {/* Date */}
+          <div className="bg-teal-50 border border-teal-100 rounded-xl p-3">
+            <div className="text-[10px] font-semibold text-teal-600 uppercase">
+              Today
+            </div>
+
+            <div className="text-sm font-bold text-slate-900 mt-1">
+              September 15, 2026
+            </div>
+          </div>
+
+          {/* Events */}
+          <div className="mt-3 space-y-2">
+
+            <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+              <div className="flex items-start gap-2.5">
+                <div className="w-2 h-2 rounded-full bg-teal-600 mt-1.5 shrink-0" />
+
+                <div className="flex-1">
+                  <div className="text-xs font-bold text-slate-900">
+                    Lab Session
+                  </div>
+
+                  <div className="text-[10px] text-slate-500 mt-0.5">
+                    10:00 AM - 12:00 PM
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+              <div className="flex items-start gap-2.5">
+                <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
+
+                <div className="flex-1">
+                  <div className="text-xs font-bold text-slate-900">
+                    Equipment Maintenance
+                  </div>
+
+                  <div className="text-[10px] text-slate-500 mt-0.5">
+                    2:00 PM - 3:00 PM
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* View Calendar */}
+          <button
+            type="button"
+            className="w-full mt-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold transition-colors cursor-pointer"
+          >
+            View Full Calendar
+          </button>
+
+        </div>
+      </div>
+    </>
+  )}
+
+
             </div>
 
             {/* Profile Avatar User Menu */}

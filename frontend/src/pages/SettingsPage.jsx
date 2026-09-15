@@ -197,10 +197,7 @@ export default function SettingsPage() {
               <h2 className="text-xl sm:text-2xl font-black tracking-tight text-white">
                 {name || 'Investigator Profile'}
               </h2>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-extrabold bg-teal-500/20 text-teal-300 border border-teal-500/30 font-mono">
-                <ShieldCheck className="w-3 h-3" />
-                FDA 21 CFR Part 11 Certified
-              </span>
+
             </div>
 
             <p className="text-xs text-slate-300 font-medium flex flex-wrap items-center justify-center sm:justify-start gap-3">
@@ -275,8 +272,6 @@ export default function SettingsPage() {
               : 'border-transparent text-slate-500 hover:text-slate-800'
           }`}
         >
-          <ShieldCheck className="w-4 h-4" />
-          21 CFR Part 11 Audit Trail ({auditLogs?.length || 0})
         </button>
 
         <button
