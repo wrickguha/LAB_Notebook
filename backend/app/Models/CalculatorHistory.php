@@ -7,6 +7,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CalculatorHistory extends Model
 {
+    protected $table = 'calculator_history';
+
     protected $fillable = [
         'user_id',
         'type',
