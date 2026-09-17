@@ -33,7 +33,7 @@ import {
 } from "lucide-react";
 
 export default function DashboardOverview({ setActiveTab }) {
-  const { user, projects, notebookEntries, sharedResources, auditLogs } =
+  const { user, projects, notebookEntries, sharedResources, auditLogs, dailyQuote, getNewQuote } =
     useApp();
   const [loading, setLoading] = useState(true);
 
@@ -205,6 +205,27 @@ export default function DashboardOverview({ setActiveTab }) {
           </button>
         </div>
       </div>
+
+      {/* Daily Researcher Quote */}
+      {dailyQuote && (
+        <motion.section
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white border border-teal-100 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center gap-4"
+        >
+          <div className="h-10 w-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div className="flex-1">
+            <div className="text-[10px] font-mono font-bold text-teal-700 uppercase tracking-wider">Daily Quote</div>
+            <blockquote className="text-sm font-semibold text-slate-800 mt-1">“{dailyQuote.quote}”</blockquote>
+            <p className="text-[11px] text-slate-500 mt-1">{dailyQuote.author}</p>
+          </div>
+          <button type="button" onClick={getNewQuote} className="inline-flex items-center gap-1.5 self-start sm:self-center text-[11px] font-bold text-teal-700 hover:text-teal-900 cursor-pointer">
+            <Sparkles className="w-3.5 h-3.5" /> New Quote
+          </button>
+        </motion.section>
+      )}
 
       {/* 4 Main KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

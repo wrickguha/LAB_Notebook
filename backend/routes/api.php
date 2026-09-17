@@ -10,6 +10,8 @@ use App\Http\Controllers\PaperController;
 use App\Http\Controllers\ProjectController;
 use App\Http\Controllers\ResourceController;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\GoogleCalendarController;
+use App\Http\Controllers\QuoteController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
@@ -24,6 +26,19 @@ Route::middleware('web')->group(function () {
 
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
+    Route::post('/notifications/{notification}/read', [NotificationController::class, 'markOneRead']);
+
+    Route::get('/calendar/connect', [GoogleCalendarController::class, 'connect']);
+    Route::get('/calendar/callback', [GoogleCalendarController::class, 'callback']);
+    Route::get('/calendar/status', [GoogleCalendarController::class, 'status']);
+    Route::post('/calendar/disconnect', [GoogleCalendarController::class, 'disconnect']);
+    Route::get('/calendar/events', [GoogleCalendarController::class, 'index']);
+    Route::post('/calendar/events', [GoogleCalendarController::class, 'store']);
+    Route::put('/calendar/events/{eventId}', [GoogleCalendarController::class, 'update']);
+    Route::delete('/calendar/events/{eventId}', [GoogleCalendarController::class, 'destroy']);
+
+    Route::get('/daily-quote', [QuoteController::class, 'show']);
+    Route::post('/daily-quote/new', [QuoteController::class, 'newQuote']);
 
     Route::get('/projects', [ProjectController::class, 'index']);
     Route::post('/projects', [ProjectController::class, 'store']);

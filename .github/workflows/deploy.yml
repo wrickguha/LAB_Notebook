@@ -164,6 +164,8 @@ jobs:
           username: ${{ secrets.HOSTINGER_SSH_USER }}
           key: ${{ secrets.HOSTINGER_SSH_KEY }}
           script: |
+            set -e
+
             cd /home/${{ secrets.HOSTINGER_SSH_USER }}/domains/inveniqlab.com/laravel
 
             # Detect Hostinger PHP 8.2+ CLI binary
@@ -180,15 +182,19 @@ jobs:
                 $PHP_BIN artisan key:generate --force
             fi
 
-            # 2. Run Database Migrations safely
+            # 2. Clear any stale cached config BEFORE migrating (this is the fix)
+            echo "Clearing cached config before migration..."
+            $PHP_BIN artisan config:clear
+
+            # 3. Run Database Migrations safely
             echo "Running database migrations..."
             $PHP_BIN artisan migrate --force
 
-            # 3. Create Storage Symlink to public_html/storage
+            # 4. Create Storage Symlink to public_html/storage
             echo "Creating storage symlink..."
             $PHP_BIN artisan storage:link || true
 
-            # 4. Clear and rebuild optimized caches
+            # 5. Clear and rebuild optimized caches
             echo "Optimizing Laravel configuration & routes..."
             $PHP_BIN artisan optimize:clear
             $PHP_BIN artisan config:cache

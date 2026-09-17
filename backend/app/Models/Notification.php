@@ -16,4 +16,9 @@ class Notification extends Model
     protected $casts = [
         'read_at' => 'datetime',
     ];
+
+    public function getIsReadAttribute(): bool
+    {
+        return ! is_null($this->read_at);
+    }
 }

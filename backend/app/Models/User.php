@@ -26,6 +26,7 @@ class User extends Authenticatable
         'institution',
         'lab',
         'avatar',
+        'google_calendar_id',
     ];
 
     /**

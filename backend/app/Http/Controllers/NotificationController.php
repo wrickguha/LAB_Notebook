@@ -35,4 +35,13 @@ class NotificationController extends Controller
 
         return response()->json(['message' => 'Notifications marked as read']);
     }
+
+    public function markOneRead(Notification $notification)
+    {
+        abort_unless($notification->user_id === Auth::id(), 404);
+
+        $notification->update(['read_at' => now()]);
+
+        return response()->json(['message' => 'Notification marked as read']);
+    }
 }

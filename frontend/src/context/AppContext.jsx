@@ -13,6 +13,8 @@ import {
   papersApi,
   auditLogsApi,
   calcHistoryApi,
+  calendarApi,
+  quoteApi,
 } from '../api/endpoints';
 
 const AppContext = createContext();
@@ -57,6 +59,25 @@ export const AppDataProvider = ({ children }) => {
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
     queryFn: notificationsApi.list,
+    enabled: isAuthenticated,
+    refetchInterval: 30000,
+  });
+
+  const { data: calendarStatus = { connected: false } } = useQuery({
+    queryKey: ['calendarStatus'],
+    queryFn: calendarApi.status,
+    enabled: isAuthenticated,
+  });
+
+  const { data: calendarEvents = [] } = useQuery({
+    queryKey: ['calendarEvents'],
+    queryFn: calendarApi.list,
+    enabled: isAuthenticated && calendarStatus.connected,
+  });
+
+  const { data: dailyQuote } = useQuery({
+    queryKey: ['dailyQuote'],
+    queryFn: quoteApi.get,
     enabled: isAuthenticated,
   });
 
@@ -153,6 +174,46 @@ export const AppDataProvider = ({ children }) => {
     } catch (err) {
       showToast(err.message, 'error');
     }
+  };
+
+  const markNotificationAsRead = async (id) => {
+    try {
+      await notificationsApi.markOneRead(id);
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const connectCalendar = async () => {
+    const { url } = await calendarApi.connect();
+    window.location.assign(url);
+  };
+
+  const disconnectCalendar = async () => {
+    await calendarApi.disconnect();
+    queryClient.invalidateQueries({ queryKey: ['calendarStatus'] });
+    queryClient.removeQueries({ queryKey: ['calendarEvents'] });
+  };
+
+  const createCalendarEvent = async (event) => {
+    await calendarApi.create(event);
+    queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
+  };
+
+  const updateCalendarEvent = async (id, event) => {
+    await calendarApi.update(id, event);
+    queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
+  };
+
+  const deleteCalendarEvent = async (id) => {
+    await calendarApi.remove(id);
+    queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
+  };
+
+  const getNewQuote = async () => {
+    const quote = await quoteApi.new();
+    queryClient.setQueryData(['dailyQuote'], quote);
   };
 
   // Projects
@@ -334,6 +395,16 @@ export const AppDataProvider = ({ children }) => {
         setSearchQuery,
         notifications,
         markNotificationsAsRead,
+        markNotificationAsRead,
+        calendarStatus,
+        calendarEvents,
+        connectCalendar,
+        disconnectCalendar,
+        createCalendarEvent,
+        updateCalendarEvent,
+        deleteCalendarEvent,
+        dailyQuote,
+        getNewQuote,
         projects,
         setProjects,
         addProject,

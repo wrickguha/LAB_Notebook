@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 
 export default function DashboardLayout({ children, activeTab, setActiveTab }) {
-  const { logout, user, notifications, markNotificationsAsRead, searchQuery, setSearchQuery } = useApp();
+  const { logout, user, notifications, markNotificationsAsRead, markNotificationAsRead, searchQuery, setSearchQuery, calendarStatus, calendarEvents, connectCalendar, disconnectCalendar, createCalendarEvent, updateCalendarEvent, deleteCalendarEvent } = useApp();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
@@ -340,7 +340,10 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
                             <div className="flex-1 min-w-0">
                               <div className="font-bold text-slate-900 truncate">{notif.title}</div>
                               <div className="text-[11px] text-slate-600 mt-0.5 leading-relaxed">{notif.message}</div>
-                              <span className="text-[9px] font-mono text-slate-400 mt-1 block">{notif.time}</span>
+                              <span className="text-[9px] font-mono text-slate-400 mt-1 block">{notif.createdAt ? new Date(notif.createdAt).toLocaleString() : ''}</span>
+                              {!notif.read && (
+                                <button type="button" onClick={() => markNotificationAsRead(notif.id)} className="text-[10px] text-teal-700 font-bold mt-1 cursor-pointer">Mark as read</button>
+                              )}
                             </div>
                           </div>
                         ))
@@ -393,62 +396,30 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
 
         {/* Calendar Content */}
         <div className="mt-3">
-
-          {/* Date */}
-          <div className="bg-teal-50 border border-teal-100 rounded-xl p-3">
-            <div className="text-[10px] font-semibold text-teal-600 uppercase">
-              Today
-            </div>
-
-            <div className="text-sm font-bold text-slate-900 mt-1">
-              September 15, 2026
-            </div>
-          </div>
-
-          {/* Events */}
-          <div className="mt-3 space-y-2">
-
-            <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-              <div className="flex items-start gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-teal-600 mt-1.5 shrink-0" />
-
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-slate-900">
-                    Lab Session
-                  </div>
-
-                  <div className="text-[10px] text-slate-500 mt-0.5">
-                    10:00 AM - 12:00 PM
-                  </div>
-                </div>
+          {!calendarStatus.connected ? (
+            <button type="button" onClick={connectCalendar} className="w-full py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold transition-colors cursor-pointer">Connect Google Calendar</button>
+          ) : (
+            <>
+              <div className="flex items-center justify-between bg-teal-50 border border-teal-100 rounded-xl p-3">
+                <span className="text-[10px] font-semibold text-teal-700 truncate">{calendarStatus.email || 'Google Calendar connected'}</span>
+                <button type="button" onClick={disconnectCalendar} className="text-[10px] text-rose-600 font-bold cursor-pointer">Disconnect</button>
               </div>
-            </div>
-
-            <div className="p-3 rounded-xl border border-slate-100 bg-slate-50/50">
-              <div className="flex items-start gap-2.5">
-                <div className="w-2 h-2 rounded-full bg-blue-500 mt-1.5 shrink-0" />
-
-                <div className="flex-1">
-                  <div className="text-xs font-bold text-slate-900">
-                    Equipment Maintenance
+              <div className="mt-3 space-y-2 max-h-56 overflow-y-auto">
+                {calendarEvents.length === 0 && <p className="text-xs text-slate-400 text-center py-4">No upcoming events</p>}
+                {calendarEvents.map((event) => (
+                  <div key={event.id} className="p-3 rounded-xl border border-slate-100 bg-slate-50/50">
+                    <div className="text-xs font-bold text-slate-900 truncate">{event.summary || 'Untitled event'}</div>
+                    <div className="text-[10px] text-slate-500 mt-0.5">{event.start?.dateTime ? new Date(event.start.dateTime).toLocaleString() : event.start?.date}</div>
+                    <div className="flex gap-2 mt-2">
+                      <button type="button" onClick={() => { const summary = window.prompt('Event title', event.summary || ''); if (summary) updateCalendarEvent(event.id, { summary, start: event.start.dateTime, end: event.end.dateTime }); }} className="text-[10px] text-teal-700 font-bold cursor-pointer">Edit</button>
+                      <button type="button" onClick={() => deleteCalendarEvent(event.id)} className="text-[10px] text-rose-600 font-bold cursor-pointer">Delete</button>
+                    </div>
                   </div>
-
-                  <div className="text-[10px] text-slate-500 mt-0.5">
-                    2:00 PM - 3:00 PM
-                  </div>
-                </div>
+                ))}
               </div>
-            </div>
-
-          </div>
-
-          {/* View Calendar */}
-          <button
-            type="button"
-            className="w-full mt-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold transition-colors cursor-pointer"
-          >
-            View Full Calendar
-          </button>
+              <button type="button" onClick={() => { const summary = window.prompt('Event title'); if (summary) { const start = new Date(Date.now() + 3600000); createCalendarEvent({ summary, start: start.toISOString(), end: new Date(start.getTime() + 3600000).toISOString() }); } }} className="w-full mt-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold transition-colors cursor-pointer">Create Event</button>
+            </>
+          )}
 
         </div>
       </div>

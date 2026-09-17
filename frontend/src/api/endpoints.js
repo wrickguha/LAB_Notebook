@@ -41,6 +41,24 @@ export const notificationsApi = {
   markRead: async () => {
     return await api.post('/api/notifications/mark-read');
   },
+  markOneRead: async (id) => {
+    return await api.post(`/api/notifications/${id}/read`);
+  },
+};
+
+export const calendarApi = {
+  status: async () => api.get('/api/calendar/status'),
+  connect: async () => api.get('/api/calendar/connect'),
+  disconnect: async () => api.post('/api/calendar/disconnect'),
+  list: async () => api.get('/api/calendar/events'),
+  create: async (event) => api.post('/api/calendar/events', event),
+  update: async (id, event) => api.put(`/api/calendar/events/${id}`, event),
+  remove: async (id) => api.delete(`/api/calendar/events/${id}`),
+};
+
+export const quoteApi = {
+  get: async () => api.get('/api/daily-quote'),
+  new: async () => api.post('/api/daily-quote/new'),
 };
 
 export const projectsApi = {
