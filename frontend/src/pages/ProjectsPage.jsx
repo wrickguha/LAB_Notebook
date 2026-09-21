@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useApp } from '../context/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProjectEditPage from './ProjectEditPage';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import {
   Grid,
   List,
@@ -20,10 +21,32 @@ import {
 } from 'lucide-react';
 
 export default function ProjectsPage() {
-  const { projects, setProjects, addProject, updateProject } = useApp();
+  const { projects, setProjects, addProject, updateProject, deleteProject } = useApp();
   const [viewMode, setViewMode] = useState('grid'); // 'grid' | 'list' | 'timeline'
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [editingProject, setEditingProject] = useState(null); // null = list view, project obj = edit page
+
+  // Delete confirmation state
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, name, code }
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteClick = (proj, e) => {
+    e.stopPropagation();
+    setDeleteTarget({ id: proj.id, name: proj.name, code: proj.code });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteProject(deleteTarget.id, deleteTarget.name);
+      setDeleteTarget(null);
+    } catch (_) {
+      // error already shown via toast
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Create Project Form States
   const [projName, setProjName] = useState('');
@@ -190,16 +213,26 @@ export default function ProjectsPage() {
                     {proj.code}
                   </span>
 
-                  {/* Edit Button on Top Right */}
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditModal(proj)}
-                    className="absolute top-3 right-3 inline-flex items-center gap-1.5 px-3 py-1.2 rounded-xl bg-white/90 hover:bg-white text-slate-800 text-[11px] font-bold backdrop-blur shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
-                    title="Edit Project Configuration"
-                  >
-                    <Edit3 className="w-3.5 h-3.5 text-teal-600" />
-                    <span>Edit</span>
-                  </button>
+                  {/* Edit + Delete Buttons on Top Right */}
+                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleOpenEditModal(proj)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/90 hover:bg-white text-slate-800 text-[11px] font-bold backdrop-blur shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                      title="Edit Project Configuration"
+                    >
+                      <Edit3 className="w-3.5 h-3.5 text-teal-600" />
+                      <span>Edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteClick(proj, e)}
+                      className="inline-flex items-center justify-center w-7 h-7 rounded-xl bg-white/90 hover:bg-rose-50 text-slate-400 hover:text-rose-600 backdrop-blur shadow-sm transition-all hover:scale-105 active:scale-95 cursor-pointer"
+                      title="Delete Project"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
                 </div>
 
                 {/* Scope and Details */}
@@ -346,14 +379,24 @@ export default function ProjectsPage() {
                     {proj.lastActivity ? new Date(proj.lastActivity).toLocaleDateString() : 'Active'}
                   </td>
                   <td className="p-4 text-right pr-6">
-                    <button
-                      type="button"
-                      onClick={() => handleOpenEditModal(proj)}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-teal-50 text-slate-600 hover:text-teal-700 text-[11px] font-bold transition-colors cursor-pointer"
-                    >
-                      <Edit3 className="w-3 h-3" />
-                      Edit
-                    </button>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleOpenEditModal(proj)}
+                        className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-teal-50 text-slate-600 hover:text-teal-700 text-[11px] font-bold transition-colors cursor-pointer"
+                      >
+                        <Edit3 className="w-3 h-3" />
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteClick(proj, e)}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-500 hover:text-rose-700 transition-colors cursor-pointer"
+                        title="Delete Project"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -381,6 +424,14 @@ export default function ProjectsPage() {
                 <div className="col-span-4 sm:col-span-3">
                   <p className="font-bold text-slate-900 truncate text-xs">{proj.name}</p>
                   <p className="text-[10px] font-mono text-slate-400">{proj.code} • {proj.status}</p>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteClick(proj, e)}
+                    className="mt-1.5 inline-flex items-center gap-1 text-[9px] font-bold text-rose-400 hover:text-rose-600 transition-colors cursor-pointer"
+                  >
+                    <Trash2 className="w-2.5 h-2.5" />
+                    Delete
+                  </button>
                 </div>
                 <div className="col-span-8 sm:col-span-9 relative py-2">
                   <div className="w-full bg-slate-100 h-3 rounded-full overflow-hidden">
@@ -538,7 +589,16 @@ export default function ProjectsPage() {
         document.body
       )}
 
-
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={!!deleteTarget}
+        onClose={() => !isDeleting && setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Project?"
+        itemName={deleteTarget?.name}
+        itemSub={deleteTarget?.code}
+        isDeleting={isDeleting}
+      />
 
     </div>
   );

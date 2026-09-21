@@ -132,6 +132,17 @@ class ProjectController extends Controller
         return response()->json($this->serializeProject($project->load('milestones')));
     }
 
+    public function destroy(Project $project)
+    {
+        if ($project->user_id !== null && $project->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $project->delete();
+
+        return response()->json(['message' => 'Project deleted successfully']);
+    }
+
     protected function serializeProject(Project $project): array
     {
         $milestones = $project->milestones()->get()->map(fn ($item) => [

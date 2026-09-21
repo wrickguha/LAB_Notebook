@@ -39,6 +39,13 @@ class PaperController extends Controller
         return response()->json($this->serializePaper($paper));
     }
 
+    public function destroy(ResearchPaper $paper)
+    {
+        $paper->delete();
+
+        return response()->json(['message' => 'Research paper deleted successfully']);
+    }
+
     protected function serializePaper(ResearchPaper $paper): array
     {
         return [

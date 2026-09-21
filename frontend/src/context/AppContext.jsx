@@ -242,6 +242,21 @@ export const AppDataProvider = ({ children }) => {
     }
   };
 
+  const deleteProject = async (id, name) => {
+    try {
+      await projectsApi.delete(id);
+      await addAuditLog('Deleted project', name || `Project #${id}`);
+      queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
+      showToast(`Project "${name || 'Project'}" deleted successfully`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+      throw err;
+    }
+  };
+
   // Intercept milestone toggles originating from setProjects call in ProjectsPage.jsx
   const setProjects = async (updatedProjectsOrFn) => {
     const currentProjects = queryClient.getQueryData(['projects']) || [];
@@ -363,6 +378,20 @@ export const AppDataProvider = ({ children }) => {
     }
   };
 
+  const deleteResearchPaper = async (id, title) => {
+    try {
+      await papersApi.delete(id);
+      await addAuditLog('Deleted paper reference', title || `Paper #${id}`);
+      queryClient.invalidateQueries({ queryKey: ['papers'] });
+      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
+      showToast(`Paper "${title || 'Paper'}" removed from library`, 'success');
+    } catch (err) {
+      showToast(err.message, 'error');
+      throw err;
+    }
+  };
+
   // Audit Logs (Write only, reading is managed by query)
   const addAuditLog = async (action, target) => {
     try {
@@ -409,6 +438,7 @@ export const AppDataProvider = ({ children }) => {
         setProjects,
         addProject,
         updateProject,
+        deleteProject,
         notebookFolders,
         addNotebookFolder,
         notebookEntries,
@@ -420,6 +450,7 @@ export const AppDataProvider = ({ children }) => {
         updateResourcePermission,
         researchPapers,
         addResearchPaper,
+        deleteResearchPaper,
         auditLogs,
         addAuditLog,
         calcHistory,

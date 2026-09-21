@@ -306,7 +306,6 @@ export default function LabNotebookPage() {
                   {activeEntry.status === 'Approved' || activeEntry.status === 'Signed' ? (
                     <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 px-3.5 py-1.5 rounded-xl font-bold text-xs flex items-center gap-2 shadow-xs font-mono">
                       <LockKeyhole className="w-3.5 h-3.5 text-emerald-600" /> 
-                      <span>CRYPTOGRAPHICALLY SEALED</span>
                     </span>
                   ) : (
                     <button

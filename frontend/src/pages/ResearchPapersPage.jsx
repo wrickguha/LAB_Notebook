@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import ConfirmDeleteModal from '../components/ConfirmDeleteModal';
 import {
   BookOpen,
   Search,
@@ -16,14 +17,37 @@ import {
   Sparkles,
   Layers,
   ArrowUpRight,
-  Filter
+  Filter,
+  Trash2
 } from 'lucide-react';
 
 export default function ResearchPapersPage() {
-  const { researchPapers, addResearchPaper } = useApp();
+  const { researchPapers, addResearchPaper, deleteResearchPaper } = useApp();
   const [modalOpen, setModalOpen] = useState(false);
   const [filterQuery, setFilterQuery] = useState('');
   const [copiedDoi, setCopiedDoi] = useState(null);
+
+  // Delete state
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, title }
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteClick = (paper, e) => {
+    e.stopPropagation();
+    setDeleteTarget({ id: paper.id, title: paper.title });
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteResearchPaper(deleteTarget.id, deleteTarget.title);
+      setDeleteTarget(null);
+    } catch (_) {
+      // error already shown via toast
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   // Form states: Title, DOI (primary), Year, Summary
   const [title, setTitle] = useState('');
@@ -220,8 +244,18 @@ export default function ResearchPapersPage() {
                     </span>
                   </div>
 
-                  <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-colors flex-shrink-0">
-                    <BookMarked className="w-4 h-4" />
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) => handleDeleteClick(paper, e)}
+                      title="Delete paper reference"
+                      className="w-8 h-8 rounded-xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-400 hover:text-rose-600 hover:bg-rose-100 hover:border-rose-200 transition-all cursor-pointer opacity-0 group-hover:opacity-100"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                    <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-200/80 flex items-center justify-center text-slate-400 group-hover:text-teal-600 group-hover:bg-teal-50 transition-colors">
+                      <BookMarked className="w-4 h-4" />
+                    </div>
                   </div>
                 </div>
 
@@ -424,6 +458,17 @@ export default function ResearchPapersPage() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmDeleteModal
+        isOpen={!!deleteTarget}
+        onClose={() => !isDeleting && setDeleteTarget(null)}
+        onConfirm={handleConfirmDelete}
+        title="Remove Paper Reference?"
+        itemName={deleteTarget?.title}
+        description="This publication reference will be permanently deleted from the research library and cannot be recovered."
+        isDeleting={isDeleting}
+      />
     </div>
   );
 }

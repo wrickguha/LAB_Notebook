@@ -74,6 +74,9 @@ export const projectsApi = {
   toggleMilestone: async (projectId, milestoneId) => {
     return await api.patch(`/api/projects/${projectId}/milestones/${milestoneId}`);
   },
+  delete: async (projectId) => {
+    return await api.delete(`/api/projects/${projectId}`);
+  },
 };
 
 export const notebookApi = {
@@ -119,6 +122,9 @@ export const papersApi = {
   },
   create: async (paperData) => {
     return await api.post('/api/papers', paperData);
+  },
+  delete: async (paperId) => {
+    return await api.delete(`/api/papers/${paperId}`);
   },
 };
 
