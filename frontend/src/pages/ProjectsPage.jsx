@@ -300,20 +300,6 @@ export default function ProjectsPage() {
 
               {/* Card Footer */}
               <div className="p-4 px-6 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="flex -space-x-1.5">
-                    {(proj.members || []).map((mem, i) => (
-                      <img
-                        key={i}
-                        src={mem.avatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100'}
-                        alt={mem.name}
-                        title={`${mem.name} (${mem.role})`}
-                        className="w-6 h-6 rounded-full object-cover ring-2 ring-white shadow-xs"
-                      />
-                    ))}
-                  </div>
-                  <span className="text-[10px] text-slate-400 font-bold">{(proj.members || []).length} assigned</span>
-                </div>
                 
                 <div className="flex items-center gap-3">
                   <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium font-mono">
@@ -321,14 +307,6 @@ export default function ProjectsPage() {
                     {proj.lastActivity ? new Date(proj.lastActivity).toLocaleDateString() : 'Active'}
                   </span>
                   
-                  <button
-                    type="button"
-                    onClick={() => handleOpenEditModal(proj)}
-                    className="text-teal-600 hover:text-teal-700 font-bold text-[11px] flex items-center gap-0.5 cursor-pointer"
-                  >
-                    <Edit3 className="w-3 h-3" />
-                    Manage
-                  </button>
                 </div>
               </div>
             </div>

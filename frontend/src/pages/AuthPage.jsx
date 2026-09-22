@@ -372,9 +372,7 @@ export default function AuthPage() {
         <div className="flex items-center justify-between z-10">
           <div className="flex items-center gap-2 text-teal-400 font-mono text-xs font-bold">
             <ShieldCheck className="w-4 h-4" />
-            <span>FDA 21 CFR PART 11 ENCRYPTED</span>
           </div>
-          <span className="text-[10px] font-mono text-slate-500">SYSTEM TELEMETRY v4.2</span>
         </div>
 
         {/* Console Box */}

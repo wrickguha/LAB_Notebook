@@ -30,11 +30,20 @@ import {
   Sparkles,
   TrendingUp,
   Cpu,
+  Quote,
+  RefreshCw,
 } from "lucide-react";
 
 export default function DashboardOverview({ setActiveTab }) {
-  const { user, projects, notebookEntries, sharedResources, auditLogs, dailyQuote, getNewQuote } =
-    useApp();
+  const {
+    user,
+    projects,
+    notebookEntries,
+    sharedResources,
+    auditLogs,
+    dailyQuote,
+    getNewQuote,
+  } = useApp();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -206,24 +215,47 @@ export default function DashboardOverview({ setActiveTab }) {
         </div>
       </div>
 
-      {/* Daily Researcher Quote */}
       {dailyQuote && (
         <motion.section
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-white border border-teal-100 rounded-2xl p-5 shadow-xs flex flex-col sm:flex-row sm:items-center gap-4"
+          className="relative overflow-hidden bg-gradient-to-br from-white via-white to-teal-50/60 border border-teal-100/80 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow duration-300"
         >
-          <div className="h-10 w-10 rounded-xl bg-teal-50 text-teal-700 flex items-center justify-center shrink-0">
-            <Sparkles className="w-5 h-5" />
+          {/* decorative giant quote mark */}
+          <span className="pointer-events-none absolute -top-2 right-6 text-8xl font-serif text-teal-100/70 select-none leading-none">
+            "
+          </span>
+
+          <div className="relative flex items-start gap-4">
+            <div className="h-11 w-11 rounded-xl bg-gradient-to-br from-teal-500 to-teal-600 text-white flex items-center justify-center shrink-0 shadow-sm shadow-teal-500/30">
+              <Quote className="h-5 w-5" strokeWidth={2.2} />
+            </div>
+
+            <div className="flex-1 min-w-0">
+              <div className="text-[10px] font-mono font-bold text-teal-700/90 uppercase tracking-[0.15em]">
+                Motivation
+              </div>
+
+              <blockquote className="text-[15px] font-semibold text-slate-800 mt-2 leading-relaxed">
+                {dailyQuote.quote}
+              </blockquote>
+
+              <div className="flex items-center justify-between mt-4">
+                <p className="text-[12px] font-medium text-slate-500">
+                  – {dailyQuote.author}
+                </p>
+
+                <button
+                  type="button"
+                  onClick={getNewQuote}
+                  className="inline-flex items-center gap-1.5 text-[11px] font-bold text-teal-700 hover:text-teal-900 cursor-pointer group shrink-0"
+                >
+                  <RefreshCw className="h-3 w-3 transition-transform duration-500 group-hover:rotate-180" />
+                  New Quote
+                </button>
+              </div>
+            </div>
           </div>
-          <div className="flex-1">
-            <div className="text-[10px] font-mono font-bold text-teal-700 uppercase tracking-wider">Daily Quote</div>
-            <blockquote className="text-sm font-semibold text-slate-800 mt-1">“{dailyQuote.quote}”</blockquote>
-            <p className="text-[11px] text-slate-500 mt-1">{dailyQuote.author}</p>
-          </div>
-          <button type="button" onClick={getNewQuote} className="inline-flex items-center gap-1.5 self-start sm:self-center text-[11px] font-bold text-teal-700 hover:text-teal-900 cursor-pointer">
-            <Sparkles className="w-3.5 h-3.5" /> New Quote
-          </button>
         </motion.section>
       )}
 
@@ -297,7 +329,6 @@ export default function DashboardOverview({ setActiveTab }) {
             <Users className="w-5 h-5" />
           </div>
         </div>
-
       </div>
 
       {/* Visual Charts Grid */}
@@ -454,8 +485,6 @@ export default function DashboardOverview({ setActiveTab }) {
             ))}
           </div>
         </div>
-
-
 
         {/* Card 3: Resource Allocations */}
         <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-4">
