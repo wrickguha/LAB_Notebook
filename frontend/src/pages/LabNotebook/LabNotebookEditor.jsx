@@ -87,7 +87,7 @@ export default function LabNotebookEditor() {
 
             <div>
               <h1>
-                Laboratory Notebook
+                Research Projects
               </h1>
 
               <p>
