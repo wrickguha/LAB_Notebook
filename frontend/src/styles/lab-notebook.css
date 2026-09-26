@@ -1,0 +1,487 @@
+/* =========================================================
+   INVENIQLAB — LAB NOTEBOOK
+   ========================================================= */
+
+.lab-notebook-page {
+  min-height: 100vh;
+  background: #f4f7f9;
+  color: #0f172a;
+}
+
+
+/* =========================================================
+   TOP BAR
+   ========================================================= */
+
+.lab-notebook-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+
+  height: 64px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 28px;
+
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid #e5e7eb;
+
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+
+.lab-notebook-topbar-left,
+.lab-notebook-topbar-right {
+  display: flex;
+  align-items: center;
+}
+
+
+.lab-notebook-topbar-left {
+  gap: 18px;
+}
+
+
+.lab-notebook-topbar-right {
+  gap: 10px;
+}
+
+
+/* =========================================================
+   BACK BUTTON
+   ========================================================= */
+
+.notebook-back-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 8px 11px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: transparent;
+
+  color: #64748b;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition:
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+
+.notebook-back-button:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+
+.topbar-divider {
+  width: 1px;
+  height: 24px;
+  background: #e5e7eb;
+}
+
+
+/* =========================================================
+   BRAND
+   ========================================================= */
+
+.notebook-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+
+  color: #0f172a;
+
+  font-size: 15px;
+  font-weight: 700;
+}
+
+
+.notebook-brand-icon {
+  width: 31px;
+  height: 31px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 8px;
+
+  background: #0d9488;
+  color: white;
+
+  box-shadow: 0 3px 10px rgba(13, 148, 136, 0.22);
+}
+
+
+/* =========================================================
+   SAVE STATUS
+   ========================================================= */
+
+.save-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 7px 11px;
+
+  border-radius: 8px;
+
+  color: #15803d;
+  background: #f0fdf4;
+
+  font-size: 12px;
+  font-weight: 600;
+}
+
+
+.save-status svg {
+  color: #16a34a;
+}
+
+
+/* =========================================================
+   SHARE
+   ========================================================= */
+
+.notebook-share-button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 8px 13px;
+
+  border: 1px solid #dbe2e8;
+  border-radius: 8px;
+
+  background: white;
+  color: #334155;
+
+  font-size: 13px;
+  font-weight: 600;
+
+  cursor: pointer;
+
+  transition: all 0.2s ease;
+}
+
+
+.notebook-share-button:hover {
+  border-color: #0d9488;
+  color: #0d9488;
+  background: #f0fdfa;
+}
+
+
+.notebook-more-button {
+  width: 35px;
+  height: 35px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border: none;
+  border-radius: 8px;
+
+  background: transparent;
+  color: #64748b;
+
+  cursor: pointer;
+}
+
+
+.notebook-more-button:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+
+/* =========================================================
+   NOTEBOOK HEADING
+   ========================================================= */
+
+.notebook-heading {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+
+.notebook-heading-inner {
+  max-width: 1180px;
+
+  margin: 0 auto;
+
+  padding: 36px 32px 32px;
+}
+
+
+.notebook-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+
+  margin-bottom: 12px;
+
+  color: #0d9488;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: 1.8px;
+}
+
+
+.notebook-label-dot {
+  width: 7px;
+  height: 7px;
+
+  border-radius: 50%;
+
+  background: #14b8a6;
+
+  box-shadow: 0 0 0 4px #ccfbf1;
+}
+
+
+.notebook-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: 30px;
+}
+
+
+.notebook-title-row h1 {
+  margin: 0;
+
+  color: #0f172a;
+
+  font-size: 30px;
+  line-height: 1.2;
+  font-weight: 700;
+
+  letter-spacing: -0.7px;
+}
+
+
+.notebook-title-row p {
+  margin: 9px 0 0;
+
+  color: #64748b;
+
+  font-size: 14px;
+}
+
+
+.title-separator {
+  margin: 0 8px;
+  color: #cbd5e1;
+}
+
+
+.notebook-project-badge {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+
+  padding: 8px 12px;
+
+  border: 1px solid #ccfbf1;
+  border-radius: 20px;
+
+  background: #f0fdfa;
+  color: #0f766e;
+
+  font-size: 12px;
+  font-weight: 600;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   WORKSPACE
+   ========================================================= */
+
+.notebook-workspace {
+  min-height: calc(100vh - 170px);
+
+  padding: 36px 24px 80px;
+}
+
+
+.notebook-editor-wrapper {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+
+/* =========================================================
+   EDITOR CARD
+   ========================================================= */
+
+.notebook-editor-card {
+  overflow: hidden;
+
+  background: white;
+
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.03),
+    0 8px 30px rgba(15, 23, 42, 0.05);
+}
+
+
+/* =========================================================
+   DOCUMENT HEADER
+   ========================================================= */
+
+.notebook-editor-header {
+  min-height: 62px;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 0 24px;
+
+  border-bottom: 1px solid #edf0f3;
+
+  background: #ffffff;
+}
+
+
+.editor-document-label {
+  display: block;
+
+  margin-bottom: 3px;
+
+  color: #334155;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  letter-spacing: 1.1px;
+}
+
+
+.editor-document-description {
+  display: block;
+
+  color: #94a3b8;
+
+  font-size: 12px;
+}
+
+
+.editor-project-id {
+  padding: 5px 9px;
+
+  border-radius: 6px;
+
+  background: #f8fafc;
+
+  color: #64748b;
+
+  font-size: 11px;
+  font-weight: 600;
+}
+
+
+/* =========================================================
+   TIPTAP AREA
+   ========================================================= */
+
+.notebook-editor-content {
+  background: #f8fafc;
+
+  min-height: 720px;
+
+  padding: 0;
+}
+
+
+/*
+   The Simple Editor already provides its own toolbar
+   and editor styles.
+
+   We give it a clean notebook environment.
+*/
+
+.notebook-editor-content .simple-editor-wrapper {
+  min-height: 720px;
+  background: #f8fafc;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 768px) {
+
+  .lab-notebook-topbar {
+    padding: 0 15px;
+  }
+
+  .notebook-brand {
+    display: none;
+  }
+
+  .notebook-title-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .notebook-heading-inner {
+    padding: 28px 20px;
+  }
+
+  .notebook-title-row h1 {
+    font-size: 25px;
+  }
+
+  .notebook-project-badge {
+    align-self: flex-start;
+  }
+
+  .notebook-workspace {
+    padding: 20px 10px 50px;
+  }
+
+  .notebook-editor-header {
+    padding: 0 15px;
+  }
+
+  .editor-document-description {
+    display: none;
+  }
+
+  .notebook-share-button span {
+    display: none;
+  }
+
+  .notebook-share-button {
+    width: 36px;
+    height: 36px;
+
+    justify-content: center;
+    padding: 0;
+  }
+}

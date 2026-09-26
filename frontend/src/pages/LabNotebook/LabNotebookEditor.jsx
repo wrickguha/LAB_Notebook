@@ -1,30 +1,150 @@
 import React from 'react';
-import { useParams } from 'react-router-dom';
-import { SimpleEditor } from '../../components/tiptap-templates/simple/simple-editor';
+import { useNavigate, useParams } from 'react-router-dom';
+import {
+  ArrowLeft,
+  CheckCircle2,
+  FlaskConical,
+  MoreHorizontal,
+  Share2,
+} from 'lucide-react';
+
+import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor';
+
+import '../../styles/lab-notebook.css';
 
 export default function LabNotebookEditor() {
+  const { projectId } = useParams();
+  const navigate = useNavigate();
 
-    const { projectId } = useParams();
+  return (
+    <div className="lab-notebook-page">
 
-    return (
-        <div className="min-h-screen bg-slate-50">
+      {/* ───────────────────────── TOP BAR ───────────────────────── */}
+      <header className="lab-notebook-topbar">
 
-            {/* Header */}
-            <div className="border-b bg-white px-6 py-4">
-                <h1 className="text-lg font-bold text-slate-900">
-                    Lab Notebook
-                </h1>
+        <div className="lab-notebook-topbar-left">
 
-                <p className="text-sm text-slate-500">
-                    Project ID: {projectId}
-                </p>
+          <button
+            type="button"
+            className="notebook-back-button"
+            onClick={() => navigate('/dashboard')}
+          >
+            <ArrowLeft size={18} />
+            <span>Projects</span>
+          </button>
+
+          <div className="topbar-divider" />
+
+          <div className="notebook-brand">
+            <div className="notebook-brand-icon">
+              <FlaskConical size={18} />
             </div>
 
-            {/* Tiptap */}
-            <div className="p-6">
-                <SimpleEditor />
-            </div>
+            <span>InveniqLab</span>
+          </div>
 
         </div>
-    );
+
+        <div className="lab-notebook-topbar-right">
+
+          <div className="save-status">
+            <CheckCircle2 size={16} />
+            <span>Saved</span>
+          </div>
+
+          <button
+            type="button"
+            className="notebook-share-button"
+          >
+            <Share2 size={16} />
+            <span>Share</span>
+          </button>
+
+          <button
+            type="button"
+            className="notebook-more-button"
+          >
+            <MoreHorizontal size={19} />
+          </button>
+
+        </div>
+
+      </header>
+
+
+      {/* ───────────────────────── NOTEBOOK HEADER ───────────────────────── */}
+
+      <section className="notebook-heading">
+
+        <div className="notebook-heading-inner">
+
+          <div className="notebook-label">
+            <span className="notebook-label-dot" />
+            RESEARCH NOTEBOOK
+          </div>
+
+          <div className="notebook-title-row">
+
+            <div>
+              <h1>
+                Laboratory Notebook
+              </h1>
+
+              <p>
+                Project #{projectId}
+                <span className="title-separator">•</span>
+                Research documentation
+              </p>
+            </div>
+
+            <div className="notebook-project-badge">
+              <FlaskConical size={15} />
+              Active Project
+            </div>
+
+          </div>
+
+        </div>
+
+      </section>
+
+
+      {/* ───────────────────────── EDITOR AREA ───────────────────────── */}
+
+      <main className="notebook-workspace">
+
+        <div className="notebook-editor-wrapper">
+
+          <div className="notebook-editor-card">
+
+            <div className="notebook-editor-header">
+
+              <div>
+                <span className="editor-document-label">
+                  EXPERIMENT NOTES
+                </span>
+
+                <span className="editor-document-description">
+                  Document your observations, methodology and results
+                </span>
+              </div>
+
+              <div className="editor-project-id">
+                #{projectId}
+              </div>
+
+            </div>
+
+            <div className="notebook-editor-content">
+              <SimpleEditor />
+            </div>
+
+          </div>
+
+        </div>
+
+      </main>
+
+    </div>
+  );
 }

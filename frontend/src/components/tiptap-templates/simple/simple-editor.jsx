@@ -78,7 +78,6 @@ import { handleImageUpload, MAX_FILE_SIZE } from "@/lib/tiptap-utils"
 // --- Styles ---
 import "@/components/tiptap-templates/simple/simple-editor.scss"
 
-import content from "@/components/tiptap-templates/simple/data/content.json"
 
 const SEARCH_AND_REPLACE_SCROLL_OPTIONS = {
   block: "center",
@@ -243,7 +242,7 @@ export function SimpleEditor() {
         onError: (error) => console.error("Upload failed:", error),
       }),
     ],
-    content,
+    content: '',
   })
 
   const rect = useCursorVisibility({
