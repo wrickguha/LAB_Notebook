@@ -36,24 +36,35 @@ export const userApi = {
 
 export const notificationsApi = {
   list: async () => {
-    return await api.get('/api/notifications');
+    const response = await api.get('/api/notifications');
+    return response.items ?? [];
   },
+
   markRead: async () => {
     return await api.post('/api/notifications/mark-read');
   },
+
   markOneRead: async (id) => {
     return await api.post(`/api/notifications/${id}/read`);
   },
 };
 
 export const calendarApi = {
-  status: async () => api.get('/api/calendar/status'),
-  connect: async () => api.get('/api/calendar/connect'),
-  disconnect: async () => api.post('/api/calendar/disconnect'),
-  list: async () => api.get('/api/calendar/events'),
-  create: async (event) => api.post('/api/calendar/events', event),
-  update: async (id, event) => api.put(`/api/calendar/events/${id}`, event),
-  remove: async (id) => api.delete(`/api/calendar/events/${id}`),
+  list: async () => {
+    return await api.get('/api/calendar/events');
+  },
+
+  create: async (event) => {
+    return await api.post('/api/calendar/events', event);
+  },
+
+  update: async (id, event) => {
+    return await api.put(`/api/calendar/events/${id}`, event);
+  },
+
+  remove: async (id) => {
+    return await api.delete(`/api/calendar/events/${id}`);
+  },
 };
 
 export const quoteApi = {
@@ -72,7 +83,9 @@ export const projectsApi = {
     return await api.put(`/api/projects/${projectId}`, projectData);
   },
   toggleMilestone: async (projectId, milestoneId) => {
-    return await api.patch(`/api/projects/${projectId}/milestones/${milestoneId}`);
+    return await api.patch(
+      `/api/projects/${projectId}/milestones/${milestoneId}/toggleMilestone`
+    );
   },
   delete: async (projectId) => {
     return await api.delete(`/api/projects/${projectId}`);

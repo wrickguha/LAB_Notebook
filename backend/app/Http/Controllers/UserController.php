@@ -17,25 +17,27 @@ class UserController extends Controller
         }
 
         $validated = $request->validate([
-            'name' => ['sometimes', 'string', 'max:255'],
-            'role' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'email' => ['sometimes', 'email', 'unique:users,email,' . $user->id],
-            'institution' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'lab' => ['sometimes', 'nullable', 'string', 'max:255'],
-            'avatar' => ['sometimes', 'nullable', 'string'],
+            'name'             => ['sometimes', 'string', 'max:255'],
+            'role'             => ['sometimes', 'nullable', 'string', 'max:255'],
+            'email'            => ['sometimes', 'email', 'unique:users,email,' . $user->id],
+            'institution'      => ['sometimes', 'nullable', 'string', 'max:255'],
+            'lab'              => ['sometimes', 'nullable', 'string', 'max:255'],
+            'avatar'           => ['sometimes', 'nullable', 'string'],
+            'theme_preference' => ['sometimes', 'in:light,dark'],
         ]);
 
         $user->fill($validated);
         $user->save();
 
         return response()->json([
-            'id' => $user->id,
-            'name' => $user->name,
-            'role' => $user->role ?? 'Principal Investigator',
-            'email' => $user->email,
-            'institution' => $user->institution ?? '',
-            'lab' => $user->lab ?? '',
-            'avatar' => $user->avatar ?? null,
+            'id'               => $user->id,
+            'name'             => $user->name,
+            'role'             => $user->role ?? 'Principal Investigator',
+            'email'            => $user->email,
+            'institution'      => $user->institution ?? '',
+            'lab'              => $user->lab ?? '',
+            'avatar'           => $user->avatar ?? null,
+            'theme_preference' => $user->theme_preference ?? 'light',
         ]);
     }
 }

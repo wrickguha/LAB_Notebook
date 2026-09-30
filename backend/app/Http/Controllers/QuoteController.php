@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Quote;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -10,27 +11,68 @@ class QuoteController extends Controller
 {
     public function show()
     {
-        return response()->json($this->selectQuote(false));
+        return response()->json($this->selectDeterministicQuote(false));
     }
 
     public function newQuote()
     {
-        return response()->json($this->selectQuote(true));
+        return response()->json($this->selectDeterministicQuote(true));
     }
 
-    private function selectQuote(bool $force): Quote
+    private function selectDeterministicQuote(bool $force): array
     {
         $today = now()->toDateString();
-        $selection = DB::table('user_quote_selections')->where('user_id', Auth::id())->where('selected_on', $today)->first();
-        if ($selection && ! $force) return Quote::findOrFail($selection->quote_id);
+        $userId = Auth::id() ?? 1;
 
-        $used = DB::table('user_quote_selections')->where('user_id', Auth::id())->pluck('quote_id');
-        $quote = Quote::whereNotIn('id', $used)->inRandomOrder()->first() ?? Quote::inRandomOrder()->firstOrFail();
-        DB::table('user_quote_selections')->updateOrInsert(
-            ['user_id' => Auth::id(), 'selected_on' => $today],
-            ['quote_id' => $quote->id, 'updated_at' => now(), 'created_at' => now()],
-        );
+        // If user already had a manual quote selected today and not forcing new
+        $selection = DB::table('user_quote_selections')
+            ->where('user_id', $userId)
+            ->where('selected_on', $today)
+            ->first();
 
-        return $quote;
+        if ($selection && ! $force) {
+            $existing = Quote::find($selection->quote_id);
+            if ($existing) {
+                return [
+                    'id'     => $existing->id,
+                    'quote'  => $existing->quote,
+                    'author' => $existing->author,
+                ];
+            }
+        }
+
+        $count = Quote::count();
+        if ($count === 0) {
+            return [
+                'id'     => 1,
+                'quote'  => 'Research is formalized curiosity. It is poking and prying with a purpose.',
+                'author' => 'Zora Neale Hurston',
+            ];
+        }
+
+        if ($force) {
+            // Pick a random quote that isn't the current one
+            $currentId = $selection?->quote_id ?? 0;
+            $quote = Quote::where('id', '!=', $currentId)->inRandomOrder()->first() ?? Quote::first();
+        } else {
+            // Deterministic calculation: day of year + year salt mapped across all quotes
+            $dayOfYear = (int) now()->format('z');
+            $year = (int) now()->format('Y');
+            $index = ($dayOfYear + ($year * 17)) % $count;
+            $quote = Quote::orderBy('id')->skip($index)->first() ?? Quote::first();
+        }
+
+        if ($userId && $quote) {
+            DB::table('user_quote_selections')->updateOrInsert(
+                ['user_id' => $userId, 'selected_on' => $today],
+                ['quote_id' => $quote->id, 'updated_at' => now(), 'created_at' => now()]
+            );
+        }
+
+        return [
+            'id'     => $quote->id,
+            'quote'  => $quote->quote,
+            'author' => $quote->author,
+        ];
     }
 }

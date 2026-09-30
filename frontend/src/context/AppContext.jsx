@@ -63,17 +63,11 @@ export const AppDataProvider = ({ children }) => {
     refetchInterval: 30000,
   });
 
-  const { data: calendarStatus = { connected: false } } = useQuery({
-    queryKey: ['calendarStatus'],
-    queryFn: calendarApi.status,
-    enabled: isAuthenticated,
-  });
-
   const { data: calendarEvents = [] } = useQuery({
-    queryKey: ['calendarEvents'],
-    queryFn: calendarApi.list,
-    enabled: isAuthenticated && calendarStatus.connected,
-  });
+  queryKey: ['calendarEvents'],
+  queryFn: calendarApi.list,
+  enabled: isAuthenticated,
+});
 
   const { data: dailyQuote } = useQuery({
     queryKey: ['dailyQuote'],
@@ -185,16 +179,6 @@ export const AppDataProvider = ({ children }) => {
     }
   };
 
-  const connectCalendar = async () => {
-    const { url } = await calendarApi.connect();
-    window.location.assign(url);
-  };
-
-  const disconnectCalendar = async () => {
-    await calendarApi.disconnect();
-    queryClient.invalidateQueries({ queryKey: ['calendarStatus'] });
-    queryClient.removeQueries({ queryKey: ['calendarEvents'] });
-  };
 
   const createCalendarEvent = async (event) => {
     await calendarApi.create(event);
@@ -425,10 +409,7 @@ export const AppDataProvider = ({ children }) => {
         notifications,
         markNotificationsAsRead,
         markNotificationAsRead,
-        calendarStatus,
         calendarEvents,
-        connectCalendar,
-        disconnectCalendar,
         createCalendarEvent,
         updateCalendarEvent,
         deleteCalendarEvent,

@@ -35,10 +35,7 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
     markNotificationAsRead,
     searchQuery,
     setSearchQuery,
-    calendarStatus,
     calendarEvents,
-    connectCalendar,
-    disconnectCalendar,
     createCalendarEvent,
     updateCalendarEvent,
     deleteCalendarEvent,
@@ -410,103 +407,140 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
 
                     {/* Calendar Content */}
                     <div className="mt-3">
-                      {!calendarStatus.connected ? (
-                        <button
-                          type="button"
-                          onClick={connectCalendar}
-                          className="w-full py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold transition-colors cursor-pointer"
-                        >
-                          Connect Google Calendar
-                        </button>
-                      ) : (
-                        <>
-                          <div className="flex items-center justify-between bg-teal-50 border border-teal-100 rounded-xl p-3">
-                            <span className="text-[10px] font-semibold text-teal-700 truncate">
-                              {calendarStatus.email ||
-                                "Google Calendar connected"}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={disconnectCalendar}
-                              className="text-[10px] text-rose-600 font-bold cursor-pointer"
-                            >
-                              Disconnect
-                            </button>
+                      {/* Internal Lab Calendar */}
+                      <div className="flex items-center justify-between bg-teal-50 border border-teal-100 rounded-xl p-3">
+                        <div>
+                          <div className="text-[10px] font-bold text-teal-700">
+                            Internal Lab Calendar
                           </div>
-                          <div className="mt-3 space-y-2 max-h-56 overflow-y-auto">
-                            {calendarEvents.length === 0 && (
-                              <p className="text-xs text-slate-400 text-center py-4">
-                                No upcoming events
-                              </p>
-                            )}
-                            {calendarEvents.map((event) => (
+
+                          <div className="text-[9px] text-teal-600 mt-0.5">
+                            Your research schedule
+                          </div>
+                        </div>
+
+                        <CalendarDays className="w-4 h-4 text-teal-600" />
+                      </div>
+
+                      {/* Events */}
+                      <div className="mt-3 space-y-2 max-h-56 overflow-y-auto">
+                        {calendarEvents.length === 0 ? (
+                          <p className="text-xs text-slate-400 text-center py-4">
+                            No upcoming events
+                          </p>
+                        ) : (
+                          calendarEvents.map((event) => {
+                            const startDateTime = event.startTime
+                              ? `${event.startDate}T${event.startTime}`
+                              : event.startDate;
+
+                            const formattedDate = startDateTime
+                              ? new Date(startDateTime).toLocaleString()
+                              : "Date not specified";
+
+                            return (
                               <div
                                 key={event.id}
                                 className="p-3 rounded-xl border border-slate-100 bg-slate-50/50"
                               >
                                 <div className="text-xs font-bold text-slate-900 truncate">
-                                  {event.summary || "Untitled event"}
+                                  {event.title || "Untitled event"}
                                 </div>
+
                                 <div className="text-[10px] text-slate-500 mt-0.5">
-                                  {event.start?.dateTime
-                                    ? new Date(
-                                        event.start.dateTime,
-                                      ).toLocaleString()
-                                    : event.start?.date}
+                                  {formattedDate}
                                 </div>
+
+                                {event.location && (
+                                  <div className="text-[10px] text-slate-400 mt-1">
+                                    📍 {event.location}
+                                  </div>
+                                )}
+
+                                {event.eventType && (
+                                  <div className="text-[9px] text-teal-600 font-semibold mt-1">
+                                    {event.eventType}
+                                  </div>
+                                )}
+
                                 <div className="flex gap-2 mt-2">
                                   <button
                                     type="button"
                                     onClick={() => {
-                                      const summary = window.prompt(
+                                      const title = window.prompt(
                                         "Event title",
-                                        event.summary || "",
+                                        event.title || "",
                                       );
-                                      if (summary)
+
+                                      if (title) {
                                         updateCalendarEvent(event.id, {
-                                          summary,
-                                          start: event.start.dateTime,
-                                          end: event.end.dateTime,
+                                          title,
                                         });
+                                      }
                                     }}
                                     className="text-[10px] text-teal-700 font-bold cursor-pointer"
                                   >
                                     Edit
                                   </button>
+
                                   <button
                                     type="button"
-                                    onClick={() =>
-                                      deleteCalendarEvent(event.id)
-                                    }
+                                    onClick={() => {
+                                      if (
+                                        window.confirm(
+                                          `Delete "${event.title || "this event"}"?`,
+                                        )
+                                      ) {
+                                        deleteCalendarEvent(event.id);
+                                      }
+                                    }}
                                     className="text-[10px] text-rose-600 font-bold cursor-pointer"
                                   >
                                     Delete
                                   </button>
                                 </div>
                               </div>
-                            ))}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const summary = window.prompt("Event title");
-                              if (summary) {
-                                const start = new Date(Date.now() + 3600000);
-                                createCalendarEvent({
-                                  summary,
-                                  start: start.toISOString(),
-                                  end: new Date(
-                                    start.getTime() + 3600000,
-                                  ).toISOString(),
-                                });
-                              }
-                            }}
-                            className="w-full mt-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold transition-colors cursor-pointer"
-                          >
-                            Create Event
-                          </button>
-                        </>
-                      )}
+                            );
+                          })
+                        )}
+                      </div>
+
+                      {/* Create Event */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const title = window.prompt("Event title");
+
+                          if (!title) return;
+
+                          const date = window.prompt(
+                            "Event date (YYYY-MM-DD)",
+                            new Date().toISOString().slice(0, 10),
+                          );
+
+                          if (!date) return;
+
+                          const time = window.prompt(
+                            "Event time (HH:MM)",
+                            "10:00",
+                          );
+
+                          if (!time) return;
+
+                          createCalendarEvent({
+                            title,
+                            start_date: date,
+                            start_time: time,
+                            end_date: date,
+                            end_time: time,
+                            event_type: "Meeting",
+                            is_all_day: false,
+                          });
+                        }}
+                        className="w-full mt-3 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-bold transition-colors cursor-pointer"
+                      >
+                        Create Event
+                      </button>
                     </div>
                   </div>
                 </>

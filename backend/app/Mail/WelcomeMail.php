@@ -1,0 +1,38 @@
+<?php
+
+namespace App\Mail;
+
+use App\Models\User;
+use Illuminate\Bus\Queueable;
+use Illuminate\Mail\Mailable;
+use Illuminate\Mail\Mailables\Content;
+use Illuminate\Mail\Mailables\Envelope;
+use Illuminate\Queue\SerializesModels;
+
+class WelcomeMail extends Mailable
+{
+    use Queueable, SerializesModels;
+
+    public function __construct(public User $user, public ?string $actionUrl = null)
+    {
+        $this->actionUrl = $this->actionUrl ?? config('app.url');
+    }
+
+    public function envelope(): Envelope
+    {
+        return new Envelope(
+            subject: 'Welcome to InveniqLab — Research Management & Lab Notebook',
+        );
+    }
+
+    public function content(): Content
+    {
+        return new Content(
+            view: 'emails.welcome',
+            with: [
+                'user'      => $this->user,
+                'actionUrl' => $this->actionUrl,
+            ],
+        );
+    }
+}
