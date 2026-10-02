@@ -178,7 +178,7 @@ h1, .font-display {
   font-family: var(--font-display);
 }
 
-/* Cryptographic Seal Styling (21 CFR Part 11) */
+/* Visual treatment for signed notebook records */
 .crypto-seal {
   background: repeating-linear-gradient(
     45deg,
@@ -214,4 +214,69 @@ h1, .font-display {
   --lp-border: #1E293B;
   --lp-muted: #94A3B8;
   --lp-cyan: #042F2E;
+}
+
+html.dark body {
+  background-color: #0b1220;
+  color: #e2e8f0;
+}
+
+html.dark .dashboard-theme {
+  background-color: #0b1220 !important;
+  color: #e2e8f0;
+}
+
+html.dark .dashboard-theme .bg-white {
+  background-color: #111c2d !important;
+}
+
+html.dark .dashboard-theme .bg-slate-50 {
+  background-color: #0e1929 !important;
+}
+
+html.dark .dashboard-theme .bg-slate-100 {
+  background-color: #17253a !important;
+}
+
+html.dark .dashboard-theme .bg-slate-200 {
+  background-color: #22334a !important;
+}
+
+html.dark .dashboard-theme .text-slate-900,
+html.dark .dashboard-theme .text-slate-800 {
+  color: #e6edf7 !important;
+}
+
+html.dark .dashboard-theme .text-slate-700 {
+  color: #d0d9e6 !important;
+}
+
+html.dark .dashboard-theme .text-slate-600 {
+  color: #b7c4d6 !important;
+}
+
+html.dark .dashboard-theme .text-slate-500,
+html.dark .dashboard-theme .text-slate-400 {
+  color: #94a5bb !important;
+}
+
+html.dark .dashboard-theme .border-slate-100,
+html.dark .dashboard-theme .border-slate-150,
+html.dark .dashboard-theme .border-slate-200 {
+  border-color: #293a51 !important;
+}
+
+html.dark .dashboard-theme .bg-teal-50 {
+  background-color: #12352f !important;
+}
+
+html.dark .dashboard-theme .text-teal-700,
+html.dark .dashboard-theme .text-teal-800 {
+  color: #5eead4 !important;
+}
+
+html.dark .dashboard-theme input,
+html.dark .dashboard-theme textarea,
+html.dark .dashboard-theme select {
+  color: #e2e8f0;
 }

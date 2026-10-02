@@ -61,38 +61,60 @@ function CustomTooltip({ active, payload, label }) {
 }
 
 export default function AnalyticsPage() {
-  const { projects } = useApp();
-  const [timeRange, setTimeRange] = useState('Quarter'); // Month | Quarter | Year
+  const { projects = [], notebookEntries = [], sharedResources = [], researchPapers = [] } = useApp();
   const [selectedProject, setSelectedProject] = useState('All');
 
-  // Chart Data: Lab Workload Hours spent (Weekly)
-  const workloadWeekly = [
-    { week: 'Wk 1', CRISPR: 45, Polymers: 24, Diagnostic: 12 },
-    { week: 'Wk 2', CRISPR: 50, Polymers: 30, Diagnostic: 18 },
-    { week: 'Wk 3', CRISPR: 62, Polymers: 28, Diagnostic: 22 },
-    { week: 'Wk 4', CRISPR: 55, Polymers: 35, Diagnostic: 15 },
-    { week: 'Wk 5', CRISPR: 70, Polymers: 42, Diagnostic: 30 },
-    { week: 'Wk 6', CRISPR: 68, Polymers: 45, Diagnostic: 28 },
-  ];
+  const selectedProjectId = selectedProject === 'All'
+    ? null
+    : projects.find((project) => project.code === selectedProject)?.id;
+  const filteredEntries = notebookEntries.filter((entry) =>
+    !selectedProjectId || String(entry.projectId) === String(selectedProjectId)
+  );
+  const filteredProjects = projects.filter((project) =>
+    !selectedProjectId || String(project.id) === String(selectedProjectId)
+  );
+  const signedEntries = filteredEntries.filter((entry) => ['Signed', 'Approved'].includes(entry.status));
+  const verifiedSignatures = signedEntries.filter((entry) => entry.signatureValid === true).length;
 
-  // Chart Data: Resource Usage (Centrifuge/HPLC hours)
-  const resourceAllocation = [
-    { name: 'Ultracentrifuge X-80', Hours: 142, Cost: 2400 },
-    { name: 'HPLC Mass Spec', Hours: 98, Cost: 4800 },
-    { name: 'Confocal Microscope', Hours: 110, Cost: 5500 },
-    { name: 'Biosafety Cabinet B2', Hours: 180, Cost: 1200 },
-    { name: 'PCR Thermal Cycler', Hours: 220, Cost: 1100 }
-  ];
+  const workloadWeekly = Array.from({ length: 6 }, (_, index) => {
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    start.setDate(start.getDate() - ((start.getDay() + 6) % 7) - ((5 - index) * 7));
+    const end = new Date(start);
+    end.setDate(end.getDate() + 7);
+    const entryCount = filteredEntries.filter((entry) => {
+      if (!entry.date) return false;
+      const entryDate = new Date(`${entry.date}T00:00:00`);
+      return entryDate >= start && entryDate < end;
+    }).length;
+    const projectUpdates = filteredProjects.filter((project) => {
+      if (!project.lastActivity) return false;
+      const updatedAt = new Date(project.lastActivity);
+      return updatedAt >= start && updatedAt < end;
+    }).length;
 
-  // Chart Data: Publication Pipelines stages count
-  const pipelineStats = [
-    { name: 'CRISPR Gene Edit', Drafts: 3, Reviews: 1, Signed: 2 },
-    { name: 'Scaffold Hydrogels', Drafts: 1, Reviews: 2, Signed: 1 },
-    { name: 'PCR Assay Panel', Drafts: 4, Reviews: 0, Signed: 0 },
-    { name: 'Microglial Clearing', Drafts: 0, Reviews: 0, Signed: 4 }
-  ];
+    return {
+      week: start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+      Entries: entryCount,
+      'Projects Updated': projectUpdates,
+    };
+  });
 
-  const totalBenchHours = workloadWeekly.reduce((acc, row) => acc + row.CRISPR + row.Polymers + row.Diagnostic, 0);
+  const resourceAllocation = Object.entries(sharedResources.reduce((counts, resource) => {
+    const type = resource.type || 'Other';
+    counts[type] = (counts[type] || 0) + 1;
+    return counts;
+  }, {})).map(([name, Assets]) => ({ name, Assets }));
+
+  const pipelineStats = filteredProjects.map((project) => {
+    const projectEntries = filteredEntries.filter((entry) => String(entry.projectId) === String(project.id));
+    return {
+      name: project.code,
+      Drafts: projectEntries.filter((entry) => entry.status === 'Draft').length,
+      Reviews: projectEntries.filter((entry) => entry.status === 'In Review').length,
+      Signed: projectEntries.filter((entry) => ['Signed', 'Approved'].includes(entry.status)).length,
+    };
+  });
 
   return (
     <div className="space-y-6 pb-12">
@@ -111,30 +133,12 @@ export default function AnalyticsPage() {
               Laboratory Analytics & Metrics
             </h1>
             <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
-              Real-time resource utilization, scientific workload allocation, and publication velocity across all active research programs.
+              Notebook activity, project changes, shared resources, and signed-entry fingerprints for your account.
             </p>
           </div>
 
-          {/* Time range & Project filters */}
+          {/* Project filter */}
           <div className="flex flex-wrap items-center gap-2.5 self-start md:self-auto">
-            {/* Range Toggle */}
-            <div className="inline-flex rounded-xl bg-white/10 p-1 border border-white/10 backdrop-blur-md">
-              {['Month', 'Quarter', 'Year'].map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setTimeRange(range)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    timeRange === range
-                      ? 'bg-teal-500 text-slate-950 shadow-sm'
-                      : 'text-slate-300 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  {range === 'Month' ? '30 Days' : range === 'Quarter' ? 'Quarter' : 'Annual'}
-                </button>
-              ))}
-            </div>
-
-            {/* Project Filter */}
             <select
               value={selectedProject}
               onChange={(e) => setSelectedProject(e.target.value)}
@@ -155,10 +159,10 @@ export default function AnalyticsPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex items-center justify-between">
           <div className="space-y-1">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Bench Hours</div>
-            <div className="text-2xl font-black text-slate-900 font-mono">{totalBenchHours} hrs</div>
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Notebook Entries</div>
+            <div className="text-2xl font-black text-slate-900 font-mono">{filteredEntries.length}</div>
             <div className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-              <TrendingUp className="w-3 h-3" /> +14.8% vs previous period
+              <BookOpen className="w-3 h-3" /> User-scoped records
             </div>
           </div>
           <div className="w-11 h-11 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600">
@@ -168,10 +172,10 @@ export default function AnalyticsPage() {
 
         <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex items-center justify-between">
           <div className="space-y-1">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Equipment Utilization</div>
-            <div className="text-2xl font-black text-slate-900 font-mono">91.4%</div>
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Shared Resources</div>
+            <div className="text-2xl font-black text-slate-900 font-mono">{sharedResources.length}</div>
             <div className="text-[10px] text-teal-600 font-semibold flex items-center gap-1">
-              <CheckCircle2 className="w-3 h-3" /> Peak operational band
+              <Users className="w-3 h-3" /> Owned by your account
             </div>
           </div>
           <div className="w-11 h-11 rounded-2xl bg-cyan-50 border border-cyan-100 flex items-center justify-center text-cyan-600">
@@ -181,10 +185,10 @@ export default function AnalyticsPage() {
 
         <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex items-center justify-between">
           <div className="space-y-1">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Part 11 Integrity</div>
-            <div className="text-2xl font-black text-slate-900 font-mono">100%</div>
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Signed Entries</div>
+            <div className="text-2xl font-black text-slate-900 font-mono">{signedEntries.length}</div>
             <div className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3" /> Cryptographically verified
+              <ShieldCheck className="w-3 h-3" /> {verifiedSignatures} fingerprints match
             </div>
           </div>
           <div className="w-11 h-11 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
@@ -194,10 +198,10 @@ export default function AnalyticsPage() {
 
         <div className="bg-white border border-slate-200/90 rounded-2xl p-5 shadow-xs flex items-center justify-between">
           <div className="space-y-1">
-            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Publication Pipelines</div>
-            <div className="text-2xl font-black text-slate-900 font-mono">13 Protocols</div>
+            <div className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Research Papers</div>
+            <div className="text-2xl font-black text-slate-900 font-mono">{researchPapers.length}</div>
             <div className="text-[10px] text-blue-600 font-semibold flex items-center gap-1">
-              <BookOpen className="w-3 h-3" /> 7 digital signatures
+              <BookOpen className="w-3 h-3" /> Indexed references
             </div>
           </div>
           <div className="w-11 h-11 rounded-2xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
@@ -214,23 +218,16 @@ export default function AnalyticsPage() {
             <div>
               <h3 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
                 <TrendingUp className="w-4 h-4 text-teal-600" />
-                Weekly R&D Bench Allocations
+                Weekly Research Activity
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Aggregated weekly log hours spent across core laboratory lines ({timeRange})
+                Notebook entries and project updates over the last six weeks
               </p>
             </div>
 
             <div className="flex items-center gap-3 text-[11px] font-semibold text-slate-500">
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-teal-600" /> CRISPR
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" /> Polymers
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-2.5 h-2.5 rounded-full bg-indigo-500" /> Diagnostic
-              </span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-teal-600" /> Entries</span>
+                <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-cyan-500" /> Projects updated</span>
             </div>
           </div>
 
@@ -257,7 +254,7 @@ export default function AnalyticsPage() {
                 <Tooltip content={<CustomTooltip />} />
                 <Area
                   type="monotone"
-                  dataKey="CRISPR"
+                  dataKey="Entries"
                   stroke="#0D9488"
                   strokeWidth={2.5}
                   fillOpacity={1}
@@ -265,34 +262,26 @@ export default function AnalyticsPage() {
                 />
                 <Area
                   type="monotone"
-                  dataKey="Polymers"
+                Notebook entries and project updates over the last six weeks
                   stroke="#06B6D4"
                   strokeWidth={2}
                   fillOpacity={1}
                   fill="url(#colorPolymers)"
-                />
-                <Area
-                  type="monotone"
-                  dataKey="Diagnostic"
-                  stroke="#6366F1"
-                  strokeWidth={2}
-                  fillOpacity={1}
-                  fill="url(#colorDiagnostic)"
                 />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Resource Allocation Costs (Bar Chart) */}
+        {/* Shared Resource Counts */}
         <div className="lg:col-span-4 bg-white border border-slate-200/90 rounded-3xl p-6 shadow-xs flex flex-col justify-between">
           <div className="border-b border-slate-100 pb-4">
             <h3 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
               <Cpu className="w-4 h-4 text-cyan-600" />
-              Equipment Usage Hours
+              Shared Resources by Type
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Reservation booking hours across shared instrumentation
+              Current resources owned by your account
             </p>
           </div>
 
@@ -308,7 +297,7 @@ export default function AnalyticsPage() {
                   width={110}
                 />
                 <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="Hours" radius={[0, 6, 6, 0]}>
+                <Bar dataKey="Assets" radius={[0, 6, 6, 0]}>
                   {resourceAllocation.map((entry, index) => (
                     <Cell
                       key={`cell-${index}`}
@@ -321,8 +310,8 @@ export default function AnalyticsPage() {
           </div>
 
           <div className="text-[11px] text-slate-400 border-t border-slate-100 pt-3 flex items-center justify-between">
-            <span>Billing cycle: Monthly</span>
-            <span className="font-mono font-bold text-teal-600">Calibration Current</span>
+            <span>{sharedResources.length} total resources</span>
+            <span className="font-mono font-bold text-teal-600">Live account data</span>
           </div>
         </div>
       </div>
@@ -333,10 +322,10 @@ export default function AnalyticsPage() {
           <div>
             <h3 className="font-extrabold text-slate-900 text-sm sm:text-base flex items-center gap-2">
               <Layers className="w-4 h-4 text-indigo-600" />
-              Publication & Report Regulatory Stages
+              Notebook Entry Status by Project
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Breakdown of experiment logs per research project (Drafts, Reviews, and Part 11 Certified Signatures)
+              Counts of saved notebook entries linked to each project
             </p>
           </div>
 
@@ -347,9 +336,7 @@ export default function AnalyticsPage() {
             <span className="flex items-center gap-1">
               <span className="w-2.5 h-2.5 rounded-full bg-cyan-500" /> In Review
             </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2.5 h-2.5 rounded-full bg-teal-600" /> Signed & Certified
-            </span>
+              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-full bg-teal-600" /> Signed</span>
           </div>
         </div>
 

@@ -425,8 +425,44 @@
 */
 
 .notebook-editor-content .simple-editor-wrapper {
+  width: 100%;
+  height: auto;
   min-height: 720px;
   background: #f8fafc;
+}
+
+html.dark .lab-notebook-page {
+  background: #0b1220;
+  color: #e2e8f0;
+}
+
+html.dark .lab-notebook-topbar,
+html.dark .notebook-heading,
+html.dark .notebook-editor-card,
+html.dark .notebook-editor-header {
+  background: #111c2d;
+  border-color: #293a51;
+}
+
+html.dark .notebook-brand,
+html.dark .notebook-title-row h1,
+html.dark .editor-document-label {
+  color: #e6edf7;
+}
+
+html.dark .notebook-title-row p,
+html.dark .notebook-back-button,
+html.dark .editor-project-id {
+  color: #a9b8cb;
+}
+
+html.dark .notebook-editor-content,
+html.dark .notebook-editor-content .simple-editor-wrapper {
+  background: #0e1929;
+}
+
+html.dark .notebook-editor-content .tiptap.ProseMirror {
+  color: #e2e8f0;
 }
 
 

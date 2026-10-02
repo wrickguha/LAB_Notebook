@@ -183,7 +183,7 @@ export default function ResourceSharingPage() {
               Laboratory Resource Sharing Hub
             </h1>
             <p className="text-xs text-slate-300 leading-relaxed">
-              Securely delegate access permissions for research cabinets, sequencing datasets, and equipment logs with FDA 21 CFR Part 11 signature traceability.
+              Delegate access to research resources and review account-scoped changes in the audit history.
             </p>
           </div>
 
@@ -199,7 +199,7 @@ export default function ResourceSharingPage() {
             </div>
             <div className="col-span-2 sm:col-span-1 p-3.5 rounded-2xl bg-white/5 border border-white/10 backdrop-blur text-center">
               <span className="text-[10px] font-mono uppercase font-bold text-slate-400 block tracking-wider">Security Tier</span>
-              <span className="text-xs sm:text-sm font-bold text-emerald-400 block mt-1 font-mono">Part 11 Compliant</span>
+              <span className="text-xs sm:text-sm font-bold text-emerald-400 block mt-1 font-mono">Access-controlled</span>
             </div>
           </div>
 

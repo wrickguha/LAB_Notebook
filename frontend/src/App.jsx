@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { lazy, Suspense, useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -9,18 +9,18 @@ import {
 import { AppDataProvider, useApp } from "./context/AppContext";
 
 // Pages & Layout Imports
-import LandingPage from "./pages/LandingPage";
-import AuthPage from "./pages/AuthPage";
 import DashboardLayout from "./components/DashboardLayout";
-import DashboardOverview from "./pages/DashboardOverview";
-import ProjectsPage from "./pages/ProjectsPage";
-import LabNotebookPage from "./pages/LabNotebookPage";
-import ResourceSharingPage from "./pages/ResourceSharingPage";
-import CalculatorsPage from "./pages/CalculatorsPage";
-import ResearchPapersPage from "./pages/ResearchPapersPage";
-import AnalyticsPage from "./pages/AnalyticsPage";
-import SettingsPage from "./pages/SettingsPage";
-import LabNotebookEditor from "./pages/LabNotebook/LabNotebookEditor";
+const LandingPage = lazy(() => import("./pages/LandingPage"));
+const AuthPage = lazy(() => import("./pages/AuthPage"));
+const DashboardOverview = lazy(() => import("./pages/DashboardOverview"));
+const ProjectsPage = lazy(() => import("./pages/ProjectsPage"));
+const LabNotebookPage = lazy(() => import("./pages/LabNotebookPage"));
+const ResourceSharingPage = lazy(() => import("./pages/ResourceSharingPage"));
+const CalculatorsPage = lazy(() => import("./pages/CalculatorsPage"));
+const ResearchPapersPage = lazy(() => import("./pages/ResearchPapersPage"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const LabNotebookEditor = lazy(() => import("./pages/LabNotebook/LabNotebookEditor"));
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
@@ -44,6 +44,7 @@ function AppContent() {
   }, [location.pathname]);
 
   return (
+    <Suspense fallback={<div className="min-h-screen grid place-items-center text-sm text-slate-500" role="status">Loading workspace...</div>}>
     <Routes>
       {/* Public Landing Page */}
       <Route
@@ -98,6 +99,7 @@ function AppContent() {
       {/* Fallback Catch-all Route */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   );
 }
 

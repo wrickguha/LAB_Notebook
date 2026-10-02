@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Carbon;
 
 class ProjectController extends Controller
 {
@@ -154,6 +155,13 @@ class ProjectController extends Controller
             }
         }
 
+        $this->notifyCollaborators(
+            $project,
+            $userId,
+            'Research project updated',
+            "Project \"{$project->name}\" was updated."
+        );
+
         return response()->json($this->serializeProject($project->load(['milestones', 'accessList.user', 'user']), $userId));
     }
 
@@ -180,7 +188,7 @@ class ProjectController extends Controller
         if (!empty($validated['title'])) {
             $project->name = trim($validated['title']);
         }
-        $project->last_activity = now();
+        $project->last_activity = Carbon::now();
         $project->save();
 
         return response()->json([
@@ -212,8 +220,15 @@ class ProjectController extends Controller
         $completed  = $milestones->where('completed', true)->count();
         $total      = $milestones->count();
         $project->progress      = $total > 0 ? (int) round(($completed / $total) * 100) : 0;
-        $project->last_activity = now();
+        $project->last_activity = Carbon::now();
         $project->save();
+
+        $this->notifyCollaborators(
+            $project,
+            $userId,
+            'Project milestone updated',
+            "A milestone in project \"{$project->name}\" was updated."
+        );
 
         return response()->json($this->serializeProject($project->load(['milestones', 'accessList.user', 'user']), $userId));
     }
@@ -313,7 +328,7 @@ class ProjectController extends Controller
         return response()->json(['message' => 'Project deleted successfully']);
     }
 
-    protected function serializeProject(Project $project, int $currentUserId): array
+    protected function serializeProject(object $project, int $currentUserId): array
     {
         $milestones = $project->milestones->map(fn ($item) => [
             'id'        => (string) $item->id,
@@ -331,7 +346,9 @@ class ProjectController extends Controller
         ])->values()->all();
 
         $isOwner = $project->user_id === $currentUserId;
-        $userLevel = $project->getUserAccessLevel($currentUserId);
+        $userLevel = $isOwner
+            ? 3
+            : (int) ($project->accessList->firstWhere('user_id', $currentUserId)?->access_level ?? 0);
 
         return [
             'id'           => (string) $project->id,
@@ -354,5 +371,25 @@ class ProjectController extends Controller
             'collaborators' => $collaborators,
             'milestones'    => $milestones,
         ];
+    }
+
+    private function notifyCollaborators(Project $project, int $actorId, string $title, string $message): void
+    {
+        $recipientIds = $project->accessList()
+            ->pluck('user_id')
+            ->push($project->user_id)
+            ->unique()
+            ->reject(fn ($recipientId) => (int) $recipientId === $actorId);
+
+        foreach ($recipientIds as $recipientId) {
+            NotificationService::send(
+                (int) $recipientId,
+                $title,
+                $message,
+                'project',
+                $project->id,
+                'project'
+            );
+        }
     }
 }

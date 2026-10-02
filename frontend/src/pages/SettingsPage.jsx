@@ -28,7 +28,7 @@ import {
 } from 'lucide-react';
 
 export default function SettingsPage() {
-  const { user, setUser, auditLogs } = useApp();
+  const { user, setUser, auditLogs, sessionTimeoutMinutes, setSessionTimeoutMinutes } = useApp();
   const fileInputRef = useRef(null);
   const [activeTab, setActiveTab] = useState('profile'); // 'profile' | 'compliance' | 'preferences'
   const [auditFilter, setAuditFilter] = useState('');
@@ -40,11 +40,6 @@ export default function SettingsPage() {
   const [institution, setInstitution] = useState(user?.institution || '');
   const [lab, setLab] = useState(user?.lab || '');
   const [avatar, setAvatar] = useState(user?.avatar || null);
-
-  // System Preference States
-  const [sessionTimeout, setSessionTimeout] = useState('30');
-  const [requireDualAuth, setRequireDualAuth] = useState(true);
-  const [emailAlerts, setEmailAlerts] = useState(true);
 
   // UI Feedback States
   const [saveSuccess, setSaveSuccess] = useState(false);
@@ -448,7 +443,7 @@ export default function SettingsPage() {
         </form>
       )}
 
-      {/* Tab 2: 21 CFR Part 11 Regulatory & Audit Trail */}
+      {/* Tab 2: Account Audit Trail */}
       {activeTab === 'compliance' && (
         <div className="space-y-6">
           {/* Certificate Card */}
@@ -460,10 +455,10 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <h3 className="font-extrabold text-slate-900 text-sm sm:text-base">
-                    Regulatory Audit Log & Compliance Ledger
+                    Account Activity Audit History
                   </h3>
                   <p className="text-xs text-slate-400">
-                    Compliant with Title 21 of the Code of Federal Regulations Part 11 (Electronic Records & Signatures)
+                    User-scoped activity records. This view does not establish regulatory validation.
                   </p>
                 </div>
               </div>
@@ -471,7 +466,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-2">
                 <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold font-mono inline-flex items-center gap-1.5">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                  Tamper-Evident Active
+                  Account-scoped
                 </span>
               </div>
             </div>
@@ -499,7 +494,7 @@ export default function SettingsPage() {
               <div className="max-h-96 overflow-y-auto divide-y divide-slate-100">
                 {filteredLogs.length === 0 ? (
                   <div className="p-8 text-center text-xs text-slate-400">
-                    No compliance audit logs matched your query.
+                    No audit records matched your query.
                   </div>
                 ) : (
                   filteredLogs.map((log, idx) => (
@@ -542,10 +537,10 @@ export default function SettingsPage() {
           <div className="border-b border-slate-150 pb-4">
             <h3 className="text-base sm:text-lg font-extrabold text-slate-900 flex items-center gap-2">
               <KeyRound className="w-5 h-5 text-teal-600" />
-              Security & Regulatory Governance
+              Session Preferences
             </h3>
             <p className="text-xs text-slate-500 mt-1">
-              Configure session auto-lock parameters, cryptographic verification gates, and automated notifications.
+              Choose when this browser ends your session after inactivity.
             </p>
           </div>
 
@@ -555,12 +550,12 @@ export default function SettingsPage() {
               <div>
                 <div className="font-bold text-slate-800 text-sm">Session Inactivity Auto-Lock</div>
                 <div className="text-slate-500 text-xs mt-0.5">
-                  Required under 21 CFR § 11.10(d) to prevent unauthorized bench terminal tampering.
+                  This inactivity timeout applies on this device while the workspace is open.
                 </div>
               </div>
               <select
-                value={sessionTimeout}
-                onChange={(e) => setSessionTimeout(e.target.value)}
+                value={sessionTimeoutMinutes}
+                onChange={(e) => setSessionTimeoutMinutes(e.target.value)}
                 className="bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 cursor-pointer focus-ring"
               >
                 <option value="15">15 Minutes</option>
@@ -569,51 +564,6 @@ export default function SettingsPage() {
               </select>
             </div>
 
-            {/* Dual Factor E-Sign Verification */}
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-              <div>
-                <div className="font-bold text-slate-800 text-sm">Require Password on Every E-Signature</div>
-                <div className="text-slate-500 text-xs mt-0.5">
-                  Enforces dual-component identification for notebook locking and milestone approvals.
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setRequireDualAuth(!requireDualAuth)}
-                className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
-                  requireDualAuth ? 'bg-teal-600' : 'bg-slate-300'
-                }`}
-              >
-                <div
-                  className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                    requireDualAuth ? 'translate-x-6' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
-
-            {/* Email Alerts */}
-            <div className="flex items-center justify-between p-4 rounded-2xl bg-slate-50 border border-slate-200/80">
-              <div>
-                <div className="font-bold text-slate-800 text-sm">Protocol Modification Notifications</div>
-                <div className="text-slate-500 text-xs mt-0.5">
-                  Receive instant notifications whenever a team member requests approval or edits shared assets.
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => setEmailAlerts(!emailAlerts)}
-                className={`w-12 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
-                  emailAlerts ? 'bg-teal-600' : 'bg-slate-300'
-                }`}
-              >
-                <div
-                  className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
-                    emailAlerts ? 'translate-x-6' : 'translate-x-0'
-                  }`}
-                />
-              </button>
-            </div>
           </div>
         </div>
       )}

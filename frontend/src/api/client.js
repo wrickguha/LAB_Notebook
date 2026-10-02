@@ -6,6 +6,9 @@ const api = axios.create({
     'Content-Type': 'application/json',
   },
   withCredentials: true, // Allow cookies / sessions
+  withXSRFToken: true,
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
 });
 
 // Response interceptor for clean data extraction and standardized error handling
@@ -14,7 +17,9 @@ api.interceptors.response.use(
   (error) => {
     const errorMsg = error.response?.data?.detail || error.message || 'An unexpected error occurred';
     console.error('API Error:', errorMsg);
-    return Promise.reject(new Error(errorMsg));
+    const normalizedError = new Error(errorMsg);
+    normalizedError.status = error.response?.status;
+    return Promise.reject(normalizedError);
   }
 );
 

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useApp } from '../context/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -25,6 +25,80 @@ import {
   Search,
   ExternalLink
 } from 'lucide-react';
+import { SimpleEditor } from '../components/tiptap-templates/simple/simple-editor';
+
+function NotebookTiptapEditor({ entry, title, onSave, registerFlush }) {
+  const [content, setContent] = useState(entry.contentJson || entry.content || '');
+  const [saveStatus, setSaveStatus] = useState('Saved');
+  const timerRef = useRef(null);
+  const pendingRef = useRef(null);
+  const inFlightRef = useRef(null);
+  const saveRef = useRef(onSave);
+  saveRef.current = onSave;
+
+  useEffect(() => {
+    setContent(entry.contentJson || entry.content || '');
+    setSaveStatus('Saved');
+  }, [entry.id]);
+
+  const flush = async () => {
+    clearTimeout(timerRef.current);
+    const pending = pendingRef.current;
+    if (pending) {
+      pendingRef.current = null;
+      setSaveStatus('Saving');
+      const savePromise = saveRef.current(pending.id, pending.document);
+      inFlightRef.current = savePromise;
+      try {
+        await savePromise;
+        setSaveStatus('Saved');
+      } catch (error) {
+        setSaveStatus('Save failed');
+        throw error;
+      } finally {
+        if (inFlightRef.current === savePromise) inFlightRef.current = null;
+      }
+    } else if (inFlightRef.current) {
+      await inFlightRef.current;
+    }
+  };
+
+  useEffect(() => {
+    registerFlush(flush);
+    return () => {
+      clearTimeout(timerRef.current);
+      void flush().catch(() => {});
+    };
+  }, [entry.id, registerFlush]);
+
+  const handleUpdate = ({ content: text, contentJson }) => {
+    setContent(contentJson);
+    setSaveStatus('Unsaved');
+    pendingRef.current = {
+      id: entry.id,
+      document: {
+        content_json: JSON.stringify(contentJson),
+        content: text,
+        title,
+      },
+    };
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => flush().catch(() => {}), 700);
+  };
+
+  return (
+    <div className="flex min-h-80 flex-1 flex-col">
+      <div className="mb-3 text-right text-[10px] font-mono text-slate-400" role="status">
+        {saveStatus}
+      </div>
+      <SimpleEditor
+        content={content}
+        onUpdate={handleUpdate}
+        editable={entry.status !== 'Approved' && entry.status !== 'Signed'}
+      />
+    </div>
+  );
+}
 
 export default function LabNotebookPage() {
   const {
@@ -33,6 +107,7 @@ export default function LabNotebookPage() {
     notebookEntries,
     addNotebookEntry,
     updateNotebookEntryContent,
+    autoSaveNotebookEntry,
     approveNotebookEntry,
     projects
   } = useApp();
@@ -44,6 +119,11 @@ export default function LabNotebookPage() {
   const [newFolderName, setNewFolderName] = useState('');
   const [folderModalOpen, setFolderModalOpen] = useState(false);
   const [searchFilter, setSearchFilter] = useState('');
+  const [entryTitle, setEntryTitle] = useState('');
+  const editorFlushRef = useRef(async () => {});
+  const registerEditorFlush = useCallback((flush) => {
+    editorFlushRef.current = flush;
+  }, []);
 
   // Reference and Attachment temporary forms
   const [newDoi, setNewDoi] = useState('');
@@ -53,6 +133,20 @@ export default function LabNotebookPage() {
   // Active note detail
   const activeEntry = (notebookEntries || []).find(entry => entry.id === activeEntryId);
 
+  useEffect(() => {
+    if (notebookFolders.length > 0 && !notebookFolders.some((folder) => folder.id === activeFolderId)) {
+      setActiveFolderId(notebookFolders[0].id);
+    }
+
+    if (notebookEntries.length > 0 && !notebookEntries.some((entry) => entry.id === activeEntryId)) {
+      setActiveEntryId(notebookEntries[0].id);
+    }
+  }, [activeEntryId, activeFolderId, notebookEntries, notebookFolders]);
+
+  useEffect(() => {
+    setEntryTitle(activeEntry?.title || '');
+  }, [activeEntry?.id]);
+
   const handleCreateFolder = (e) => {
     e.preventDefault();
     if (!newFolderName.trim()) return;
@@ -61,10 +155,26 @@ export default function LabNotebookPage() {
     setFolderModalOpen(false);
   };
 
+  const handleSignEntry = async () => {
+    try {
+      await editorFlushRef.current();
+      await approveNotebookEntry(activeEntry.id);
+    } catch (error) {
+      console.error('Unable to save notebook entry before signing:', error);
+    }
+  };
+
   const handleCreateLog = async () => {
     try {
+      let folderId = notebookFolders.find((folder) => folder.id === activeFolderId)?.id
+        || notebookFolders[0]?.id;
+      if (!folderId) {
+        folderId = await addNotebookFolder('General');
+        setActiveFolderId(folderId);
+      }
+
       const newId = await addNotebookEntry({
-        folderId: activeFolderId,
+        folderId,
         projectId: projects[0]?.id || '',
         title: 'Untitled Experiment Entry',
         status: 'Draft',
@@ -257,13 +367,13 @@ export default function LabNotebookPage() {
 
         {/* Cabinet footer */}
         <div className="text-[10px] text-slate-400 border-t border-slate-100 pt-3 flex items-center justify-between">
-          <span>FDA 21 CFR Part 11 Certified</span>
+          <span>Electronic signature audit trail</span>
           <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
         </div>
       </div>
 
       {/* RIGHT WORKSPACE: Notebook Editor Canvas */}
-      <div className={`lg:col-span-8 flex flex-col bg-white border border-slate-200/80 rounded-3xl shadow-xs overflow-hidden min-h-[520px] ${
+      <div className={`lg:col-span-8 flex flex-col bg-white border border-slate-200/80 rounded-3xl shadow-xs overflow-hidden min-h-130 ${
         showCabinet ? 'hidden lg:flex' : 'flex'
       }`}>
         {activeEntry ? (
@@ -285,10 +395,12 @@ export default function LabNotebookPage() {
                   <input
                     type="text"
                     disabled={activeEntry.status === 'Approved' || activeEntry.status === 'Signed'}
-                    value={activeEntry.title}
-                    onChange={(e) => {
-                      activeEntry.title = e.target.value;
-                      updateNotebookEntryContent(activeEntry.id, activeEntry.content);
+                    value={entryTitle}
+                    onChange={(e) => setEntryTitle(e.target.value)}
+                    onBlur={() => {
+                      if (entryTitle.trim() && entryTitle !== activeEntry.title) {
+                        updateNotebookEntryContent(activeEntry.id, activeEntry.content, entryTitle);
+                      }
                     }}
                     className={`w-full text-base sm:text-xl font-black text-slate-900 bg-transparent border-b border-transparent focus:border-teal-500 py-0.5 focus-ring ${
                       activeEntry.status === 'Approved' || activeEntry.status === 'Signed' ? 'cursor-not-allowed text-slate-700' : ''
@@ -310,11 +422,11 @@ export default function LabNotebookPage() {
                   ) : (
                     <button
                       type="button"
-                      onClick={() => approveNotebookEntry(activeEntry.id)}
+                      onClick={handleSignEntry}
                       className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-xs font-bold text-white px-4 py-2 shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all cursor-pointer"
                     >
                       <CheckCircle2 className="w-4 h-4" /> 
-                      <span>Sign & Seal (Part 11)</span>
+                      <span>Sign & Lock Entry</span>
                     </button>
                   )}
                 </div>
@@ -359,15 +471,14 @@ export default function LabNotebookPage() {
               </div>
             </div>
 
-            {/* Markdown Text Area */}
-            <div className="flex-1 p-6 min-h-[300px] flex flex-col">
+            {/* Research document */}
+            <div className="flex-1 p-6 min-h-75 flex flex-col">
               {editorMode === 'edit' ? (
-                <textarea
-                  disabled={activeEntry.status === 'Approved' || activeEntry.status === 'Signed'}
-                  value={activeEntry.content}
-                  onChange={(e) => updateNotebookEntryContent(activeEntry.id, e.target.value)}
-                  placeholder="Draft your experimental process in markdown. Supports TeX math (e.g. $C_1 V_1 = C_2 V_2$)."
-                  className="w-full flex-1 resize-none bg-transparent border-0 text-slate-800 text-xs font-mono leading-relaxed focus:ring-0 min-h-[320px] focus-ring"
+                <NotebookTiptapEditor
+                  entry={activeEntry}
+                  title={entryTitle}
+                  onSave={autoSaveNotebookEntry}
+                  registerFlush={registerEditorFlush}
                 />
               ) : (
                 <div className="flex-1 text-xs leading-relaxed text-slate-800 space-y-4">
@@ -375,16 +486,16 @@ export default function LabNotebookPage() {
                     <div className="crypto-seal rounded-2xl p-4 mb-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 text-xs text-teal-900 bg-teal-50/20">
                       <div>
                         <div className="font-extrabold text-teal-800 flex items-center gap-1.5">
-                          <LockKeyhole className="w-3.5 h-3.5 text-teal-600" /> Cryptographic Ledger Seal Active
+                          <LockKeyhole className="w-3.5 h-3.5 text-teal-600" /> Digital signature recorded
                         </div>
-                        <p className="text-slate-500 mt-1 font-medium">Digitally signed and sealed under FDA 21 CFR Part 11 protocols.</p>
-                        <div className="font-mono text-[10px] text-slate-400 mt-1">SHA-256: e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</div>
+                        <p className="text-slate-500 mt-1 font-medium">This entry is locked after signing.</p>
+                        <div className="font-mono text-[10px] text-slate-400 mt-1 break-all">Document fingerprint (SHA-256): {activeEntry.signatureHash || 'Unavailable for legacy signed entries'}</div>
                       </div>
                       <div className="text-left sm:text-right">
-                        <span className="font-mono font-bold text-teal-700 bg-teal-50 border border-teal-200 px-2 py-0.5 rounded text-[10px]">
-                          PART 11 SECURE
+                        <span className={`font-mono font-bold border px-2 py-0.5 rounded text-[10px] ${activeEntry.signatureValid === false ? 'text-rose-700 bg-rose-50 border-rose-200' : 'text-teal-700 bg-teal-50 border-teal-200'}`}>
+                          {activeEntry.signatureValid === false ? 'MISMATCH' : activeEntry.signatureHash ? 'VERIFIED' : 'LEGACY'}
                         </span>
-                        <span className="text-[10px] font-mono text-slate-400 block mt-1">{activeEntry.date} 18:12:35 UTC</span>
+                        <span className="text-[10px] font-mono text-slate-400 block mt-1">{activeEntry.signedByName || 'Legacy signer'} · {activeEntry.signedAt ? new Date(activeEntry.signedAt).toLocaleString() : activeEntry.date}</span>
                       </div>
                     </div>
                   )}
@@ -439,7 +550,7 @@ export default function LabNotebookPage() {
                   ) : (
                     (activeEntry.attachments || []).map((file, i) => (
                       <div key={i} className="flex justify-between items-center p-2.5 rounded-xl bg-white border border-slate-200 shadow-xs text-xs">
-                        <span className="font-semibold text-slate-800 truncate max-w-[180px]">{file.name}</span>
+                        <span className="font-semibold text-slate-800 truncate max-w-45">{file.name}</span>
                         <span className="text-[10px] font-mono text-slate-400 font-bold">{file.size}</span>
                       </div>
                     ))
@@ -530,7 +641,7 @@ export default function LabNotebookPage() {
               <div className="border-t border-slate-150 p-4 bg-slate-50 text-xs">
                 <span className="text-[10px] font-mono font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1.5 mb-2">
                   <History className="w-3.5 h-3.5 text-slate-400" /> 
-                  <span>Immutable Version Audit Ledger</span>
+                  <span>Version History</span>
                 </span>
                 <div className="flex flex-wrap gap-4 max-h-16 overflow-y-auto no-scrollbar">
                   {activeEntry.versionHistory.map((hist, i) => (

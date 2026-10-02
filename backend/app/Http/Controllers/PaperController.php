@@ -4,13 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\ResearchPaper;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class PaperController extends Controller
 {
     public function index()
     {
         return response()->json(
-            ResearchPaper::orderByDesc('created_at')->get()->map(fn ($paper) => $this->serializePaper($paper))
+            ResearchPaper::where('user_id', Auth::id())
+                ->orderByDesc('created_at')
+                ->get()
+                ->map(fn ($paper) => $this->serializePaper($paper))
         );
     }
 
@@ -27,6 +31,7 @@ class PaperController extends Controller
         ]);
 
         $paper = ResearchPaper::create([
+            'user_id' => Auth::id(),
             'title'   => $validated['title'],
             'authors' => $validated['authors'] ?? '',
             'journal' => $validated['journal'] ?? '',
@@ -41,12 +46,16 @@ class PaperController extends Controller
 
     public function destroy(ResearchPaper $paper)
     {
+        if ($paper->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
         $paper->delete();
 
         return response()->json(['message' => 'Research paper deleted successfully']);
     }
 
-    protected function serializePaper(ResearchPaper $paper): array
+    protected function serializePaper(object $paper): array
     {
         return [
             'id' => (string) $paper->id,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { useApp } from "../context/AppContext";
 import { motion } from "framer-motion";
 import {
@@ -43,15 +43,8 @@ export default function DashboardOverview({ setActiveTab }) {
     auditLogs,
     dailyQuote,
     getNewQuote,
+    dashboardSummary,
   } = useApp();
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, []);
 
   const activeProjectsList = (projects || []).filter(
     (p) => p.status !== "Completed",
@@ -63,15 +56,7 @@ export default function DashboardOverview({ setActiveTab }) {
     (n) => n.status === "In Review",
   ).length;
 
-  const productivityData = [
-    { day: "Mon", "Lab Hours": 8.5, "Data Entries": 4 },
-    { day: "Tue", "Lab Hours": 11.0, "Data Entries": 8 },
-    { day: "Wed", "Lab Hours": 9.5, "Data Entries": 6 },
-    { day: "Thu", "Lab Hours": 13.5, "Data Entries": 10 },
-    { day: "Fri", "Lab Hours": 10.0, "Data Entries": 5 },
-    { day: "Sat", "Lab Hours": 4.5, "Data Entries": 3 },
-    { day: "Sun", "Lab Hours": 2.0, "Data Entries": 1 },
-  ];
+  const productivityData = dashboardSummary.weeklyProductivity || [];
 
   const allocationData = (projects || []).map((p) => ({
     name: p.code,
@@ -79,36 +64,7 @@ export default function DashboardOverview({ setActiveTab }) {
     Milestones: (p.milestones || []).length,
   }));
 
-  const calendarItems = [
-    {
-      date: "Today",
-      event: "CRISPR Transfection Plate Review",
-      time: "10:00 AM",
-      lab: "Genomics Wing",
-      tag: "High Priority",
-    },
-    {
-      date: "Tomorrow",
-      event: "Centrifuge Yield Spectrometry",
-      time: "02:30 PM",
-      lab: "Biochem Core",
-      tag: "Scheduled",
-    },
-    {
-      date: "Jun 18",
-      event: "Project Artemis Peer Audit Check",
-      time: "11:00 AM",
-      lab: "Conference Room B",
-      tag: "Regulatory",
-    },
-    {
-      date: "Jun 20",
-      event: "Annual FDA 21 CFR Part 11 Inspection",
-      time: "09:00 AM",
-      lab: "Central R&D HQ",
-      tag: "Inspection",
-    },
-  ];
+  const calendarItems = dashboardSummary.calendarItems || [];
 
   // Custom Glassmorphic Dark Tooltip
   const CustomChartTooltip = ({ active, payload, label }) => {
@@ -136,46 +92,6 @@ export default function DashboardOverview({ setActiveTab }) {
     return null;
   };
 
-  if (loading) {
-    return (
-      <div className="space-y-6">
-        {/* Banner Skeleton */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 h-32 flex flex-col justify-between">
-          <div className="shimmer-skeleton h-6 w-1/3 rounded-lg" />
-          <div className="shimmer-skeleton h-4 w-1/2 rounded-md" />
-        </div>
-
-        {/* KPI Skeletons */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[...Array(4)].map((_, i) => (
-            <div
-              key={i}
-              className="bg-white border border-slate-200 p-5 rounded-2xl h-28 flex justify-between"
-            >
-              <div className="space-y-3 w-2/3">
-                <div className="shimmer-skeleton h-3 w-1/2 rounded" />
-                <div className="shimmer-skeleton h-6 w-2/3 rounded-lg" />
-              </div>
-              <div className="shimmer-skeleton h-10 w-10 rounded-xl" />
-            </div>
-          ))}
-        </div>
-
-        {/* Charts Row Skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          <div className="lg:col-span-8 bg-white border border-slate-200 rounded-2xl p-5 h-80 flex flex-col justify-between">
-            <div className="shimmer-skeleton h-4 w-1/4 rounded" />
-            <div className="shimmer-skeleton h-56 w-full rounded-xl" />
-          </div>
-          <div className="lg:col-span-4 bg-white border border-slate-200 rounded-2xl p-5 h-80 flex flex-col justify-between">
-            <div className="shimmer-skeleton h-4 w-1/3 rounded" />
-            <div className="shimmer-skeleton h-56 w-full rounded-xl" />
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="space-y-6 animate-fade-in-up font-sans">
       {/* Contextual Welcome Hero Banner */}
@@ -189,8 +105,8 @@ export default function DashboardOverview({ setActiveTab }) {
             Welcome back, {user?.name || "Dr. Thorne"}
           </h1>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Your laboratory cluster is operating normally. All cryptographic
-            signature verification checks passed without exceptions.
+            Your research workspace is ready. Review current project activity,
+            notebook entries, upcoming events, and account notifications.
           </p>
         </div>
 
@@ -250,7 +166,8 @@ export default function DashboardOverview({ setActiveTab }) {
                   onClick={getNewQuote}
                   className="inline-flex items-center gap-1.5 text-[11px] font-bold text-teal-700 hover:text-teal-900 cursor-pointer group shrink-0"
                 >
-                  
+                  <RefreshCw className="h-3 w-3" />
+                  <span>New quote</span>
                 </button>
               </div>
             </div>
@@ -340,8 +257,7 @@ export default function DashboardOverview({ setActiveTab }) {
                 Weekly Bench Output & Digital Logging
               </h3>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Tracking investigator bench hours vs digital notebook
-                submissions
+                Notebook entries and project updates recorded each day
               </p>
             </div>
             <span className="text-[10px] font-mono bg-slate-50 border border-slate-200 rounded-md px-2.5 py-1 font-bold text-slate-600">
@@ -378,21 +294,21 @@ export default function DashboardOverview({ setActiveTab }) {
                 />
                 <Area
                   type="monotone"
-                  name="Lab Hours"
-                  dataKey="Lab Hours"
-                  stroke="#0D9488"
-                  strokeWidth={2.5}
-                  fillOpacity={1}
-                  fill="url(#tealGrad)"
-                />
-                <Area
-                  type="monotone"
                   name="Data Entries"
                   dataKey="Data Entries"
                   stroke="#6366F1"
                   strokeWidth={2.5}
                   fillOpacity={1}
                   fill="url(#blueGrad)"
+                />
+                <Area
+                  type="monotone"
+                  name="Projects Updated"
+                  dataKey="Projects Updated"
+                  stroke="#0D9488"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#tealGrad)"
                 />
               </AreaChart>
             </ResponsiveContainer>
@@ -454,7 +370,7 @@ export default function DashboardOverview({ setActiveTab }) {
               Calendar
             </h3>
             <span className="text-[9px] font-mono font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">
-              4 Scheduled
+              {dashboardSummary.upcomingMeetings || 0} Scheduled
             </span>
           </div>
 

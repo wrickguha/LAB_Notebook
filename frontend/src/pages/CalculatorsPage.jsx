@@ -846,7 +846,7 @@ export default function CalculatorsPage() {
                 InveniqLab Calculation Ledger & Audit Trail
               </h2>
               <p className="text-xs text-slate-500 mt-0.5">
-                Cryptographically tracked computational history linked to research projects and electronic notebook entries.
+                Saved calculation history can be associated with your research projects and notebook entries.
               </p>
             </div>
             <button

@@ -21,8 +21,15 @@ class NotebookEntry extends Model
         'status',
         'content',
         'content_json',
+        'signed_by',
+        'signed_at',
+        'signature_hash',
         'author',
         'date',
+    ];
+
+    protected $casts = [
+        'signed_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -38,6 +45,11 @@ class NotebookEntry extends Model
     public function project(): BelongsTo
     {
         return $this->belongsTo(Project::class, 'project_id');
+    }
+
+    public function signer(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'signed_by');
     }
 
     public function files(): HasMany

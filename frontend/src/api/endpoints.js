@@ -2,6 +2,7 @@ import api from './client';
 
 export const authApi = {
   login: async (credentials) => {
+    await api.get('/api/csrf-cookie');
     if (credentials.signup) {
       const payload = {
         email: credentials.email,
@@ -82,6 +83,9 @@ export const projectsApi = {
   update: async (projectId, projectData) => {
     return await api.put(`/api/projects/${projectId}`, projectData);
   },
+  saveContent: async (projectId, content) => {
+    return await api.post(`/api/projects/${projectId}/save-content`, { content });
+  },
   toggleMilestone: async (projectId, milestoneId) => {
     return await api.patch(
       `/api/projects/${projectId}/milestones/${milestoneId}/toggleMilestone`
@@ -111,6 +115,9 @@ export const notebookApi = {
   },
   updateEntryContent: async (id, { content, title }) => {
     return await api.put(`/api/notebook/entries/${id}`, { content, title });
+  },
+  autoSaveEntry: async (id, document) => {
+    return await api.post(`/api/notebook/entries/${id}/auto-save`, document);
   },
   signEntry: async (id) => {
     return await api.post(`/api/notebook/entries/${id}/sign`);

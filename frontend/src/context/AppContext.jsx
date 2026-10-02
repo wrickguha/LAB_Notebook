@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from 'react';
+import React, { createContext, useContext, useEffect, useRef, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import Toast from '../components/Toast';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -15,6 +15,7 @@ import {
   calcHistoryApi,
   calendarApi,
   quoteApi,
+  dashboardApi,
 } from '../api/endpoints';
 
 const AppContext = createContext();
@@ -24,10 +25,16 @@ export const useApp = () => useContext(AppContext);
 export const AppDataProvider = ({ children }) => {
   const queryClient = useQueryClient();
 
-  // Simulated Authentication State (kept as local state for dashboard toggling)
+  // The session cookie is authoritative; this flag only restores the protected shell while /me loads.
   const [isAuthenticated, setIsAuthenticated] = useState(() => {
     return localStorage.getItem('biotech_isAuthenticated') === 'true';
   });
+  const [themePreference, setThemePreferenceState] = useState(() => {
+    const savedTheme = localStorage.getItem('inveniq_theme_preference');
+    return savedTheme === 'dark' ? 'dark' : 'light';
+  });
+  const [sessionTimeoutMinutes, setSessionTimeoutMinutesState] = useState(30);
+  const logoutRef = useRef(null);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Central Toast State
@@ -37,24 +44,45 @@ export const AppDataProvider = ({ children }) => {
     setToast({ message, type });
   };
 
-  const defaultUser = {
-    name: 'Dr. Evelyn Thorne',
-    role: 'Principal Investigator',
-    avatar: null,
-    email: 'evelyn.thorne@inveniqlab.ai',
-    institution: 'Institute of Biomolecular Sciences',
-    lab: 'Thorne Genomics Lab',
-  };
+  const { data: user, error: userError } = useQuery({
+    queryKey: ['user'],
+    queryFn: userApi.getUser,
+    enabled: isAuthenticated,
+  });
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', themePreference === 'dark');
+    document.documentElement.style.colorScheme = themePreference;
+    localStorage.setItem('inveniq_theme_preference', themePreference);
+  }, [themePreference]);
+
+  useEffect(() => {
+    const savedPreference = user?.theme_preference;
+    if (isAuthenticated && (savedPreference === 'light' || savedPreference === 'dark')) {
+      setThemePreferenceState(savedPreference);
+    }
+  }, [isAuthenticated, user?.theme_preference]);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // Queries
   // ─────────────────────────────────────────────────────────────────────────────
 
-  const { data: user = defaultUser } = useQuery({
-    queryKey: ['user'],
-    queryFn: userApi.getUser,
-    enabled: isAuthenticated,
-  });
+  useEffect(() => {
+    if (isAuthenticated && user?.id) {
+      const storedTimeout = Number(localStorage.getItem(`inveniq_session_timeout_${user.id}`));
+      if ([15, 30, 60].includes(storedTimeout)) {
+        setSessionTimeoutMinutesState(storedTimeout);
+      }
+    }
+  }, [isAuthenticated, user?.id]);
+
+  useEffect(() => {
+    if (isAuthenticated && userError?.status === 401) {
+      localStorage.removeItem('biotech_isAuthenticated');
+      setIsAuthenticated(false);
+      queryClient.clear();
+    }
+  }, [isAuthenticated, queryClient, userError]);
 
   const { data: notifications = [] } = useQuery({
     queryKey: ['notifications'],
@@ -72,6 +100,12 @@ export const AppDataProvider = ({ children }) => {
   const { data: dailyQuote } = useQuery({
     queryKey: ['dailyQuote'],
     queryFn: quoteApi.get,
+    enabled: isAuthenticated,
+  });
+
+  const { data: dashboardSummary = {}, isLoading: dashboardLoading } = useQuery({
+    queryKey: ['dashboardSummary'],
+    queryFn: dashboardApi.getSummary,
     enabled: isAuthenticated,
   });
 
@@ -138,13 +172,47 @@ export const AppDataProvider = ({ children }) => {
   const logout = async () => {
     try {
       await authApi.logout();
-      localStorage.removeItem('biotech_isAuthenticated');
-      setIsAuthenticated(false);
-      // Reset react-query cache on logout
-      queryClient.clear();
       showToast('Logged out successfully', 'success');
     } catch (err) {
       showToast(err.message, 'error');
+    } finally {
+      localStorage.removeItem('biotech_isAuthenticated');
+      setIsAuthenticated(false);
+      queryClient.clear();
+    }
+  };
+
+  logoutRef.current = logout;
+
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+
+    let inactivityTimer;
+    const resetInactivityTimer = () => {
+      window.clearTimeout(inactivityTimer);
+      inactivityTimer = window.setTimeout(
+        () => void logoutRef.current?.(),
+        sessionTimeoutMinutes * 60 * 1000
+      );
+    };
+    const activityEvents = ['pointerdown', 'keydown', 'touchstart'];
+
+    activityEvents.forEach((eventName) => window.addEventListener(eventName, resetInactivityTimer));
+    resetInactivityTimer();
+
+    return () => {
+      window.clearTimeout(inactivityTimer);
+      activityEvents.forEach((eventName) => window.removeEventListener(eventName, resetInactivityTimer));
+    };
+  }, [isAuthenticated, sessionTimeoutMinutes]);
+
+  const setSessionTimeoutMinutes = (value) => {
+    const minutes = Number(value);
+    if (![15, 30, 60].includes(minutes)) return;
+
+    setSessionTimeoutMinutesState(minutes);
+    if (user?.id) {
+      localStorage.setItem(`inveniq_session_timeout_${user.id}`, String(minutes));
     }
   };
 
@@ -156,6 +224,22 @@ export const AppDataProvider = ({ children }) => {
       queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
       showToast('Profile settings saved', 'success');
     } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const setThemePreference = async (preference) => {
+    if (preference !== 'light' && preference !== 'dark') return;
+    const previousPreference = themePreference;
+    setThemePreferenceState(preference);
+
+    if (!isAuthenticated) return;
+
+    try {
+      const updated = await userApi.updateUser({ theme_preference: preference });
+      queryClient.setQueryData(['user'], updated);
+    } catch (err) {
+      setThemePreferenceState(previousPreference);
       showToast(err.message, 'error');
     }
   };
@@ -183,16 +267,19 @@ export const AppDataProvider = ({ children }) => {
   const createCalendarEvent = async (event) => {
     await calendarApi.create(event);
     queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
   };
 
   const updateCalendarEvent = async (id, event) => {
     await calendarApi.update(id, event);
     queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
   };
 
   const deleteCalendarEvent = async (id) => {
     await calendarApi.remove(id);
     queryClient.invalidateQueries({ queryKey: ['calendarEvents'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
   };
 
   const getNewQuote = async () => {
@@ -205,6 +292,7 @@ export const AppDataProvider = ({ children }) => {
     try {
       await projectsApi.create(newProject);
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
       queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       showToast(`Project "${newProject.name}" initialized`, 'success');
@@ -217,6 +305,7 @@ export const AppDataProvider = ({ children }) => {
     try {
       await projectsApi.update(id, projectData);
       queryClient.invalidateQueries({ queryKey: ['projects'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
       queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       showToast(`Project "${projectData.name || 'Project'}" updated successfully`, 'success');
@@ -224,6 +313,12 @@ export const AppDataProvider = ({ children }) => {
       showToast(err.message, 'error');
       throw err;
     }
+  };
+
+  const saveProjectContent = async (id, content) => {
+    const result = await projectsApi.saveContent(id, content);
+    queryClient.invalidateQueries({ queryKey: ['projects'] });
+    return result;
   };
 
   const deleteProject = async (id, name) => {
@@ -270,6 +365,7 @@ export const AppDataProvider = ({ children }) => {
       try {
         await projectsApi.toggleMilestone(toggledProjectId, toggledMilestoneId);
         queryClient.invalidateQueries({ queryKey: ['projects'] });
+        queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
         queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
         showToast('Milestone status synced with ledger', 'success');
       } catch (err) {
@@ -281,12 +377,14 @@ export const AppDataProvider = ({ children }) => {
   // Folders
   const addNotebookFolder = async (name) => {
     try {
-      await notebookApi.createFolder(name);
+      const folder = await notebookApi.createFolder(name);
       queryClient.invalidateQueries({ queryKey: ['folders'] });
       queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
       showToast(`Folder "${name}" created`, 'success');
+      return folder.id;
     } catch (err) {
       showToast(err.message, 'error');
+      throw err;
     }
   };
 
@@ -295,6 +393,7 @@ export const AppDataProvider = ({ children }) => {
     try {
       const newEntry = await notebookApi.createEntry(entry);
       queryClient.invalidateQueries({ queryKey: ['entries'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
       queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
       showToast(`Notebook draft "${entry.title}" created`, 'success');
@@ -305,9 +404,9 @@ export const AppDataProvider = ({ children }) => {
     }
   };
 
-  const updateNotebookEntryContent = async (id, newContent) => {
+  const updateNotebookEntryContent = async (id, newContent, title) => {
     try {
-      await notebookApi.updateEntryContent(id, { content: newContent });
+      await notebookApi.updateEntryContent(id, { content: newContent, title });
       queryClient.invalidateQueries({ queryKey: ['entries'] });
       queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
     } catch (err) {
@@ -315,13 +414,30 @@ export const AppDataProvider = ({ children }) => {
     }
   };
 
+  const autoSaveNotebookEntry = async (id, document) => {
+    const result = await notebookApi.autoSaveEntry(id, document);
+    queryClient.setQueryData(['entries'], (entries = []) => entries.map((entry) => (
+      entry.id === id
+        ? {
+            ...entry,
+            content: document.content ?? entry.content,
+            contentJson: document.content_json ?? entry.contentJson,
+            title: document.title ?? entry.title,
+            updatedAt: result.updated_at,
+          }
+        : entry
+    )));
+    return result;
+  };
+
   const approveNotebookEntry = async (id) => {
     try {
       await notebookApi.signEntry(id);
       queryClient.invalidateQueries({ queryKey: ['entries'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
       queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
       queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      showToast('Experiment signed and locked (21 CFR Part 11 Compliant)', 'success');
+      showToast('Notebook entry signed and locked', 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -332,6 +448,7 @@ export const AppDataProvider = ({ children }) => {
     try {
       await resourcesApi.create(resource);
       queryClient.invalidateQueries({ queryKey: ['resources'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
       queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
       showToast(`Shared resource "${resource.name}"`, 'success');
     } catch (err) {
@@ -355,6 +472,7 @@ export const AppDataProvider = ({ children }) => {
     try {
       await papersApi.create(paper);
       queryClient.invalidateQueries({ queryKey: ['papers'] });
+      queryClient.invalidateQueries({ queryKey: ['dashboardSummary'] });
       queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
       showToast(`Paper reference uploaded`, 'success');
     } catch (err) {
@@ -404,6 +522,10 @@ export const AppDataProvider = ({ children }) => {
         logout,
         user,
         setUser,
+        themePreference,
+        setThemePreference,
+        sessionTimeoutMinutes,
+        setSessionTimeoutMinutes,
         searchQuery,
         setSearchQuery,
         notifications,
@@ -415,16 +537,20 @@ export const AppDataProvider = ({ children }) => {
         deleteCalendarEvent,
         dailyQuote,
         getNewQuote,
+        dashboardSummary,
+        dashboardLoading,
         projects,
         setProjects,
         addProject,
         updateProject,
+        saveProjectContent,
         deleteProject,
         notebookFolders,
         addNotebookFolder,
         notebookEntries,
         addNotebookEntry,
         updateNotebookEntryContent,
+        autoSaveNotebookEntry,
         approveNotebookEntry,
         sharedResources,
         addSharedResource,

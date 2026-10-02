@@ -4,13 +4,17 @@ namespace App\Http\Controllers;
 
 use App\Models\SharedResource;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class ResourceController extends Controller
 {
     public function index()
     {
         return response()->json(
-            SharedResource::orderByDesc('updated_at')->get()->map(fn ($resource) => $this->serializeResource($resource))
+            SharedResource::where('user_id', Auth::id())
+                ->orderByDesc('updated_at')
+                ->get()
+                ->map(fn ($resource) => $this->serializeResource($resource))
         );
     }
 
@@ -24,9 +28,10 @@ class ResourceController extends Controller
         ]);
 
         $resource = SharedResource::create([
+            'user_id' => Auth::id(),
             'name' => $validated['name'],
             'type' => $validated['type'] ?? 'Folder',
-            'owner' => 'Dr. Evelyn Thorne',
+            'owner' => Auth::user()->name,
             'shared_with' => $validated['sharedWith'] ?? [],
             'last_modified' => now()->toDateString(),
         ]);
@@ -36,6 +41,10 @@ class ResourceController extends Controller
 
     public function updatePermission(Request $request, SharedResource $resource)
     {
+        if ($resource->user_id !== Auth::id()) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
         $validated = $request->validate([
             'targetUser' => ['required', 'string'],
             'newLevel' => ['required', 'string'],
@@ -56,7 +65,7 @@ class ResourceController extends Controller
         return response()->json($this->serializeResource($resource));
     }
 
-    protected function serializeResource(SharedResource $resource): array
+    protected function serializeResource(object $resource): array
     {
         return [
             'id' => (string) $resource->id,

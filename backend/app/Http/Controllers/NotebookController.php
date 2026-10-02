@@ -5,10 +5,13 @@ namespace App\Http\Controllers;
 use App\Models\AuditLog;
 use App\Models\NotebookEntry;
 use App\Models\NotebookFolder;
+use App\Models\Project;
 use App\Services\NotificationService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Validation\Rule;
 
 class NotebookController extends Controller
 {
@@ -65,7 +68,7 @@ class NotebookController extends Controller
             $query->where('project_id', $request->input('projectId'));
         }
 
-        $entries = $query->orderByDesc('updated_at')
+        $entries = $query->with('signer')->orderByDesc('updated_at')
             ->get()
             ->map(fn ($e) => $this->serializeEntry($e));
 
@@ -83,7 +86,7 @@ class NotebookController extends Controller
             return response()->json(['message' => 'Forbidden: You do not have access to this notebook entry.'], 403);
         }
 
-        return response()->json($this->serializeEntry($entry));
+        return response()->json($this->serializeEntry($entry->load('signer')));
     }
 
     public function store(Request $request)
@@ -94,13 +97,20 @@ class NotebookController extends Controller
         }
 
         $validated = $request->validate([
-            'folderId'     => ['required', 'string'],
-            'projectId'    => ['nullable', 'string'],
+            'folderId'     => ['required', 'integer', Rule::exists('notebook_folders', 'id')->where('user_id', $userId)],
+            'projectId'    => ['nullable', 'integer', Rule::exists('projects', 'id')],
             'title'        => ['required', 'string', 'max:255'],
             'status'       => ['nullable', 'string', 'max:50'],
             'content'      => ['nullable', 'string'],
             'content_json' => ['nullable', 'string'], // Tiptap JSON
         ]);
+
+        if (!empty($validated['projectId'])) {
+            $project = Project::findOrFail($validated['projectId']);
+            if (!Gate::forUser(Auth::user())->allows('view', $project)) {
+                return response()->json(['message' => 'You do not have access to the selected project.'], 403);
+            }
+        }
 
         $entry = NotebookEntry::create([
             'user_id'      => $userId,
@@ -115,6 +125,7 @@ class NotebookController extends Controller
         ]);
 
         AuditLog::create([
+            'user_id'   => $userId,
             'user'      => Auth::user()->name,
             'action'    => 'Created notebook draft',
             'target'    => $entry->title,
@@ -137,9 +148,8 @@ class NotebookController extends Controller
             return response()->json(['message' => 'Forbidden: Cannot modify this notebook entry.'], 403);
         }
 
-        // Prevent modification if already digitally signed under Part 11
         if (in_array($entry->status, ['Approved', 'Signed'])) {
-            return response()->json(['message' => 'Entry is cryptographically locked under FDA 21 CFR Part 11 and cannot be altered.'], 422);
+            return response()->json(['message' => 'Signed notebook entries are locked and cannot be changed.'], 422);
         }
 
         $validated = $request->validate([
@@ -154,7 +164,7 @@ class NotebookController extends Controller
 
         $entry->save();
 
-        return response()->json($this->serializeEntry($entry));
+        return response()->json($this->serializeEntry($entry->load('signer')));
     }
 
     /**
@@ -207,28 +217,36 @@ class NotebookController extends Controller
             return response()->json(['message' => 'Forbidden'], 403);
         }
 
+        if (in_array($entry->status, ['Approved', 'Signed'])) {
+            return response()->json(['message' => 'This notebook entry has already been signed.'], 422);
+        }
+
         $entry->status = 'Signed';
+        $entry->signed_by = $userId;
+        $entry->signed_at = Carbon::now();
+        $entry->signature_hash = $this->calculateSignatureHash($entry);
         $entry->save();
 
         AuditLog::create([
+            'user_id'   => $userId,
             'user'      => Auth::user()->name,
-            'action'    => 'Digitally Signed & Sealed (21 CFR Part 11)',
-            'target'    => "Entry: {$entry->title}",
+            'action'    => 'Notebook entry digitally signed',
+            'target'    => "Entry #{$entry->id}; SHA-256 {$entry->signature_hash}",
             'ip'        => $request->ip(),
-            'status'    => 'Cryptographically Verified',
+            'status'    => 'Recorded',
             'timestamp' => now()->toIso8601String(),
         ]);
 
         NotificationService::send(
             $userId,
             'Notebook Sealed',
-            "Experiment entry \"{$entry->title}\" was digitally signed under 21 CFR Part 11.",
+            "Experiment entry \"{$entry->title}\" was digitally signed and locked.",
             'notebook',
             $entry->id,
             'notebook_entry'
         );
 
-        return response()->json($this->serializeEntry($entry));
+        return response()->json($this->serializeEntry($entry->load('signer')));
     }
 
     public function destroy(NotebookEntry $entry)
@@ -239,7 +257,7 @@ class NotebookController extends Controller
         }
 
         if (in_array($entry->status, ['Approved', 'Signed'])) {
-            return response()->json(['message' => 'Signed entries cannot be deleted (FDA 21 CFR Part 11).'], 422);
+            return response()->json(['message' => 'Signed notebook entries cannot be deleted.'], 422);
         }
 
         $entry->delete();
@@ -247,7 +265,7 @@ class NotebookController extends Controller
         return response()->json(['message' => 'Notebook entry deleted successfully']);
     }
 
-    protected function serializeEntry(NotebookEntry $entry): array
+    protected function serializeEntry(object $entry): array
     {
         return [
             'id'          => (string) $entry->id,
@@ -261,6 +279,25 @@ class NotebookController extends Controller
             'date'        => $entry->date ?? $entry->created_at?->toDateString(),
             'updatedAt'   => $entry->updated_at?->toISOString(),
             'isSigned'    => in_array($entry->status, ['Approved', 'Signed']),
+            'signedBy'    => $entry->signed_by ? (string) $entry->signed_by : null,
+            'signedAt'    => $entry->signed_at?->toISOString(),
+            'signatureHash' => $entry->signature_hash,
+            'signatureValid' => $entry->signature_hash
+                ? hash_equals($entry->signature_hash, $this->calculateSignatureHash($entry))
+                : null,
+            'signedByName' => $entry->signer?->name,
         ];
+    }
+
+    private function calculateSignatureHash(object $entry): string
+    {
+        return hash('sha256', implode('|', [
+            (string) $entry->id,
+            (string) $entry->signed_by,
+            $entry->title,
+            $entry->content ?? '',
+            $entry->content_json ?? '',
+            $entry->signed_at?->toISOString() ?? '',
+        ]));
     }
 }

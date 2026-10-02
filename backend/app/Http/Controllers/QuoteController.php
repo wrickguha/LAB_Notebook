@@ -11,18 +11,26 @@ class QuoteController extends Controller
 {
     public function show()
     {
+        if (!Auth::check()) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
         return response()->json($this->selectDeterministicQuote(false));
     }
 
     public function newQuote()
     {
+        if (!Auth::check()) {
+            return response()->json(['message' => 'Unauthenticated'], 401);
+        }
+
         return response()->json($this->selectDeterministicQuote(true));
     }
 
     private function selectDeterministicQuote(bool $force): array
     {
         $today = now()->toDateString();
-        $userId = Auth::id() ?? 1;
+        $userId = Auth::id();
 
         // If user already had a manual quote selected today and not forcing new
         $selection = DB::table('user_quote_selections')

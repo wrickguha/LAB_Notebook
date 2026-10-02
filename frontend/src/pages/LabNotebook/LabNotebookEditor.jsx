@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -9,12 +9,66 @@ import {
 } from 'lucide-react';
 
 import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor';
+import { useApp } from '@/context/AppContext';
 
 import '../../styles/lab-notebook.css';
+
+function ProjectTiptapEditor({ project, onSave }) {
+  const [content, setContent] = useState(project.content || '');
+  const [saveStatus, setSaveStatus] = useState('Saved');
+  const timerRef = useRef(null);
+  const pendingRef = useRef(null);
+  const saveRef = useRef(onSave);
+  saveRef.current = onSave;
+
+  useEffect(() => {
+    setContent(project.content || '');
+    setSaveStatus('Saved');
+  }, [project.id]);
+
+  useEffect(() => () => {
+    clearTimeout(timerRef.current);
+    if (pendingRef.current) {
+      const pending = pendingRef.current;
+      pendingRef.current = null;
+      void saveRef.current(pending.id, pending.content).catch(() => {});
+    }
+  }, []);
+
+  const handleUpdate = ({ contentJson }) => {
+    setContent(contentJson);
+    setSaveStatus('Unsaved');
+    pendingRef.current = {
+      id: project.id,
+      content: JSON.stringify(contentJson),
+    };
+    clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(async () => {
+      const pending = pendingRef.current;
+      pendingRef.current = null;
+      setSaveStatus('Saving');
+      try {
+        await saveRef.current(pending.id, pending.content);
+        setSaveStatus('Saved');
+      } catch {
+        setSaveStatus('Save failed');
+      }
+    }, 700);
+  };
+
+  return (
+    <div className="notebook-editor-content">
+      <div className="save-status" role="status">{saveStatus}</div>
+      <SimpleEditor content={content} onUpdate={handleUpdate} />
+    </div>
+  );
+}
 
 export default function LabNotebookEditor() {
   const { projectId } = useParams();
   const navigate = useNavigate();
+  const { projects, saveProjectContent } = useApp();
+  const project = projects.find((item) => String(item.id) === projectId);
 
   return (
     <div className="lab-notebook-page">
@@ -49,7 +103,7 @@ export default function LabNotebookEditor() {
 
           <div className="save-status">
             <CheckCircle2 size={16} />
-            <span>Saved</span>
+            <span>{project ? 'Project document' : 'Loading project'}</span>
           </div>
 
           <button
@@ -87,19 +141,19 @@ export default function LabNotebookEditor() {
 
             <div>
               <h1>
-                Research Projects
+                {project?.name || 'Research Project'}
               </h1>
 
               <p>
-                Project #{projectId}
+                {project ? project.code : `Project #${projectId}`}
                 <span className="title-separator">•</span>
                 Research documentation
               </p>
             </div>
 
-            <div className="notebook-project-badge">
+              <div className="notebook-project-badge">
               <FlaskConical size={15} />
-              Active Project
+                {project?.status || 'Research project'}
             </div>
 
           </div>
@@ -130,14 +184,16 @@ export default function LabNotebookEditor() {
               </div>
 
               <div className="editor-project-id">
-                #{projectId}
+                {project?.code || `#${projectId}`}
               </div>
 
             </div>
 
-            <div className="notebook-editor-content">
-              <SimpleEditor />
-            </div>
+            {project ? (
+              <ProjectTiptapEditor project={project} onSave={saveProjectContent} />
+            ) : (
+              <div className="notebook-editor-content" role="status">Loading project document...</div>
+            )}
 
           </div>
 

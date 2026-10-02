@@ -16,6 +16,7 @@ use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('web')->group(function () {
+    Route::get('/csrf-cookie', fn () => response()->noContent());
 
     // ── Authentication & Password Management (Rate Limited) ──
     Route::middleware('throttle:15,1')->group(function () {
@@ -25,6 +26,7 @@ Route::middleware('web')->group(function () {
         Route::post('/auth/reset-password', [AuthController::class, 'resetPassword']);
     });
 
+    Route::middleware('auth')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
 
@@ -91,4 +93,5 @@ Route::middleware('web')->group(function () {
 
     Route::get('/calculators/history', [CalculatorHistoryController::class, 'index']);
     Route::post('/calculators/history', [CalculatorHistoryController::class, 'store']);
+    });
 });

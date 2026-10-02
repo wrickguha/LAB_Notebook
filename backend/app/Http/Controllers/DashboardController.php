@@ -37,13 +37,15 @@ class DashboardController extends Controller
         $signedNotesCount = $notebookEntries->whereIn('status', ['Approved', 'Signed'])->count();
 
         // 3. Shared Resources & Papers
-        $resources = SharedResource::all();
-        $papers = ResearchPaper::all();
+        $resources = SharedResource::where('user_id', $userId)->get();
+        $papers = ResearchPaper::where('user_id', $userId)->get();
 
         // 4. Real Calendar Events (upcoming from today onwards)
         $today = now()->toDateString();
         $calendarEvents = CalendarEvent::where('user_id', $userId)
             ->where('start_date', '>=', $today)
+            ->where('status', CalendarEvent::STATUS_SCHEDULED)
+            ->with('project')
             ->orderBy('start_date')
             ->orderBy('start_time')
             ->take(5)
@@ -77,23 +79,23 @@ class DashboardController extends Controller
             $dayName = $dayDate->format('D');
             $dateStr = $dayDate->toDateString();
 
-            $entriesOnDay = $notebookEntries->filter(function ($e) use ($dateStr) {
-                return ($e->created_at && $e->created_at->toDateString() === $dateStr)
-                    || $e->date === $dateStr;
-            })->count();
-
-            // Estimate lab activity hours based on verified activities on that day
-            $hours = $entriesOnDay > 0 ? min(14.0, round($entriesOnDay * 2.2 + 2.5, 1)) : ($dayDate->isWeekend() ? 1.0 : 3.5);
+            $entriesOnDay = $notebookEntries->filter(fn ($entry) =>
+                ($entry->created_at && $entry->created_at->toDateString() === $dateStr)
+                || $entry->date === $dateStr
+            )->count();
+            $projectsUpdatedOnDay = $projects->filter(fn ($project) =>
+                $project->updated_at && $project->updated_at->toDateString() === $dateStr
+            )->count();
 
             $weeklyOutput[] = [
                 'day'          => $dayName,
-                'Lab Hours'    => (float) $hours,
                 'Data Entries' => $entriesOnDay,
+                'Projects Updated' => $projectsUpdatedOnDay,
             ];
         }
 
         // 8. Audit Logs
-        $auditLogs = AuditLog::latest()->take(10)->get();
+        $auditLogs = AuditLog::where('user_id', $userId)->latest()->take(10)->get();
 
         return response()->json([
             'activeProjects'           => $activeProjects,
@@ -128,7 +130,9 @@ class DashboardController extends Controller
                     'progress'     => (int) ($project->progress ?? 0),
                     'lastActivity' => $project->last_activity?->toISOString() ?? $project->updated_at?->toISOString(),
                     'isOwner'      => $project->user_id === $userId,
-                    'accessLevel'  => $project->getUserAccessLevel($userId),
+                    'accessLevel'  => $project->user_id === $userId
+                        ? 3
+                        : (int) ($project->accessList->firstWhere('user_id', $userId)?->access_level ?? 0),
                     'members'      => $project->members ?? [],
                     'milestones'   => $project->milestones->map(fn ($m) => [
                         'id'        => (string) $m->id,

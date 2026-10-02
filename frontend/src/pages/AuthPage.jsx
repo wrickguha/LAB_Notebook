@@ -133,7 +133,7 @@ export default function AuthPage() {
             <p className="text-xs text-slate-500 leading-relaxed">
               {activeTab === 'signin'
                 ? 'Enter your institutional credentials to access your active experiment ledgers.'
-                : 'Get started with FDA 21 CFR Part 11 compliant digital logs and calculation engines.'}
+                : 'Create an account for saved research notes, project tracking, and scientific calculators.'}
             </p>
           </div>
 
@@ -349,7 +349,7 @@ export default function AuthPage() {
 
         {/* Footer info */}
         <div className="text-center text-[10px] text-slate-400 pt-4 space-y-2">
-          <p>By signing in, you agree to electronic records protocol compliance under FDA 21 CFR Part 11.</p>
+          <p>Your account activity and research records are protected by session-based access controls.</p>
           <button 
             type="button"
             onClick={() => navigate('/')} 
@@ -386,28 +386,28 @@ export default function AuthPage() {
               <span className="ml-2 font-mono text-[10px] text-slate-400">SIGNATURE_ENGINE.sh</span>
             </div>
             <span className="text-[9px] font-mono text-teal-400 font-bold bg-teal-950/80 border border-teal-800 px-2 py-0.5 rounded">
-              VERIFIED
+              WORKFLOW PREVIEW
             </span>
           </div>
 
           <div className="font-mono text-[11px] text-slate-300 space-y-2 leading-relaxed">
             <p className="text-teal-400">&gt; establishing mutual TLS v1.3 handshake...</p>
             <p className="text-slate-400">&gt; hashing SHA-256 ledger checksum: <span className="text-white">e3b0c442...98fc</span></p>
-            <p className="text-emerald-400">&gt; cryptographic timestamp certificate validated.</p>
+            <p className="text-emerald-400">&gt; example signing workflow preview.</p>
           </div>
 
           {/* Visual Certificate Card */}
           <div className="rounded-2xl bg-white/5 border border-white/10 p-4 space-y-3">
             <div className="flex justify-between items-center text-[10px] font-mono">
               <span className="text-slate-400">LEDGER HASH CHAIN</span>
-              <span className="text-emerald-400 font-bold">LOCKED & IMMUTABLE</span>
+              <span className="text-emerald-400 font-bold">SAMPLE RECORD</span>
             </div>
             <div className="h-0.5 bg-white/10 w-full" />
             
             <div className="flex items-center justify-between">
               <div>
                 <div className="text-xs font-bold text-white">CRISPR Exon Excision Protocol</div>
-                <div className="text-[10px] text-slate-400 font-mono mt-0.5">Signed by: Dr. Evelyn Thorne (PI)</div>
+                <div className="text-[10px] text-slate-400 font-mono mt-0.5">Example record - no signature stored</div>
               </div>
               <div className="h-8 w-8 rounded-xl bg-teal-500/20 text-teal-400 border border-teal-500/30 flex items-center justify-center font-bold text-xs">
                 ✓
@@ -417,12 +417,12 @@ export default function AuthPage() {
 
           <div className="grid grid-cols-2 gap-3 text-center text-xs">
             <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
-              <span className="text-[9px] font-mono text-slate-400 uppercase">Audit Records</span>
-              <div className="text-sm font-bold text-white font-mono mt-0.5">10,482 Logs</div>
+              <span className="text-[9px] font-mono text-slate-400 uppercase">Audit Trail</span>
+              <div className="text-sm font-bold text-white font-mono mt-0.5">Per-user records</div>
             </div>
             <div className="p-2.5 rounded-xl bg-white/5 border border-white/5">
-              <span className="text-[9px] font-mono text-slate-400 uppercase">Zero-Knowledge Proof</span>
-              <div className="text-sm font-bold text-teal-400 font-mono mt-0.5">Active</div>
+              <span className="text-[9px] font-mono text-slate-400 uppercase">Document Fingerprint</span>
+              <div className="text-sm font-bold text-teal-400 font-mono mt-0.5">SHA-256</div>
             </div>
           </div>
 

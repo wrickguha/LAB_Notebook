@@ -24,6 +24,8 @@ import {
   Command,
   ExternalLink,
   CalendarDays,
+  Moon,
+  Sun,
 } from "lucide-react";
 
 export default function DashboardLayout({ children, activeTab, setActiveTab }) {
@@ -39,6 +41,8 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
     createCalendarEvent,
     updateCalendarEvent,
     deleteCalendarEvent,
+    themePreference,
+    setThemePreference,
   } = useApp();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -92,7 +96,7 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex text-slate-900 antialiased font-sans selection:bg-teal-500 selection:text-white">
+    <div className="dashboard-theme min-h-screen bg-slate-50 flex text-slate-900 antialiased font-sans selection:bg-teal-500 selection:text-white">
       {/* Mobile Sidebar Backdrop Overlay */}
       {mobileSidebarOpen && (
         <div
@@ -268,6 +272,15 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
 
           {/* Right: Search, Compliance Tag, Notifications, User */}
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setThemePreference(themePreference === "dark" ? "light" : "dark")}
+              className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-slate-600 transition-colors shadow-xs cursor-pointer"
+              aria-label={`Switch to ${themePreference === "dark" ? "light" : "dark"} mode`}
+              title={`Switch to ${themePreference === "dark" ? "light" : "dark"} mode`}
+            >
+              {themePreference === "dark" ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            </button>
             {/* Notifications Bell Dropdown */}
             <div className="relative">
               <button

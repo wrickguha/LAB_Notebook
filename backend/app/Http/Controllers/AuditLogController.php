@@ -10,7 +10,7 @@ class AuditLogController extends Controller
 {
     public function index(Request $request)
     {
-        $query = AuditLog::query();
+        $query = AuditLog::where('user_id', Auth::id());
 
         if ($request->has('search') && $request->search) {
             $search = strtolower($request->search);
@@ -31,25 +31,22 @@ class AuditLogController extends Controller
         $validated = $request->validate([
             'action' => ['required', 'string'],
             'target' => ['required', 'string'],
-            'user' => ['nullable', 'string'],
-            'ip' => ['nullable', 'string'],
-            'status' => ['nullable', 'string'],
-            'timestamp' => ['nullable', 'string'],
         ]);
 
         $log = AuditLog::create([
-            'user' => $validated['user'] ?? (Auth::user()?->name ?? 'Dr. Evelyn Thorne'),
+            'user_id' => Auth::id(),
+            'user' => Auth::user()->name,
             'action' => $validated['action'],
             'target' => $validated['target'],
-            'ip' => $validated['ip'] ?? '10.0.0.12',
-            'status' => $validated['status'] ?? 'Verified',
-            'timestamp' => $validated['timestamp'] ?? now()->toDateTimeString(),
+            'ip' => $request->ip(),
+            'status' => 'Verified',
+            'timestamp' => now()->toDateTimeString(),
         ]);
 
         return response()->json($this->serializeLog($log));
     }
 
-    protected function serializeLog(AuditLog $log): array
+    protected function serializeLog(object $log): array
     {
         return [
             'id' => (string) $log->id,

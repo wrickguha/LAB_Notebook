@@ -37,8 +37,8 @@ const features = [
     icon: NotebookPen,
     tag: 'ELECTRONIC NOTEBOOK',
     title: 'Digital Lab Notebook (ELN)',
-    description: 'Record observations, protocols, and raw datasets with FDA 21 CFR Part 11 compliant digital signatures and cryptographic hashing.',
-    stat: '100% Audit Ready'
+    description: 'Record observations and protocols in structured notebook documents with locked signing and SHA-256 fingerprints.',
+    stat: 'Editable drafts, locked signatures'
   },
   {
     icon: FolderKanban,
@@ -71,17 +71,17 @@ const features = [
   {
     icon: ShieldCheck,
     tag: 'COMPLIANCE & AUDIT',
-    title: 'Immutable Regulatory Audit Trail',
-    description: 'Automatic system logs capturing timestamped user actions, electronic sign-offs, and parameter changes for accreditation inspection.',
-    stat: 'SOC 2 & 21 CFR Part 11'
+    title: 'User-scoped Audit History',
+    description: 'Review timestamped actions and electronic sign-offs recorded for your account.',
+    stat: 'Per-user records'
   },
 ];
 
 const metrics = [
-  { value: '99.98%', label: 'Regulatory Audit Traceability', sub: 'Verified across academic & clinical institutions' },
+  { value: 'Per-user', label: 'Access Controls', sub: 'Research records scoped to the signed-in account' },
   { value: '19', label: 'Validated Scientific Calculators', sub: 'From PCR master mixes to nucleic acid spectrophotometry' },
-  { value: '10k+', label: 'Digital Experiments Logged', sub: 'Zero lost data, fully searchable protocols' },
-  { value: '21 CFR', label: 'Part 11 Electronic Records', sub: 'Cryptographic SHA-256 signatures & locked entries' },
+  { value: 'Structured', label: 'Notebook Documents', sub: 'Tiptap content saved and restored from the database' },
+  { value: 'SHA-256', label: 'Document Fingerprints', sub: 'Signed entry content is checked against its stored fingerprint' },
 ];
 
 function InteractiveProductPreview() {
@@ -175,9 +175,9 @@ function InteractiveProductPreview() {
                   <div className="text-[10px] text-teal-600 font-semibold">Optimal Spec Ratio</div>
                 </div>
                 <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-xs space-y-1">
-                  <span className="text-[10px] font-mono text-slate-400 uppercase font-bold">Cryptographic Ledger</span>
-                  <div className="text-xs font-mono text-slate-600 truncate">SHA256: 9b2d...f4e1</div>
-                  <div className="text-[10px] text-slate-400">21 CFR Part 11 Compliant</div>
+                  <span className="text-[10px] font-mono text-slate-400 uppercase font-bold">Example Fingerprint</span>
+                  <div className="text-xs font-mono text-slate-600 truncate">SHA256: preview only</div>
+                  <div className="text-[10px] text-slate-400">Illustrative record</div>
                 </div>
               </div>
 
@@ -429,7 +429,7 @@ export default function LandingPage() {
               <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse" />
               <span>DIGITAL LAB NOTEBOOK & RESEARCH ERP</span>
               <span className="text-teal-400">•</span>
-              <span className="font-mono text-[11px]">21 CFR PART 11</span>
+              <span className="font-mono text-[11px]">ELECTRONIC SIGN-OFF</span>
             </div>
 
             {/* Headline */}
@@ -442,7 +442,7 @@ export default function LandingPage() {
 
             {/* Subheading */}
             <p className="max-w-2xl mx-auto text-base sm:text-lg text-slate-600 dark:text-slate-300 leading-relaxed font-normal">
-              InveniqLab is the unified digital laboratory environment for modern researchers. Replace disconnected paper notebooks and spreadsheets with cryptographically sealed logs, 19 calibrated calculators, and collaborative project ledgers.
+              InveniqLab brings research notes, scientific calculators, projects, and collaboration into one workspace. Signed entries are locked and checked against their stored document fingerprint. This software is not represented as a validated regulatory-compliance system.
             </p>
 
             {/* CTAs */}
@@ -470,7 +470,7 @@ export default function LandingPage() {
                 <Check className="w-4 h-4 text-teal-600" /> Electronic Signatures
               </span>
               <span className="flex items-center gap-1.5">
-                <Check className="w-4 h-4 text-teal-600" /> FDA 21 CFR Part 11 Compliant
+                <Check className="w-4 h-4 text-teal-600" /> Signed and locked entries
               </span>
               <span className="flex items-center gap-1.5">
                 <Check className="w-4 h-4 text-teal-600" /> Zero Spreadsheets Needed
@@ -516,7 +516,7 @@ export default function LandingPage() {
               Precision tools built for rigorous science.
             </h2>
             <p className="text-base text-slate-600 dark:text-slate-300 leading-relaxed">
-              Biotechnology laboratories often juggle fragile spreadsheets, disconnected calculators, and paper notebooks that fail compliance audits. InveniqLab consolidates the bench scientist's workflow into a cohesive, compliant digital workspace.
+              Biotechnology laboratories often juggle spreadsheets, disconnected calculators, and paper notebooks. InveniqLab consolidates common research workflows into one digital workspace.
             </p>
           </div>
 
@@ -527,7 +527,7 @@ export default function LandingPage() {
               </div>
               <h3 className="text-lg font-black text-slate-900 dark:text-white">Regulatory Integrity</h3>
               <p className="text-xs text-slate-600 dark:text-slate-300 leading-relaxed">
-                Immutable audit trails automatically capture every parameter edit, experiment approval, and team permission change for flawless FDA inspection readiness.
+                User-scoped audit records capture selected account actions and electronic sign-offs. Teams should validate their own regulatory and retention requirements before relying on this system for regulated records.
               </p>
             </div>
 
@@ -775,7 +775,7 @@ export default function LandingPage() {
                       <Check className="w-4 h-4 text-teal-400" /> Everything in Academic tier
                     </li>
                     <li className="flex items-center gap-2">
-                      <Check className="w-4 h-4 text-teal-400" /> FDA 21 CFR Part 11 Electronic Signatures
+                      <Check className="w-4 h-4 text-teal-400" /> Locked notebook entries with SHA-256 fingerprints
                     </li>
                     <li className="flex items-center gap-2">
                       <Check className="w-4 h-4 text-teal-400" /> Multi-Lab Resource Booking & SOP Hub
@@ -845,7 +845,7 @@ export default function LandingPage() {
                 The next-generation Digital Lab Notebook and Research ERP for modern biotechnology and life science laboratories.
               </p>
               <div className="text-[11px] font-mono text-teal-600">
-                FDA 21 CFR PART 11 READY
+                RESEARCH WORKSPACE
               </div>
             </div>
 
@@ -862,10 +862,10 @@ export default function LandingPage() {
             <div className="space-y-3">
               <h4 className="font-bold text-slate-900 dark:text-white text-xs">Regulatory & Trust</h4>
               <ul className="space-y-2 text-slate-600 dark:text-slate-400">
-                <li><a href="#about" className="hover:text-teal-600">21 CFR Part 11 Validation</a></li>
-                <li><a href="#about" className="hover:text-teal-600">SOC 2 Type II Security</a></li>
-                <li><a href="#about" className="hover:text-teal-600">Cryptographic Signing</a></li>
-                <li><a href="#about" className="hover:text-teal-600">Data Immutability</a></li>
+                <li><a href="#about" className="hover:text-teal-600">Account-scoped records</a></li>
+                <li><a href="#about" className="hover:text-teal-600">Audit history</a></li>
+                <li><a href="#about" className="hover:text-teal-600">Document fingerprints</a></li>
+                <li><a href="#about" className="hover:text-teal-600">Session-based access</a></li>
               </ul>
             </div>
 

@@ -83,6 +83,26 @@ const SEARCH_AND_REPLACE_SCROLL_OPTIONS = {
   block: "center",
 }
 
+function normalizeContent(content) {
+  if (content && typeof content === "object") return content
+  if (typeof content !== "string" || !content) return ""
+
+  try {
+    const parsed = JSON.parse(content)
+    if (parsed?.type === "doc") return parsed
+  } catch {
+    // Older notebook entries contain plain text rather than Tiptap JSON.
+  }
+
+  return {
+    type: "doc",
+    content: content.split("\n").map((line) => ({
+      type: "paragraph",
+      content: line ? [{ type: "text", text: line }] : [],
+    })),
+  }
+}
+
 const MainToolbarContent = ({
   onHighlighterClick,
   onLinkClick,
@@ -193,7 +213,7 @@ const MobileToolbarContent = ({
   </>
 )
 
-export function SimpleEditor() {
+export function SimpleEditor({ content, onUpdate, editable = true }) {
   const isMobile = useIsBreakpoint()
   const { height } = useWindowSize()
   const [mobileView, setMobileView] = useState("main")
@@ -242,8 +262,24 @@ export function SimpleEditor() {
         onError: (error) => console.error("Upload failed:", error),
       }),
     ],
-    content: '',
+    content: normalizeContent(content),
+    editable,
+    onUpdate: ({ editor }) => {
+      onUpdate?.({
+        content: editor.getText({ blockSeparator: "\n\n" }),
+        contentJson: editor.getJSON(),
+      })
+    },
   })
+
+  useEffect(() => {
+    if (!editor || content === undefined) return
+    const currentContent = JSON.stringify(editor.getJSON())
+    const nextContent = normalizeContent(content)
+    if (currentContent !== JSON.stringify(nextContent)) {
+      editor.commands.setContent(nextContent, { emitUpdate: false })
+    }
+  }, [content, editor])
 
   const rect = useCursorVisibility({
     editor,
