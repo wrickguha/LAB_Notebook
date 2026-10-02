@@ -166,8 +166,6 @@ export default function DashboardOverview({ setActiveTab }) {
                   onClick={getNewQuote}
                   className="inline-flex items-center gap-1.5 text-[11px] font-bold text-teal-700 hover:text-teal-900 cursor-pointer group shrink-0"
                 >
-                  <RefreshCw className="h-3 w-3" />
-                  <span>New quote</span>
                 </button>
               </div>
             </div>
