@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from "react"
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react"
 
 // --- Tiptap Core Extensions ---
@@ -213,7 +213,7 @@ const MobileToolbarContent = ({
   </>
 )
 
-export function SimpleEditor({ content, onUpdate, editable = true }) {
+export const SimpleEditor = forwardRef(function SimpleEditor({ content, onUpdate, editable = true }, ref) {
   const isMobile = useIsBreakpoint()
   const { height } = useWindowSize()
   const [mobileView, setMobileView] = useState("main")
@@ -280,6 +280,11 @@ export function SimpleEditor({ content, onUpdate, editable = true }) {
       editor.commands.setContent(nextContent, { emitUpdate: false })
     }
   }, [content, editor])
+
+  useImperativeHandle(ref, () => ({
+    getHTML: () => editor?.getHTML() ?? '',
+    getJSON: () => editor?.getJSON() ?? null,
+  }), [editor])
 
   const rect = useCursorVisibility({
     editor,
@@ -357,4 +362,4 @@ export function SimpleEditor({ content, onUpdate, editable = true }) {
       </EditorContext.Provider>
     </div>
   )
-}
+})
