@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 
 import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor';
+import ShareModal from '@/components/ShareModal';
 import { useApp } from '@/context/AppContext';
 
 import '../../styles/lab-notebook.css';
@@ -73,6 +74,7 @@ export default function LabNotebookEditor() {
   const project = projects.find((item) => String(item.id) === projectId);
   const editorRef = useRef(null);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   const handleDownloadPdf = async () => {
     const html = editorRef.current?.getHTML?.();
@@ -246,6 +248,8 @@ export default function LabNotebookEditor() {
           <button
             type="button"
             className="notebook-share-button"
+            onClick={() => setShareModalOpen(true)}
+            title="Share notebook with collaborators"
           >
             <Share2 size={16} />
             <span>Share</span>
@@ -337,6 +341,12 @@ export default function LabNotebookEditor() {
         </div>
 
       </main>
+
+      <ShareModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        project={project}
+      />
 
     </div>
   );
