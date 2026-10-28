@@ -576,6 +576,7 @@ export default function LabNotebookEditor() {
         isOpen={insertImageModalOpen}
         onClose={() => setInsertImageModalOpen(false)}
         onInsertImage={handleInsertImage}
+        projectId={project?.id}
       />
 
       {/* Edit Project Details Modal */}

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -19,6 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
+import { filesApi } from '../api/endpoints';
 
 export const PRESET_BANNERS = [
   {
@@ -60,10 +61,18 @@ export function CoverImageModal({ isOpen, onClose, project, onSaveBanner }) {
   const [selectedBanner, setSelectedBanner] = useState(
     project?.banner || PRESET_BANNERS[0].url
   );
+  const [selectedFile, setSelectedFile] = useState(null);
   const [customUrl, setCustomUrl] = useState('');
   const [activeTab, setActiveTab] = useState('gallery'); // 'gallery' | 'upload' | 'url'
   const [isSaving, setIsSaving] = useState(false);
+  const [uploadError, setUploadError] = useState('');
   const fileInputRef = useRef(null);
+
+  useEffect(() => {
+    if (project?.banner) {
+      setSelectedBanner(project.banner);
+    }
+  }, [project?.banner]);
 
   if (!isOpen) return null;
 
@@ -72,9 +81,12 @@ export function CoverImageModal({ isOpen, onClose, project, onSaveBanner }) {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      alert('Please upload a valid image file');
+      setUploadError('Please select a valid image file (PNG, JPG, WebP, SVG).');
       return;
     }
+
+    setUploadError('');
+    setSelectedFile(file);
 
     const reader = new FileReader();
     reader.onload = (event) => {
@@ -88,15 +100,36 @@ export function CoverImageModal({ isOpen, onClose, project, onSaveBanner }) {
   const handleApplyCustomUrl = (e) => {
     e.preventDefault();
     if (customUrl.trim()) {
+      setUploadError('');
+      setSelectedFile(null);
       setSelectedBanner(customUrl.trim());
     }
   };
 
   const handleSave = async () => {
     setIsSaving(true);
+    setUploadError('');
     try {
-      await onSaveBanner(selectedBanner);
+      let finalBannerUrl = selectedBanner;
+
+      // If user selected a local file from disk, upload it to /api/files/upload first
+      if (selectedFile) {
+        try {
+          const uploadRes = await filesApi.upload(selectedFile, project?.id);
+          if (uploadRes?.url) {
+            finalBannerUrl = uploadRes.url;
+          }
+        } catch (uploadErr) {
+          console.warn('Direct upload fallback to base64 processing:', uploadErr);
+          // Backend processBanner() will decode and save base64 to disk as fallback!
+        }
+      }
+
+      await onSaveBanner(finalBannerUrl);
       onClose();
+    } catch (err) {
+      console.error('Failed to update cover image:', err);
+      setUploadError(err.message || 'Failed to update cover image.');
     } finally {
       setIsSaving(false);
     }
@@ -294,6 +327,13 @@ export function CoverImageModal({ isOpen, onClose, project, onSaveBanner }) {
               </p>
             </form>
           )}
+
+          {uploadError && (
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{uploadError}</span>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -328,26 +368,46 @@ export function CoverImageModal({ isOpen, onClose, project, onSaveBanner }) {
 /**
  * 2. Modal to insert an image directly into the notes content
  */
-export function InsertImageModal({ isOpen, onClose, onInsertImage }) {
+export function InsertImageModal({ isOpen, onClose, onInsertImage, projectId }) {
   const [imageUrl, setImageUrl] = useState('');
   const [altText, setAltText] = useState('');
   const [tab, setTab] = useState('upload'); // 'upload' | 'url'
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef(null);
 
   if (!isOpen) return null;
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      if (event.target?.result) {
-        onInsertImage(event.target.result, altText || file.name);
+    setIsUploading(true);
+    try {
+      let finalUrl = '';
+      try {
+        const uploadRes = await filesApi.upload(file, projectId);
+        if (uploadRes?.url) {
+          finalUrl = uploadRes.url;
+        }
+      } catch (uploadErr) {
+        console.warn('Direct upload fallback to data URL:', uploadErr);
+      }
+
+      if (!finalUrl) {
+        finalUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve(event.target?.result || '');
+          reader.readAsDataURL(file);
+        });
+      }
+
+      if (finalUrl) {
+        onInsertImage(finalUrl, altText || file.name);
         onClose();
       }
-    };
-    reader.readAsDataURL(file);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleUrlSubmit = (e) => {

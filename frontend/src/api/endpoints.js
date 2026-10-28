@@ -172,3 +172,18 @@ export const dashboardApi = {
     return await api.get('/api/dashboard/summary');
   },
 };
+
+export const filesApi = {
+  upload: async (file, projectId = null) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (projectId) {
+      formData.append('project_id', projectId);
+    }
+    return await api.post('/api/files/upload', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+  },
+};

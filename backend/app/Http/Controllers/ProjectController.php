@@ -13,6 +13,8 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 
 class ProjectController extends Controller
 {
@@ -60,11 +62,15 @@ class ProjectController extends Controller
             'description' => ['nullable', 'string'],
             'content'     => ['nullable', 'string'], // Tiptap canonical JSON
             'status'      => ['nullable', 'string', 'max:50'],
-            'banner'      => ['nullable', 'string', 'max:500'],
+            'banner'      => ['nullable', 'string'],
             'progress'    => ['nullable', 'integer', 'min:0', 'max:100'],
             'milestones'  => ['nullable', 'array'],
             'members'     => ['nullable', 'array'],
         ]);
+
+        $banner = isset($validated['banner'])
+            ? $this->processBanner($validated['banner'])
+            : 'https://images.unsplash.com/photo-1532187643603-ba119ca4109e?w=800';
 
         $project = Project::create([
             'user_id'       => $userId,
@@ -73,7 +79,7 @@ class ProjectController extends Controller
             'description'   => $validated['description'] ?? '',
             'content'       => $validated['content'] ?? null,
             'status'        => $validated['status'] ?? 'Active',
-            'banner'        => $validated['banner'] ?? 'https://images.unsplash.com/photo-1532187643603-ba119ca4109e?w=800',
+            'banner'        => $banner,
             'progress'      => $validated['progress'] ?? 0,
             'members'       => $validated['members'] ?? [
                 ['name' => Auth::user()?->name ?? 'Principal Investigator', 'role' => Auth::user()?->role ?? 'Principal Investigator', 'avatar' => Auth::user()?->avatar],
@@ -119,11 +125,15 @@ class ProjectController extends Controller
             'description' => ['nullable', 'string'],
             'content'     => ['nullable', 'string'], // Tiptap canonical JSON
             'status'      => ['nullable', 'string', 'max:50'],
-            'banner'      => ['nullable', 'string', 'max:500'],
+            'banner'      => ['nullable', 'string'],
             'progress'    => ['nullable', 'integer', 'min:0', 'max:100'],
             'milestones'  => ['nullable', 'array'],
             'members'     => ['nullable', 'array'],
         ]);
+
+        $banner = array_key_exists('banner', $validated)
+            ? $this->processBanner($validated['banner'])
+            : $project->banner;
 
         $project->fill([
             'name'          => isset($validated['name']) ? trim($validated['name']) : $project->name,
@@ -131,7 +141,7 @@ class ProjectController extends Controller
             'description'   => array_key_exists('description', $validated) ? $validated['description'] : $project->description,
             'content'       => array_key_exists('content', $validated) ? $validated['content'] : $project->content,
             'status'        => $validated['status'] ?? $project->status,
-            'banner'        => $validated['banner'] ?? $project->banner,
+            'banner'        => $banner,
             'progress'      => array_key_exists('progress', $validated) ? $validated['progress'] : $project->progress,
             'members'       => $validated['members'] ?? $project->members,
             'last_activity' => now(),
@@ -391,5 +401,34 @@ class ProjectController extends Controller
                 'project'
             );
         }
+    }
+
+    /**
+     * Process banner: if it is a base64 data URL, store it to public disk and return the public URL.
+     */
+    protected function processBanner(?string $banner): ?string
+    {
+        if (!$banner) {
+            return $banner;
+        }
+
+        if (preg_match('/^data:image\/(\w+);base64,/', $banner, $type)) {
+            $data = substr($banner, strpos($banner, ',') + 1);
+            $type = strtolower($type[1]); // jpg, png, gif, webp
+
+            if (!in_array($type, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])) {
+                $type = 'png';
+            }
+
+            $decoded = base64_decode($data);
+            if ($decoded !== false) {
+                $userId = Auth::id() ?? 1;
+                $filename = 'uploads/' . $userId . '/' . Str::random(32) . '.' . $type;
+                Storage::disk('public')->put($filename, $decoded);
+                return Storage::disk('public')->url($filename);
+            }
+        }
+
+        return $banner;
     }
 }
