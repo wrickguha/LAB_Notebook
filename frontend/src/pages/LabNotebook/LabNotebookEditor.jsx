@@ -5,6 +5,7 @@ import {
   CheckCircle2,
   FileDown,
   FlaskConical,
+  Loader2,
   MoreHorizontal,
   Share2,
 } from 'lucide-react';
@@ -232,10 +233,14 @@ export default function LabNotebookEditor() {
             className="notebook-pdf-button"
             onClick={handleDownloadPdf}
             disabled={pdfLoading || !project}
-            title="Download as PDF"
+            title="Export laboratory notes as PDF"
           >
-            <FileDown size={16} />
-            <span>{pdfLoading ? 'Generating…' : 'PDF'}</span>
+            {pdfLoading ? (
+              <Loader2 size={15} className="spinner-icon" />
+            ) : (
+              <FileDown size={15} />
+            )}
+            <span>{pdfLoading ? 'Generating…' : 'Export PDF'}</span>
           </button>
 
           <button
