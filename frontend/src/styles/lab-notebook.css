@@ -252,19 +252,21 @@
   align-items: center;
   justify-content: center;
 
-  border: none;
+  border: 1px solid #dbe2e8;
   border-radius: 8px;
 
-  background: transparent;
+  background: white;
   color: #64748b;
 
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 
 .notebook-more-button:hover {
   background: #f1f5f9;
   color: #0f172a;
+  border-color: #cbd5e1;
 }
 
 

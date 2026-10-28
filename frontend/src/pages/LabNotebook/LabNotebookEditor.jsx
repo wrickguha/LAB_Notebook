@@ -8,10 +8,23 @@ import {
   Loader2,
   MoreHorizontal,
   Share2,
+  Image as ImageIcon,
+  Edit3,
+  Trash2,
+  Printer,
+  Info,
+  Sparkles,
 } from 'lucide-react';
 
 import { SimpleEditor } from '@/components/tiptap-templates/simple/simple-editor';
 import ShareModal from '@/components/ShareModal';
+import {
+  CoverImageModal,
+  InsertImageModal,
+  EditProjectModal,
+  DocStatsModal,
+} from '@/components/ProjectActionsModal';
+import ConfirmDeleteModal from '@/components/ConfirmDeleteModal';
 import { useApp } from '@/context/AppContext';
 
 import '../../styles/lab-notebook.css';
@@ -34,7 +47,7 @@ function ProjectTiptapEditor({ project, onSave, editorRef }) {
     if (pendingRef.current) {
       const pending = pendingRef.current;
       pendingRef.current = null;
-      void saveRef.current(pending.id, pending.content).catch(() => {});
+      void saveRef.current(pending.id, pending.content).catch(() => { });
     }
   }, []);
 
@@ -70,11 +83,28 @@ function ProjectTiptapEditor({ project, onSave, editorRef }) {
 export default function LabNotebookEditor() {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const { projects, saveProjectContent } = useApp();
+  const {
+    projects,
+    saveProjectContent,
+    updateProject,
+    deleteProject,
+    showToast,
+  } = useApp();
   const project = projects.find((item) => String(item.id) === projectId);
   const editorRef = useRef(null);
+
+  // States
   const [pdfLoading, setPdfLoading] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+
+  // Action Modals
+  const [coverModalOpen, setCoverModalOpen] = useState(false);
+  const [insertImageModalOpen, setInsertImageModalOpen] = useState(false);
+  const [editDetailsModalOpen, setEditDetailsModalOpen] = useState(false);
+  const [statsModalOpen, setStatsModalOpen] = useState(false);
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleDownloadPdf = async () => {
     const html = editorRef.current?.getHTML?.();
@@ -194,6 +224,59 @@ export default function LabNotebookEditor() {
     }
   };
 
+  // Cover Image update handler
+  const handleSaveBanner = async (newBanner) => {
+    if (!project) return;
+    try {
+      await updateProject(project.id, {
+        name: project.name,
+        code: project.code,
+        description: project.description,
+        status: project.status,
+        banner: newBanner,
+      });
+      showToast?.('Project cover image updated successfully', 'success');
+    } catch (err) {
+      showToast?.(err.message || 'Failed to update cover image', 'error');
+    }
+  };
+
+  // Insert Image into notes handler
+  const handleInsertImage = (src, alt) => {
+    editorRef.current?.insertImage?.(src, alt);
+    showToast?.('Image inserted into notebook entry', 'success');
+  };
+
+  // Edit Project Details handler
+  const handleSaveDetails = async (updates) => {
+    if (!project) return;
+    try {
+      await updateProject(project.id, {
+        ...project,
+        ...updates,
+      });
+      showToast?.('Project details updated successfully', 'success');
+    } catch (err) {
+      showToast?.(err.message || 'Failed to update project details', 'error');
+    }
+  };
+
+  // Delete Project handler
+  const handleConfirmDelete = async () => {
+    if (!project) return;
+    setIsDeleting(true);
+    try {
+      await deleteProject(project.id, project.name);
+      setDeleteModalOpen(false);
+      navigate('/dashboard');
+    } catch (err) {
+      showToast?.(err.message || 'Failed to delete project', 'error');
+      setIsDeleting(false);
+    }
+  };
+
+  const editorPlainText = editorRef.current?.getText?.() || '';
+
   return (
     <div className="lab-notebook-page">
 
@@ -255,12 +338,131 @@ export default function LabNotebookEditor() {
             <span>Share</span>
           </button>
 
-          <button
-            type="button"
-            className="notebook-more-button"
-          >
-            <MoreHorizontal size={19} />
-          </button>
+          {/* ... More Actions Dropdown Menu */}
+          <div className="relative">
+            <button
+              type="button"
+              className="notebook-more-button"
+              onClick={() => setMoreMenuOpen(!moreMenuOpen)}
+              title="More project actions & settings"
+              aria-label="More project actions"
+            >
+              <MoreHorizontal size={19} />
+            </button>
+
+            {moreMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setMoreMenuOpen(false)}
+                />
+                <div className="absolute right-0 mt-2 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 py-1.5 overflow-hidden animate-in fade-in duration-150">
+                  <div className="px-3 py-2 border-b border-slate-100 dark:border-slate-800/80">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
+                      Project Actions
+                    </span>
+                    <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate block">
+                      {project?.name || 'Notebook'}
+                    </span>
+                  </div>
+
+                  <div className="p-1">
+                    {/* 1. Change Cover Image */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        setCoverModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      <ImageIcon className="w-4 h-4 text-teal-600 dark:text-teal-400 shrink-0" />
+                      <div>
+                        <div className="font-semibold">Change Cover Image</div>
+                        <div className="text-[10px] text-slate-400">
+                          Edit card banner & image
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* 2. Insert Image into Notes */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        setInsertImageModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      <Sparkles className="w-4 h-4 text-sky-500 shrink-0" />
+                      <div>
+                        <div className="font-semibold">Insert Image in Notes</div>
+                        <div className="text-[10px] text-slate-400">
+                          Add graphs, gel scans, or photos
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* 3. Edit Project Details */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        setEditDetailsModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      <Edit3 className="w-4 h-4 text-slate-500 shrink-0" />
+                      <div>
+                        <div className="font-semibold">Edit Project Details</div>
+                        <div className="text-[10px] text-slate-400">
+                          Rename, reference code & status
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* 5. Document Statistics */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        setStatsModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                    >
+                      <Info className="w-4 h-4 text-slate-500 shrink-0" />
+                      <div>
+                        <div className="font-semibold">Document Details</div>
+                        <div className="text-[10px] text-slate-400">
+                          Word counts & metadata
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+
+                  <div className="p-1 border-t border-slate-100 dark:border-slate-800">
+                    {/* 6. Delete Project */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setMoreMenuOpen(false);
+                        setDeleteModalOpen(true);
+                      }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-left text-xs text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 transition-colors cursor-pointer"
+                    >
+                      <Trash2 className="w-4 h-4 shrink-0" />
+                      <div>
+                        <div className="font-semibold">Delete Project</div>
+                        <div className="text-[10px] text-rose-500/80">
+                          Permanently remove project
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
 
         </div>
 
@@ -292,9 +494,21 @@ export default function LabNotebookEditor() {
               </p>
             </div>
 
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setCoverModalOpen(true)}
+                className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-200 hover:border-teal-500 bg-white/80 hover:bg-white text-slate-700 text-xs font-semibold shadow-xs transition-all cursor-pointer"
+                title="Change project banner image"
+              >
+                <ImageIcon className="w-3.5 h-3.5 text-teal-600" />
+                <span>Change Cover</span>
+              </button>
+
               <div className="notebook-project-badge">
-              <FlaskConical size={15} />
+                <FlaskConical size={15} />
                 {project?.status || 'Research project'}
+              </div>
             </div>
 
           </div>
@@ -342,10 +556,53 @@ export default function LabNotebookEditor() {
 
       </main>
 
+      {/* Share Modal */}
       <ShareModal
         isOpen={shareModalOpen}
         onClose={() => setShareModalOpen(false)}
         project={project}
+      />
+
+      {/* Cover Image Editor Modal */}
+      <CoverImageModal
+        isOpen={coverModalOpen}
+        onClose={() => setCoverModalOpen(false)}
+        project={project}
+        onSaveBanner={handleSaveBanner}
+      />
+
+      {/* Insert Image into Notes Modal */}
+      <InsertImageModal
+        isOpen={insertImageModalOpen}
+        onClose={() => setInsertImageModalOpen(false)}
+        onInsertImage={handleInsertImage}
+      />
+
+      {/* Edit Project Details Modal */}
+      <EditProjectModal
+        isOpen={editDetailsModalOpen}
+        onClose={() => setEditDetailsModalOpen(false)}
+        project={project}
+        onSaveDetails={handleSaveDetails}
+      />
+
+      {/* Document Stats Modal */}
+      <DocStatsModal
+        isOpen={statsModalOpen}
+        onClose={() => setStatsModalOpen(false)}
+        project={project}
+        editorContent={editorPlainText}
+      />
+
+      {/* Confirm Delete Project Modal */}
+      <ConfirmDeleteModal
+        isOpen={deleteModalOpen}
+        onClose={() => setDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Delete Project?"
+        itemName={project?.name || 'This Project'}
+        itemSub={project?.code || ''}
+        isDeleting={isDeleting}
       />
 
     </div>

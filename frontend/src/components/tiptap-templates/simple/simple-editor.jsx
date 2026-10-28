@@ -284,6 +284,13 @@ export const SimpleEditor = forwardRef(function SimpleEditor({ content, onUpdate
   useImperativeHandle(ref, () => ({
     getHTML: () => editor?.getHTML() ?? '',
     getJSON: () => editor?.getJSON() ?? null,
+    getText: () => editor?.getText() ?? '',
+    insertImage: (src, alt = '') => {
+      if (editor && src) {
+        editor.chain().focus().setImage({ src, alt }).run()
+      }
+    },
+    editor,
   }), [editor])
 
   const rect = useCursorVisibility({
