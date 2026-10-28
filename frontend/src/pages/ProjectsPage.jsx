@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { useApp } from "../context/AppContext";
 import { motion, AnimatePresence } from "framer-motion";
 import ConfirmDeleteModal from "../components/ConfirmDeleteModal";
+import { resolveImageUrl } from "../utils/imageUrl";
 import {
   Grid,
   List,
@@ -217,9 +218,13 @@ export default function ProjectsPage() {
                 {/* Banner & Floating Actions */}
                 <div className="h-36 relative overflow-hidden bg-slate-900">
                   <img
-                    src={proj.banner}
+                    src={resolveImageUrl(proj.banner)}
                     alt={proj.name}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    onError={(e) => {
+                      e.currentTarget.onerror = null;
+                      e.currentTarget.src = 'https://images.unsplash.com/photo-1532187643603-ba119ca4109e?w=1200';
+                    }}
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
 

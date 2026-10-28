@@ -20,6 +20,7 @@ import {
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { filesApi } from '../api/endpoints';
+import { resolveImageUrl } from '../utils/imageUrl';
 
 export const PRESET_BANNERS = [
   {
@@ -186,7 +187,7 @@ export function CoverImageModal({ isOpen, onClose, project, onSaveBanner }) {
             </div>
             <div className="h-40 relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 shadow-sm bg-slate-900">
               <img
-                src={selectedBanner}
+                src={resolveImageUrl(selectedBanner)}
                 alt="Banner Preview"
                 className="w-full h-full object-cover"
               />

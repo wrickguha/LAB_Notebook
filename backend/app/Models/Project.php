@@ -78,4 +78,24 @@ class Project extends Model
         $access = $this->accessList()->where('user_id', $userId)->first();
         return $access ? $access->access_level : 0;
     }
+
+    public function getBannerAttribute($value): ?string
+    {
+        if (!$value) {
+            return $value;
+        }
+
+        // Fix URLs saved as http://localhost/storage/ without port 8000
+        if (str_starts_with($value, 'http://localhost/storage/')) {
+            return str_replace('http://localhost/storage/', 'http://localhost:8000/storage/', $value);
+        }
+
+        // Normalize relative /storage/ paths
+        if (str_starts_with($value, '/storage/')) {
+            $base = rtrim(env('APP_URL', 'http://localhost:8000'), '/');
+            return $base . $value;
+        }
+
+        return $value;
+    }
 }
