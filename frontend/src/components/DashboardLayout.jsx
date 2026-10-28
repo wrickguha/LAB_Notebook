@@ -48,6 +48,37 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const [calendarViewDate, setCalendarViewDate] = useState(new Date());
+  const [selectedCalendarDate, setSelectedCalendarDate] = useState(null);
+
+  // Mini calendar helpers
+  const calendarYear = calendarViewDate.getFullYear();
+  const calendarMonth = calendarViewDate.getMonth();
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const daysInMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  // Monday = 0, Sunday = 6
+  let firstDayOfWeek = new Date(calendarYear, calendarMonth, 1).getDay() - 1;
+  if (firstDayOfWeek < 0) firstDayOfWeek = 6;
+
+  const calendarDays = [];
+  for (let i = 0; i < firstDayOfWeek; i++) calendarDays.push(null);
+  for (let d = 1; d <= daysInMonth; d++) calendarDays.push(d);
+
+  const eventDateSet = new Set(
+    calendarEvents.map((e) => e.startDate) // 'YYYY-MM-DD'
+  );
+
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+  const goToPrevMonth = () => setCalendarViewDate(new Date(calendarYear, calendarMonth - 1, 1));
+  const goToNextMonth = () => setCalendarViewDate(new Date(calendarYear, calendarMonth + 1, 1));
+
+  const filteredCalendarEvents = selectedCalendarDate
+    ? calendarEvents.filter((e) => e.startDate === selectedCalendarDate)
+    : calendarEvents;
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   const unreadNotifCount = (notifications || []).filter((n) => !n.read).length;
@@ -399,7 +430,7 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
                     onClick={() => setCalendarOpen(false)}
                   />
 
-                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-4">
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-4 max-h-[80vh] overflow-y-auto">
                     {/* Header */}
                     <div className="flex justify-between items-center border-b border-slate-100 pb-2.5">
                       <div className="flex items-center gap-2">
@@ -435,14 +466,96 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
                         <CalendarDays className="w-4 h-4 text-teal-600" />
                       </div>
 
+                      {/* Mini Calendar Grid */}
+                      <div className="mt-3 bg-slate-50/80 border border-slate-100 rounded-xl p-3">
+                        {/* Month Navigation */}
+                        <div className="flex items-center justify-between mb-2">
+                          <button
+                            type="button"
+                            onClick={goToPrevMonth}
+                            className="p-1 rounded-lg hover:bg-slate-200/70 transition-colors cursor-pointer"
+                          >
+                            <ChevronLeft className="w-3.5 h-3.5 text-slate-500" />
+                          </button>
+                          <span className="text-[11px] font-bold text-slate-800">
+                            {monthNames[calendarMonth]} {calendarYear}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={goToNextMonth}
+                            className="p-1 rounded-lg hover:bg-slate-200/70 transition-colors cursor-pointer"
+                          >
+                            <ChevronRight className="w-3.5 h-3.5 text-slate-500" />
+                          </button>
+                        </div>
+
+                        {/* Day-of-week headers */}
+                        <div className="grid grid-cols-7 gap-0.5 mb-1">
+                          {dayLabels.map((dl) => (
+                            <div key={dl} className="text-center text-[8px] font-semibold text-slate-400 uppercase tracking-wide py-0.5">
+                              {dl}
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Date cells */}
+                        <div className="grid grid-cols-7 gap-0.5">
+                          {calendarDays.map((day, idx) => {
+                            if (day === null) {
+                              return <div key={`empty-${idx}`} className="h-7" />;
+                            }
+                            const dateStr = `${calendarYear}-${String(calendarMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                            const isToday = dateStr === todayStr;
+                            const hasEvent = eventDateSet.has(dateStr);
+                            const isSelected = dateStr === selectedCalendarDate;
+
+                            return (
+                              <button
+                                key={dateStr}
+                                type="button"
+                                onClick={() => {
+                                  setSelectedCalendarDate(isSelected ? null : dateStr);
+                                }}
+                                className={`relative flex flex-col items-center justify-center h-7 rounded-lg text-[10px] font-medium transition-all cursor-pointer
+                                  ${isToday ? 'bg-teal-600 text-white shadow-sm shadow-teal-300' : ''}
+                                  ${isSelected && !isToday ? 'bg-teal-100 text-teal-700 ring-1 ring-teal-300' : ''}
+                                  ${!isToday && !isSelected ? 'text-slate-600 hover:bg-slate-200/70' : ''}
+                                `}
+                              >
+                                {day}
+                                {hasEvent && (
+                                  <span className={`absolute bottom-0.5 w-1 h-1 rounded-full ${isToday ? 'bg-white' : 'bg-teal-500'}`} />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Selected date indicator */}
+                        {selectedCalendarDate && (
+                          <div className="mt-2 flex items-center justify-between">
+                            <span className="text-[9px] text-teal-600 font-semibold">
+                              Showing events for {new Date(selectedCalendarDate + 'T00:00:00').toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCalendarDate(null)}
+                              className="text-[9px] text-slate-400 hover:text-slate-600 font-medium cursor-pointer"
+                            >
+                              Show all
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
                       {/* Events */}
                       <div className="mt-3 space-y-2 max-h-56 overflow-y-auto">
-                        {calendarEvents.length === 0 ? (
+                        {filteredCalendarEvents.length === 0 ? (
                           <p className="text-xs text-slate-400 text-center py-4">
-                            No upcoming events
+                            {selectedCalendarDate ? 'No events on this date' : 'No upcoming events'}
                           </p>
                         ) : (
-                          calendarEvents.map((event) => {
+                          filteredCalendarEvents.map((event) => {
                             const startDateTime = event.startTime
                               ? `${event.startDate}T${event.startTime}`
                               : event.startDate;
