@@ -408,7 +408,10 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
                   </div>
                 </>
               )}
+            </div>
 
+            {/* Calendar Dropdown */}
+            <div className="relative">
               <button
                 type="button"
                 onClick={() => {
