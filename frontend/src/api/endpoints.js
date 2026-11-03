@@ -7,6 +7,7 @@ export const authApi = {
       const payload = {
         email: credentials.email,
         password: credentials.password,
+        captcha_token: credentials.captchaToken,
         full_name: credentials.name,
         role: credentials.role || 'Principal Investigator',
         institution: credentials.institution || '',
@@ -16,7 +17,8 @@ export const authApi = {
     } else {
       const payload = {
         email: credentials.email,
-        password: credentials.password
+        password: credentials.password,
+        captcha_token: credentials.captchaToken,
       };
       return await api.post('/api/auth/signin', payload);
     }

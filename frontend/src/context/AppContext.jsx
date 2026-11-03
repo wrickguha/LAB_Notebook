@@ -157,16 +157,12 @@ export const AppDataProvider = ({ children }) => {
 
   // Auth Operations
   const login = async (credentials) => {
-    try {
-      await authApi.login(credentials);
-      localStorage.setItem('biotech_isAuthenticated', 'true');
-      setIsAuthenticated(true);
-      queryClient.invalidateQueries({ queryKey: ['user'] });
-      queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
-      showToast('Logged in successfully', 'success');
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
+    await authApi.login(credentials);
+    localStorage.setItem('biotech_isAuthenticated', 'true');
+    setIsAuthenticated(true);
+    queryClient.invalidateQueries({ queryKey: ['user'] });
+    queryClient.invalidateQueries({ queryKey: ['auditLogs'] });
+    showToast('Logged in successfully', 'success');
   };
 
   const logout = async () => {

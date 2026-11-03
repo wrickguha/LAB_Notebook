@@ -39,6 +39,7 @@ jobs:
       - name: 🏗️ Install Node Dependencies & Build React
         env:
           VITE_API_URL: https://inveniqlab.com
+          VITE_TURNSTILE_SITE_KEY: ${{ secrets.TURNSTILE_SITE_KEY }}
         run: |
           cd frontend
           npm ci

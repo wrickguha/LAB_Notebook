@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useApp } from '../context/AppContext';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -20,10 +20,43 @@ import {
   Fingerprint
 } from 'lucide-react';
 
+let turnstileScriptPromise;
+
+function loadTurnstile() {
+  if (window.turnstile) return Promise.resolve(window.turnstile);
+
+  if (!turnstileScriptPromise) {
+    turnstileScriptPromise = new Promise((resolve, reject) => {
+      const script = document.createElement('script');
+      script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+      script.async = true;
+      script.onload = () => {
+        if (window.turnstile) {
+          resolve(window.turnstile);
+        } else {
+          turnstileScriptPromise = null;
+          reject(new Error('Security verification could not be loaded. Please try again.'));
+        }
+      };
+      script.onerror = () => {
+        turnstileScriptPromise = null;
+        reject(new Error('Security verification could not be loaded. Please try again.'));
+      };
+      document.head.appendChild(script);
+    });
+  }
+
+  return turnstileScriptPromise;
+}
+
 export default function AuthPage() {
   const { login } = useApp();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const captchaSiteKey = import.meta.env.VITE_TURNSTILE_SITE_KEY;
+  const captchaContainerRef = useRef(null);
+  const captchaWidgetIdRef = useRef(null);
+  const pendingCaptchaRef = useRef(null);
 
   // Tab state ('signin' | 'signup')
   const [activeTab, setActiveTab] = useState(searchParams.get('signup') === 'true' ? 'signup' : 'signin');
@@ -38,6 +71,51 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [validationError, setValidationError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const settleCaptcha = (error, token) => {
+    const pending = pendingCaptchaRef.current;
+    if (!pending) return;
+
+    window.clearTimeout(pending.timeout);
+    pendingCaptchaRef.current = null;
+    if (error) {
+      pending.reject(error);
+    } else {
+      pending.resolve(token);
+    }
+  };
+
+  const requestCaptchaToken = async () => {
+    if (!captchaSiteKey) return undefined;
+
+    const turnstile = await loadTurnstile();
+    if (!captchaContainerRef.current) {
+      throw new Error('Security verification is unavailable. Please try again.');
+    }
+
+    if (captchaWidgetIdRef.current === null) {
+      captchaWidgetIdRef.current = turnstile.render(captchaContainerRef.current, {
+        sitekey: captchaSiteKey,
+        size: 'invisible',
+        callback: (token) => settleCaptcha(null, token),
+        'error-callback': () => settleCaptcha(new Error('Security verification failed. Please try again.')),
+        'expired-callback': () => settleCaptcha(new Error('Security verification expired. Please try again.')),
+      });
+    }
+
+    return new Promise((resolve, reject) => {
+      const timeout = window.setTimeout(
+        () => settleCaptcha(new Error('Security verification timed out. Please try again.')),
+        15000
+      );
+      pendingCaptchaRef.current = { resolve, reject, timeout };
+      try {
+        turnstile.execute(captchaWidgetIdRef.current);
+      } catch (error) {
+        settleCaptcha(error);
+      }
+    });
+  };
 
   // Sync tab with URL parameters
   useEffect(() => {
@@ -61,8 +139,10 @@ export default function AuthPage() {
       setValidationError('Please enter a valid institutional email address.');
       return;
     }
-    if (!password || password.length < 6) {
-      setValidationError('Password must be at least 6 characters.');
+    if (!password || (activeTab === 'signup' && password.length < 8)) {
+      setValidationError(activeTab === 'signup'
+        ? 'Password must be at least 8 characters.'
+        : 'Password is required.');
       return;
     }
 
@@ -75,6 +155,7 @@ export default function AuthPage() {
 
     setLoading(true);
     try {
+      const captchaToken = await requestCaptchaToken();
       if (activeTab === 'signup') {
         await login({
           signup: true,
@@ -84,24 +165,29 @@ export default function AuthPage() {
           role,
           institution: institution.trim(),
           lab: lab.trim(),
+          captchaToken,
         });
       } else {
         await login({
           signup: false,
           email: email.trim(),
           password,
+          captchaToken,
         });
       }
       navigate('/dashboard');
     } catch (err) {
       setValidationError(err.message || 'Authentication failed. Please check your credentials.');
     } finally {
+      if (captchaWidgetIdRef.current !== null && window.turnstile) {
+        window.turnstile.reset(captchaWidgetIdRef.current);
+      }
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row blueprint-grid relative overflow-hidden font-sans">
+    <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row blueprint-grid relative overflow-x-clip font-sans">
       
       {/* Ambient background blur */}
       <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-teal-500/5 rounded-full blur-[140px] pointer-events-none" />
@@ -145,7 +231,7 @@ export default function AuthPage() {
                 setActiveTab('signin');
                 setValidationError('');
               }}
-              className={`flex-1 text-center py-2 rounded-xl text-xs font-bold transition-all relative z-10 cursor-pointer ${
+              className={`flex-1 min-h-11 text-center py-2 rounded-xl text-xs font-bold transition-all relative z-10 cursor-pointer ${
                 activeTab === 'signin' ? 'text-teal-800 font-extrabold' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -157,7 +243,7 @@ export default function AuthPage() {
                 setActiveTab('signup');
                 setValidationError('');
               }}
-              className={`flex-1 text-center py-2 rounded-xl text-xs font-bold transition-all relative z-10 cursor-pointer ${
+              className={`flex-1 min-h-11 text-center py-2 rounded-xl text-xs font-bold transition-all relative z-10 cursor-pointer ${
                 activeTab === 'signup' ? 'text-teal-800 font-extrabold' : 'text-slate-500 hover:text-slate-800'
               }`}
             >
@@ -192,6 +278,7 @@ export default function AuthPage() {
 
           {/* Auth Form */}
           <form onSubmit={handleSubmit} className="space-y-4 text-xs text-slate-700">
+            {captchaSiteKey && <div ref={captchaContainerRef} aria-hidden="true" />}
             
             {activeTab === 'signup' && (
               <motion.div
@@ -203,67 +290,75 @@ export default function AuthPage() {
               >
                 {/* Full Name */}
                 <div>
-                  <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase mb-1 tracking-wider">
+                  <label htmlFor="full-name" className="block text-[10px] font-mono font-bold text-slate-500 uppercase mb-1 tracking-wider">
                     Full Name & Title <span className="text-rose-500">*</span>
                   </label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       type="text"
+                      id="full-name"
+                      autoComplete="name"
+                      required
                       placeholder="e.g. Dr. Wrick Guha"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
-                      className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-800 focus-ring font-medium"
+                      className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-base text-slate-800 focus-ring font-medium"
                     />
                   </div>
                 </div>
 
                 {/* Role / Title */}
                 <div>
-                  <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase mb-1 tracking-wider">
+                  <label htmlFor="lab-role" className="block text-[10px] font-mono font-bold text-slate-500 uppercase mb-1 tracking-wider">
                     Laboratory Role
                   </label>
                   <div className="relative">
                     <Briefcase className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       type="text"
+                      id="lab-role"
+                      autoComplete="organization-title"
                       placeholder="e.g. Principal Investigator, Postdoc, Senior Scientist"
                       value={role}
                       onChange={(e) => setRole(e.target.value)}
-                      className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-800 focus-ring font-medium"
+                      className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-base text-slate-800 focus-ring font-medium"
                     />
                   </div>
                 </div>
 
                 {/* Institution & Lab Wing */}
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase mb-1 tracking-wider">
+                    <label htmlFor="institution" className="block text-[10px] font-mono font-bold text-slate-500 uppercase mb-1 tracking-wider">
                       Institution
                     </label>
                     <div className="relative">
                       <Building className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="text"
+                        id="institution"
+                        autoComplete="organization"
                         placeholder="e.g. Harvard / Max Planck"
                         value={institution}
                         onChange={(e) => setInstitution(e.target.value)}
-                        className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-3 text-xs text-slate-800 focus-ring font-medium"
+                        className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-3 text-base text-slate-800 focus-ring font-medium"
                       />
                     </div>
                   </div>
                   <div>
-                    <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase mb-1 tracking-wider">
+                    <label htmlFor="lab-division" className="block text-[10px] font-mono font-bold text-slate-500 uppercase mb-1 tracking-wider">
                       Lab Division
                     </label>
                     <div className="relative">
                       <Beaker className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         type="text"
+                        id="lab-division"
                         placeholder="e.g. Genomics Wing"
                         value={lab}
                         onChange={(e) => setLab(e.target.value)}
-                        className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-3 text-xs text-slate-800 focus-ring font-medium"
+                        className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-3 text-base text-slate-800 focus-ring font-medium"
                       />
                     </div>
                   </div>
@@ -273,17 +368,22 @@ export default function AuthPage() {
 
             {/* Email Address */}
             <div>
-              <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase mb-1 tracking-wider">
+              <label htmlFor="email" className="block text-[10px] font-mono font-bold text-slate-500 uppercase mb-1 tracking-wider">
                 Institutional Email <span className="text-rose-500">*</span>
               </label>
               <div className="relative">
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type="email"
+                  id="email"
+                  autoComplete="email"
+                  autoCapitalize="none"
+                  inputMode="email"
+                  required
                   placeholder="scientist@institution.edu"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-800 focus-ring font-medium"
+                  className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-4 text-base text-slate-800 focus-ring font-medium"
                 />
               </div>
             </div>
@@ -291,7 +391,7 @@ export default function AuthPage() {
             {/* Password */}
             <div>
               <div className="flex justify-between items-center mb-1">
-                <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">
+                <label htmlFor="password" className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">
                   Password <span className="text-rose-500">*</span>
                 </label>
                 {activeTab === 'signin' && (
@@ -308,15 +408,19 @@ export default function AuthPage() {
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   type={showPassword ? 'text' : 'password'}
+                  id="password"
+                  autoComplete={activeTab === 'signin' ? 'current-password' : 'new-password'}
+                  minLength={activeTab === 'signup' ? 8 : undefined}
+                  required
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-10 text-xs text-slate-800 focus-ring font-medium"
+                  className="w-full bg-slate-50 hover:bg-slate-100/50 focus:bg-white border border-slate-200 rounded-xl py-2.5 pl-10 pr-10 text-base text-slate-800 focus-ring font-medium"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 cursor-pointer"
+                  className="absolute right-2 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center text-slate-400 hover:text-slate-600 cursor-pointer"
                   aria-label={showPassword ? 'Hide password' : 'Show password'}
                 >
                   {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
@@ -328,7 +432,7 @@ export default function AuthPage() {
             <button
               type="submit"
               disabled={loading}
-              className="mt-6 w-full inline-flex items-center justify-center rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 shadow-md shadow-teal-500/20 active:scale-[0.99] transition-all focus-ring disabled:opacity-50 disabled:cursor-not-allowed text-xs cursor-pointer"
+              className="mt-6 w-full min-h-11 inline-flex items-center justify-center rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-bold py-3 shadow-md shadow-teal-500/20 active:scale-[0.99] transition-all focus-ring disabled:opacity-50 disabled:cursor-not-allowed text-xs cursor-pointer"
             >
               {loading ? (
                 <span className="flex items-center gap-2">

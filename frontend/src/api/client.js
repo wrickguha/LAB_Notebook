@@ -15,7 +15,16 @@ const api = axios.create({
 api.interceptors.response.use(
   (response) => response.data,
   (error) => {
-    const errorMsg = error.response?.data?.detail || error.message || 'An unexpected error occurred';
+    const responseData = error.response?.data;
+    const validationErrors = responseData?.errors;
+    const firstValidationError = validationErrors
+      ? Object.values(validationErrors).flat().find((message) => typeof message === 'string')
+      : undefined;
+    const errorMsg = firstValidationError
+      || responseData?.message
+      || responseData?.detail
+      || error.message
+      || 'An unexpected error occurred';
     console.error('API Error:', errorMsg);
     const normalizedError = new Error(errorMsg);
     normalizedError.status = error.response?.status;
