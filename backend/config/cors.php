@@ -6,6 +6,8 @@ return [
     // CORS_ALLOWED_ORIGIN in .env sets the production origin (e.g. https://inveniqlab.com)
     'allowed_origins' => array_filter([
         env('CORS_ALLOWED_ORIGIN'),
+        'https://inveniqlab.com',
+        'https://www.inveniqlab.com',
         'http://localhost:5173',
         'http://127.0.0.1:5173',
         'http://localhost:5174',
