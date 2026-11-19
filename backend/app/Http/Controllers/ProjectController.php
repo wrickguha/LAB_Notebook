@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 
 class ProjectController extends Controller
 {
@@ -65,7 +66,7 @@ class ProjectController extends Controller
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'content'     => ['nullable', 'string'], // Tiptap canonical JSON
             'status'      => ['nullable', 'string', 'max:50'],
-            'banner'      => ['nullable', 'string'],
+            'banner'      => ['nullable', 'string', 'max:7100000'],
             'progress'    => ['nullable', 'integer', 'min:0', 'max:100'],
             'milestones'  => ['nullable', 'array'],
             'members'     => ['nullable', 'array'],
@@ -134,12 +135,13 @@ class ProjectController extends Controller
             'end_date' => ['nullable', 'date', 'after_or_equal:start_date'],
             'content'     => ['nullable', 'string'], // Tiptap canonical JSON
             'status'      => ['nullable', 'string', 'max:50'],
-            'banner'      => ['nullable', 'string'],
+            'banner'      => ['nullable', 'string', 'max:7100000'],
             'progress'    => ['nullable', 'integer', 'min:0', 'max:100'],
             'milestones'  => ['nullable', 'array'],
             'members'     => ['nullable', 'array'],
         ]);
 
+        $oldBanner = $project->banner;
         $banner = array_key_exists('banner', $validated)
             ? $this->processBanner($validated['banner'])
             : $project->banner;
@@ -159,6 +161,9 @@ class ProjectController extends Controller
             'last_activity' => now(),
         ]);
         $project->save();
+        if (array_key_exists('banner', $validated) && $banner !== $oldBanner) {
+            $this->deleteManagedBanner($oldBanner);
+        }
 
         if (isset($validated['milestones'])) {
             $project->milestones()->delete();
@@ -255,6 +260,48 @@ class ProjectController extends Controller
         return response()->json($this->serializeProject($project->load(['milestones', 'accessList.user', 'user']), $userId));
     }
 
+    public function uploadBanner(Request $request, Project $project)
+    {
+        if (!Gate::forUser(Auth::user())->allows('update', $project)) {
+            return response()->json(['message' => 'Forbidden'], 403);
+        }
+
+        $validated = $request->validate([
+            'image' => [
+                'required',
+                'file',
+                'image',
+                'mimes:jpg,jpeg,png,webp,gif',
+                'mimetypes:image/jpeg,image/png,image/webp,image/gif',
+                'max:5120',
+            ],
+        ]);
+
+        $userId = Auth::id();
+        $image = $validated['image'];
+        $filename = Str::random(40) . '.' . $image->extension();
+        $path = $image->storeAs('project-banners/' . $userId, $filename, 'public');
+        if (!$path) {
+            throw new \RuntimeException('Unable to store the project banner image.');
+        }
+        $oldBanner = $project->banner;
+
+        $project->forceFill([
+            'banner' => Storage::disk('public')->url($path),
+            'last_activity' => now(),
+        ])->save();
+
+        $this->deleteManagedBanner($oldBanner);
+
+        return response()->json([
+            'banner' => $project->banner,
+            'project' => $this->serializeProject(
+                $project->load(['milestones', 'accessList.user', 'user']),
+                $userId
+            ),
+        ]);
+    }
+
     public function share(Request $request, Project $project)
     {
         $userId = Auth::id();
@@ -345,6 +392,13 @@ class ProjectController extends Controller
             return response()->json(['message' => 'Forbidden: Only the project owner can delete this project.'], 403);
         }
 
+        foreach ($project->files()->get() as $file) {
+            $disk = Storage::disk($file->storage_disk ?: 'public');
+            if ($disk->exists($file->path) && !$disk->delete($file->path)) {
+                throw new \RuntimeException('Unable to delete a stored project file.');
+            }
+        }
+        $this->deleteManagedBanner($project->banner);
         $project->delete();
 
         return response()->json(['message' => 'Project deleted successfully']);
@@ -388,6 +442,7 @@ class ProjectController extends Controller
             'owner'        => [
                 'id'     => (string) $project->user_id,
                 'name'   => $project->user?->name ?? 'Principal Investigator',
+                'email'  => $project->user?->email,
                 'avatar' => $project->user?->avatar,
             ],
             'isOwner'       => $isOwner,
@@ -418,32 +473,75 @@ class ProjectController extends Controller
         }
     }
 
-    /**
-     * Process banner: if it is a base64 data URL, store it to public disk and return the public URL.
-     */
     protected function processBanner(?string $banner): ?string
     {
         if (!$banner) {
             return $banner;
         }
 
-        if (preg_match('/^data:image\/(\w+);base64,/', $banner, $type)) {
+        if (str_starts_with($banner, 'data:')) {
+            if (!preg_match('/^data:image\/(jpeg|jpg|png|gif|webp);base64,(.+)$/s', $banner, $type)) {
+                throw ValidationException::withMessages([
+                    'banner' => 'The banner must be a JPEG, PNG, GIF, or WebP image.',
+                ]);
+            }
+
             $data = substr($banner, strpos($banner, ',') + 1);
-            $type = strtolower($type[1]); // jpg, png, gif, webp
-
-            if (!in_array($type, ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'])) {
-                $type = 'png';
+            $decoded = base64_decode($data, true);
+            if ($decoded === false || strlen($decoded) > 5 * 1024 * 1024) {
+                throw ValidationException::withMessages([
+                    'banner' => 'The banner image is invalid or exceeds the 5 MB limit.',
+                ]);
             }
 
-            $decoded = base64_decode($data);
-            if ($decoded !== false) {
-                $userId = Auth::id() ?? 1;
-                $filename = 'uploads/' . $userId . '/' . Str::random(32) . '.' . $type;
-                Storage::disk('public')->put($filename, $decoded);
-                return Storage::disk('public')->url($filename);
+            $mime = (new \finfo(FILEINFO_MIME_TYPE))->buffer($decoded);
+            $extensions = [
+                'image/jpeg' => 'jpg',
+                'image/png' => 'png',
+                'image/gif' => 'gif',
+                'image/webp' => 'webp',
+            ];
+            if (!isset($extensions[$mime])) {
+                throw ValidationException::withMessages([
+                    'banner' => 'The banner must contain a supported image format.',
+                ]);
             }
+
+            $userId = Auth::id();
+            $filename = 'project-banners/' . $userId . '/' . Str::random(40) . '.' . $extensions[$mime];
+            if (!Storage::disk('public')->put($filename, $decoded)) {
+                throw new \RuntimeException('Unable to store the project banner image.');
+            }
+            return Storage::disk('public')->url($filename);
         }
 
-        return $banner;
+        $scheme = parse_url($banner, PHP_URL_SCHEME);
+        if (str_starts_with($banner, '/storage/') || in_array($scheme, ['http', 'https'], true)) {
+            return $banner;
+        }
+
+        throw ValidationException::withMessages([
+            'banner' => 'The banner must be an HTTP(S) URL or a supported image.',
+        ]);
+    }
+
+    private function deleteManagedBanner(?string $banner): void
+    {
+        if (!$banner) {
+            return;
+        }
+
+        $path = parse_url($banner, PHP_URL_PATH);
+        if (!is_string($path) || !str_starts_with($path, '/storage/')) {
+            return;
+        }
+
+        $storedPath = substr($path, strlen('/storage/'));
+        if (preg_match('#^project-banners/\d+/[A-Za-z0-9]{40}\.(jpg|png|gif|webp)$#', $storedPath)) {
+            $disk = Storage::disk('public');
+            if ($disk->exists($storedPath) && !$disk->delete($storedPath)) {
+                throw new \RuntimeException('Unable to delete the stored project banner.');
+            }
+        }
     }
 }

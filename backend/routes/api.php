@@ -10,6 +10,7 @@ use App\Http\Controllers\NotebookController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PaperController;
 use App\Http\Controllers\ProjectController;
+use App\Http\Controllers\ProjectExperimentController;
 use App\Http\Controllers\QuoteController;
 use App\Http\Controllers\ResourceController;
 use App\Http\Controllers\UserController;
@@ -60,9 +61,18 @@ Route::middleware('web')->group(function () {
     Route::put('/projects/{project}', [ProjectController::class, 'update']);
     Route::delete('/projects/{project}', [ProjectController::class, 'destroy']);
     Route::post('/projects/{project}/save-content', [ProjectController::class, 'saveContent']);
+    Route::post('/projects/{project}/banner', [ProjectController::class, 'uploadBanner']);
     Route::patch('/projects/{project}/milestones/{milestone}', [ProjectController::class, 'toggleMilestone']);
     Route::post('/projects/{project}/share', [ProjectController::class, 'share']);
     Route::delete('/projects/{project}/share/{user}', [ProjectController::class, 'revokeAccess']);
+    Route::get('/projects/{project}/experiments', [ProjectExperimentController::class, 'index']);
+    Route::post('/projects/{project}/experiments', [ProjectExperimentController::class, 'store']);
+    Route::patch('/projects/{project}/experiments/{experiment}', [ProjectExperimentController::class, 'update']);
+    Route::delete('/projects/{project}/experiments/{experiment}', [ProjectExperimentController::class, 'destroy']);
+    Route::get('/projects/{project}/files', [FileController::class, 'indexForProject']);
+    Route::post('/projects/{project}/files', [FileController::class, 'uploadToProject']);
+    Route::get('/projects/{project}/files/{file}/download', [FileController::class, 'downloadFromProject']);
+    Route::delete('/projects/{project}/files/{file}', [FileController::class, 'destroyFromProject']);
 
     // ── Lab Notebooks & Tiptap Persistence ──
     Route::get('/notebook/folders', [NotebookController::class, 'listFolders']);

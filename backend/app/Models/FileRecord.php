@@ -21,6 +21,11 @@ class FileRecord extends Model
         'path',
         'mime_type',
         'size_bytes',
+        'storage_disk',
+    ];
+
+    protected $casts = [
+        'size_bytes' => 'integer',
     ];
 
     public function user(): BelongsTo

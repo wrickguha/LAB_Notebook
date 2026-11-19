@@ -48,6 +48,16 @@ class Project extends Model
         return $this->hasMany(ProjectMilestone::class);
     }
 
+    public function experiments(): HasMany
+    {
+        return $this->hasMany(ProjectExperiment::class);
+    }
+
+    public function files(): HasMany
+    {
+        return $this->hasMany(FileRecord::class);
+    }
+
     public function accessList(): HasMany
     {
         return $this->hasMany(ResearchProjectAccess::class, 'project_id');

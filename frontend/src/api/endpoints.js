@@ -85,6 +85,34 @@ export const projectsApi = {
   update: async (projectId, projectData) => {
     return await api.put(`/api/projects/${projectId}`, projectData);
   },
+  uploadBanner: async (projectId, image) => {
+    const formData = new FormData();
+    formData.append('image', image);
+    return await api.post(`/api/projects/${projectId}/banner`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  share: async (projectId, { email, accessLevel }) => {
+    return await api.post(`/api/projects/${projectId}/share`, {
+      email,
+      access_level: accessLevel,
+    });
+  },
+  revokeAccess: async (projectId, userId) => {
+    return await api.delete(`/api/projects/${projectId}/share/${userId}`);
+  },
+  listExperiments: async (projectId) => {
+    return await api.get(`/api/projects/${projectId}/experiments`);
+  },
+  createExperiment: async (projectId, experiment) => {
+    return await api.post(`/api/projects/${projectId}/experiments`, experiment);
+  },
+  updateExperiment: async (projectId, experimentId, updates) => {
+    return await api.patch(`/api/projects/${projectId}/experiments/${experimentId}`, updates);
+  },
+  deleteExperiment: async (projectId, experimentId) => {
+    return await api.delete(`/api/projects/${projectId}/experiments/${experimentId}`);
+  },
   saveContent: async (projectId, content) => {
     return await api.post(`/api/projects/${projectId}/save-content`, { content });
   },
@@ -187,5 +215,23 @@ export const filesApi = {
         'Content-Type': 'multipart/form-data',
       },
     });
+  },
+  listProject: async (projectId) => {
+    return await api.get(`/api/projects/${projectId}/files`);
+  },
+  uploadToProject: async (projectId, file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return await api.post(`/api/projects/${projectId}/files`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    });
+  },
+  downloadFromProject: async (projectId, fileId) => {
+    return await api.get(`/api/projects/${projectId}/files/${fileId}/download`, {
+      responseType: 'blob',
+    });
+  },
+  removeFromProject: async (projectId, fileId) => {
+    return await api.delete(`/api/projects/${projectId}/files/${fileId}`);
   },
 };

@@ -114,7 +114,7 @@ export default function ShareModal({
     }
   };
 
-  const handleInvite = (e) => {
+  const handleInvite = async (e) => {
     e.preventDefault();
     const trimmed = inviteEmail.trim();
     if (!trimmed) return;
@@ -133,20 +133,28 @@ export default function ShareModal({
       isCurrentUser: false,
     };
 
-    if (!initialCollaborators) {
-      setLocalCollaborators((prev) => [...prev, newCollab]);
+    try {
+      await onInvite?.(newCollab);
+      if (!initialCollaborators) {
+        setLocalCollaborators((prev) => [...prev, newCollab]);
+      }
+      setInviteEmail('');
+      showToast?.(`Invitation sent to ${newCollab.name} (${inviteRole})`, 'success');
+    } catch (error) {
+      showToast?.(error.message || 'Could not invite this collaborator.', 'error');
     }
-    onInvite?.(newCollab);
-    setInviteEmail('');
-    showToast?.(`Invitation sent to ${newCollab.name} (${inviteRole})`, 'success');
   };
 
-  const handleRemoveCollaborator = (id) => {
-    if (!initialCollaborators) {
-      setLocalCollaborators((prev) => prev.filter((c) => c.id !== id));
+  const handleRemoveCollaborator = async (id) => {
+    try {
+      await onRemove?.(id);
+      if (!initialCollaborators) {
+        setLocalCollaborators((prev) => prev.filter((c) => c.id !== id));
+      }
+      showToast?.('Collaborator access removed', 'info');
+    } catch (error) {
+      showToast?.(error.message || 'Could not remove this collaborator.', 'error');
     }
-    onRemove?.(id);
-    showToast?.('Collaborator access removed', 'info');
   };
 
   return createPortal(

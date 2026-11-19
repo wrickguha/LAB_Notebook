@@ -57,3 +57,14 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+## Research project details
+
+Authenticated project-detail endpoints are under `/api/projects/{project}`:
+
+- `GET` and `POST` `/experiments`, plus `PATCH` and `DELETE` `/experiments/{experiment}`
+- `GET` and `POST` `/files`, plus `GET` `/files/{file}/download` and `DELETE` `/files/{file}`
+- `POST` `/banner` for a project cover image
+- Existing `/share` and `/share/{user}` routes manage project collaborators
+
+Project access follows the existing view, edit, and admin roles. Project files are limited to 1 MB and are stored privately; authorized collaborators download them through the API. Project file uploads accept PDF, CSV, Excel, JPEG, PNG, GIF, and WebP. Cover images accept JPEG, PNG, GIF, and WebP up to 5 MB and are stored on the public disk. Run `php artisan migrate` to create the experiment records and file storage metadata.

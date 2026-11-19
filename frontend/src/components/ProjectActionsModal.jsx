@@ -19,7 +19,7 @@ import {
   Loader2,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { filesApi } from '../api/endpoints';
+import { filesApi, projectsApi } from '../api/endpoints';
 import { resolveImageUrl } from '../utils/imageUrl';
 
 export const PRESET_BANNERS = [
@@ -81,8 +81,8 @@ export function CoverImageModal({ isOpen, onClose, project, onSaveBanner }) {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      setUploadError('Please select a valid image file (PNG, JPG, WebP, SVG).');
+    if (!['image/jpeg', 'image/png', 'image/webp', 'image/gif'].includes(file.type)) {
+      setUploadError('Choose a JPEG, PNG, GIF, or WebP image.');
       return;
     }
 
@@ -113,17 +113,9 @@ export function CoverImageModal({ isOpen, onClose, project, onSaveBanner }) {
     try {
       let finalBannerUrl = selectedBanner;
 
-      // If user selected a local file from disk, upload it to /api/files/upload first
       if (selectedFile) {
-        try {
-          const uploadRes = await filesApi.upload(selectedFile, project?.id);
-          if (uploadRes?.url) {
-            finalBannerUrl = uploadRes.url;
-          }
-        } catch (uploadErr) {
-          console.warn('Direct upload fallback to base64 processing:', uploadErr);
-          // Backend processBanner() will decode and save base64 to disk as fallback!
-        }
+        const uploadRes = await projectsApi.uploadBanner(project.id, selectedFile);
+        finalBannerUrl = uploadRes.banner;
       }
 
       await onSaveBanner(finalBannerUrl);
@@ -284,7 +276,7 @@ export function CoverImageModal({ isOpen, onClose, project, onSaveBanner }) {
                 type="file"
                 ref={fileInputRef}
                 onChange={handleFileUpload}
-                accept="image/*"
+                accept="image/jpeg,image/png,image/webp,image/gif"
                 className="hidden"
               />
               <div

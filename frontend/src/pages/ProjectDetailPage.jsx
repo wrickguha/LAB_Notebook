@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -10,8 +11,9 @@ import {
   LayoutDashboard,
   Plus,
   Search,
-  MoreHorizontal,
   Upload,
+  Download,
+  Trash2,
   UserPlus,
   X,
   FileText,
@@ -25,6 +27,7 @@ import {
 } from "lucide-react";
 import { resolveImageUrl } from "../utils/imageUrl";
 import { useApp } from "../context/AppContext";
+import { filesApi, projectsApi } from "../api/endpoints";
 import ShareModal from "../components/ShareModal";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
@@ -80,6 +83,14 @@ function fileIcon(name = "") {
   return { Icon: File, color: "bg-slate-100 text-slate-500" };
 }
 
+function formatDate(value) {
+  if (!value) return "—";
+  const date = new Date(`${String(value).slice(0, 10)}T12:00:00`);
+  return Number.isNaN(date.getTime())
+    ? "—"
+    : date.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
+}
+
 // ── Tabs config ───────────────────────────────────────────────────────────────
 
 const TABS = [
@@ -92,38 +103,46 @@ const TABS = [
 // ─── Main component ─────────────────────────────────────────────────────────
 
 export default function ProjectDetailPage({ project, onBack, onUpdateProject }) {
-  const { user } = useApp();
+  const { user, showToast } = useApp();
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("overview");
+  const [uploadingFiles, setUploadingFiles] = useState(false);
+  const [fileError, setFileError] = useState(null);
+  const { data: experiments = [], isLoading: experimentsLoading, error: experimentsQueryError } = useQuery({
+    queryKey: ["projectExperiments", project.id],
+    queryFn: () => projectsApi.listExperiments(project.id),
+  });
+  const { data: files = [], isLoading: filesLoading, error: filesQueryError } = useQuery({
+    queryKey: ["projectFiles", project.id],
+    queryFn: () => filesApi.listProject(project.id),
+  });
+  const experimentsError = experimentsQueryError?.message || "";
+  const displayedFileError = (fileError?.projectId === project.id ? fileError.message : "")
+    || filesQueryError?.message
+    || "";
 
-  // ── local mock/editable state (replace with real API later) ──
-  const [experiments, setExperiments] = useState(
-    (project.milestones || []).map((m, i) => ({
-      id: m.id || `exp-${i}`,
-      name: m.name,
-      expId: `EXP-${String(i + 1).padStart(3, "0")}`,
-      date: project.startDate
-        ? new Date(new Date(project.startDate).getTime() + i * 7 * 86400000)
-            .toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })
-        : "—",
-      notes: m.completed ? "Completed successfully." : "In progress.",
-      completed: m.completed,
-    }))
-  );
-
-  const [files, setFiles] = useState([]);
-  const [team, setTeam] = useState(() => {
-    const owner = user?.name || "You";
+  const team = useMemo(() => {
+    const ownerName = project.owner?.name || user?.name || "You";
+    const accessRoles = { 1: "Viewer", 2: "Editor", 3: "Admin" };
     return [
       {
         id: "owner",
-        name: owner,
-        email: user?.email || "owner@lab.com",
+        name: ownerName,
+        email: project.owner?.email || user?.email || "",
         role: "Owner",
         status: "Active",
-        initials: owner.slice(0, 2).toUpperCase(),
+        initials: ownerName.slice(0, 2).toUpperCase(),
       },
+      ...(project.collaborators || []).map((collaborator) => ({
+        id: collaborator.userId,
+        name: collaborator.name,
+        email: collaborator.email || "",
+        role: accessRoles[collaborator.accessLevel] || collaborator.role || "Viewer",
+        status: "Active",
+        initials: (collaborator.name || "R").slice(0, 2).toUpperCase(),
+      })),
     ];
-  });
+  }, [project.collaborators, project.owner, user?.email, user?.name]);
 
   // ── experiment state ──
   const [expSearch, setExpSearch] = useState("");
@@ -134,6 +153,8 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
   // ── files state ──
   const [fileSearch, setFileSearch] = useState("");
   const [fileTypeFilter, setFileTypeFilter] = useState("All Types");
+  const canEdit = project.accessLevel == null || project.accessLevel >= 2;
+  const canManageTeam = project.accessLevel == null || project.accessLevel >= 3;
 
   // ── team / invite state ──
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -144,22 +165,20 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
 
   // ─── handlers ───────────────────────────────────────────────────────────────
 
-  const handleAddExperiment = (e) => {
+  const handleAddExperiment = async (e) => {
     e.preventDefault();
     if (!newExp.name.trim()) return;
-    setExperiments((prev) => [
-      ...prev,
-      {
-        id: `exp-${Date.now()}`,
+    try {
+      const experiment = await projectsApi.createExperiment(project.id, {
         name: newExp.name.trim(),
-        expId: `EXP-${String(prev.length + 1).padStart(3, "0")}`,
-        date: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-        notes: newExp.notes.trim() || "—",
-        completed: false,
-      },
-    ]);
-    setNewExp({ name: "", notes: "" });
-    setAddExpOpen(false);
+        notes: newExp.notes.trim() || null,
+      });
+      queryClient.setQueryData(["projectExperiments", project.id], (previous = []) => [...previous, experiment]);
+      setNewExp({ name: "", notes: "" });
+      setAddExpOpen(false);
+    } catch (error) {
+      showToast(error.message || "Could not save the experiment.", "error");
+    }
   };
 
   useEffect(() => {
@@ -178,38 +197,95 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
     };
   }, [addExpOpen]);
 
-  const handleFileUpload = (e) => {
+  const handleFileUpload = async (e) => {
     const fileList = Array.from(e.target.files || []);
-    setFiles((prev) => [
-      ...prev,
-      ...fileList.map((f) => ({
-        id: `file-${Date.now()}-${f.name}`,
-        name: f.name,
-        type: f.type || "Other",
-        uploadedBy: user?.name || "You",
-        date: new Date().toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }),
-        size: f.size,
-      })),
-    ]);
+    e.target.value = "";
+    if (!fileList.length) return;
+
+    setUploadingFiles(true);
+    setFileError(null);
+    const results = await Promise.allSettled(
+      fileList.map((file) => filesApi.uploadToProject(project.id, file))
+    );
+    const uploaded = results
+      .filter((result) => result.status === "fulfilled")
+      .map((result) => result.value);
+    if (uploaded.length) {
+      queryClient.setQueryData(["projectFiles", project.id], (previous = []) => [...uploaded, ...previous]);
+    }
+
+    const failures = results.filter((result) => result.status === "rejected");
+    if (failures.length) {
+      const message = failures[0].reason?.message || "One or more files could not be uploaded.";
+      setFileError({ projectId: project.id, message });
+      showToast(message, "error");
+    }
+    setUploadingFiles(false);
   };
 
-  const handleInviteCollaborator = (collaborator) => {
-    const name = collaborator.name;
-    setTeam((prev) => [
-      ...prev,
-      {
-        id: collaborator.id,
-        name,
-        email: collaborator.email,
-        role: collaborator.role,
-        status: "Invited",
-        initials: name.slice(0, 2).toUpperCase(),
-      },
-    ]);
+  const handleDownloadFile = async (file) => {
+    try {
+      const blob = await filesApi.downloadFromProject(project.id, file.id);
+      const downloadUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = downloadUrl;
+      link.download = file.name;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+    } catch (error) {
+      showToast(error.message || "Could not download the file.", "error");
+    }
   };
 
-  const handleRemoveCollaborator = (id) => {
-    setTeam((prev) => prev.filter((member) => member.id !== id || member.id === "owner"));
+  const handleDeleteFile = async (file) => {
+    if (!window.confirm(`Delete "${file.name}" from this project?`)) return;
+    try {
+      await filesApi.removeFromProject(project.id, file.id);
+      queryClient.setQueryData(["projectFiles", project.id], (previous = []) => previous.filter((item) => item.id !== file.id));
+    } catch (error) {
+      showToast(error.message || "Could not delete the file.", "error");
+    }
+  };
+
+  const handleToggleExperiment = async (experiment) => {
+    try {
+      const updated = await projectsApi.updateExperiment(project.id, experiment.id, {
+        completed: !experiment.completed,
+      });
+      queryClient.setQueryData(["projectExperiments", project.id], (previous = []) =>
+        previous.map((item) => item.id === updated.id ? updated : item)
+      );
+    } catch (error) {
+      showToast(error.message || "Could not update the experiment.", "error");
+    }
+  };
+
+  const handleDeleteExperiment = async (experiment) => {
+    if (!window.confirm(`Delete "${experiment.name}" from this project?`)) return;
+    try {
+      await projectsApi.deleteExperiment(project.id, experiment.id);
+      queryClient.setQueryData(["projectExperiments", project.id], (previous = []) =>
+        previous.filter((item) => item.id !== experiment.id)
+      );
+    } catch (error) {
+      showToast(error.message || "Could not delete the experiment.", "error");
+    }
+  };
+
+  const handleInviteCollaborator = async (collaborator) => {
+    const accessLevels = { Viewer: 1, Editor: 2, Admin: 3, Administrator: 3 };
+    await projectsApi.share(project.id, {
+      email: collaborator.email,
+      accessLevel: accessLevels[collaborator.role] || 2,
+    });
+    await queryClient.invalidateQueries({ queryKey: ["projects"] });
+  };
+
+  const handleRemoveCollaborator = async (id) => {
+    await projectsApi.revokeAccess(project.id, id);
+    await queryClient.invalidateQueries({ queryKey: ["projects"] });
   };
 
   const handleEditInformation = () => {
@@ -665,14 +741,16 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
                     <option>In Progress</option>
                     <option>Completed</option>
                   </select>
-                  <button
-                    type="button"
-                    onClick={() => setAddExpOpen(true)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer"
-                  >
-                    <Plus className="w-4 h-4" />
-                    New Experiment
-                  </button>
+                  {canEdit && (
+                    <button
+                      type="button"
+                      onClick={() => setAddExpOpen(true)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer"
+                    >
+                      <Plus className="w-4 h-4" />
+                      New Experiment
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -689,17 +767,19 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredExps.length === 0 ? (
+                    {experimentsLoading || filteredExps.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="p-10 text-center text-slate-400 text-xs">
-                          No experiments yet.{" "}
-                          <button
-                            type="button"
-                            onClick={() => setAddExpOpen(true)}
-                            className="text-teal-600 font-bold hover:underline cursor-pointer"
-                          >
-                            Add one
-                          </button>
+                          {experimentsLoading ? "Loading experiments..." : experimentsError || "No experiments yet."}{" "}
+                          {!experimentsLoading && canEdit && !experimentsError && (
+                            <button
+                              type="button"
+                              onClick={() => setAddExpOpen(true)}
+                              className="text-teal-600 font-bold hover:underline cursor-pointer"
+                            >
+                              Add one
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ) : (
@@ -719,15 +799,31 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
                             </div>
                           </td>
                           <td className="p-4 font-mono text-teal-700 font-bold text-[11px]">{exp.expId}</td>
-                          <td className="p-4 text-slate-500 font-mono text-[11px]">{exp.date}</td>
-                          <td className="p-4 text-slate-500 max-w-xs truncate">{exp.notes}</td>
+                          <td className="p-4 text-slate-500 font-mono text-[11px]">{formatDate(exp.date)}</td>
+                          <td className="p-4 text-slate-500 max-w-xs truncate">{exp.notes || "—"}</td>
                           <td className="p-4 text-right pr-5">
-                            <button
-                              type="button"
-                              className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
-                            >
-                              <MoreHorizontal className="w-4 h-4" />
-                            </button>
+                            {canEdit && (
+                              <>
+                                <button
+                                  type="button"
+                                  title={exp.completed ? "Mark in progress" : "Mark completed"}
+                                  aria-label={exp.completed ? "Mark experiment in progress" : "Mark experiment completed"}
+                                  onClick={() => handleToggleExperiment(exp)}
+                                  className={`p-1.5 rounded-lg hover:bg-slate-100 cursor-pointer ${exp.completed ? "text-teal-600" : "text-slate-400 hover:text-slate-700"}`}
+                                >
+                                  <CheckSquare className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
+                                  title="Delete experiment"
+                                  aria-label={`Delete ${exp.name}`}
+                                  onClick={() => handleDeleteExperiment(exp)}
+                                  className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 cursor-pointer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </>
+                            )}
                           </td>
                         </tr>
                       ))
@@ -765,13 +861,17 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
                     <option>Excel</option>
                     <option>Image</option>
                   </select>
-                  <label className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer">
-                    <Upload className="w-4 h-4" />
-                    Upload File
-                    <input type="file" multiple className="hidden" onChange={handleFileUpload} />
-                  </label>
+                  {canEdit && (
+                    <label className={`inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all ${uploadingFiles ? "opacity-60 cursor-wait" : "cursor-pointer"}`}>
+                      <Upload className="w-4 h-4" />
+                      {uploadingFiles ? "Uploading..." : "Upload File"}
+                      <input type="file" multiple disabled={uploadingFiles} className="hidden" onChange={handleFileUpload} />
+                    </label>
+                  )}
                 </div>
               </div>
+
+              {displayedFileError && <p role="alert" className="text-xs font-semibold text-rose-600">{displayedFileError}</p>}
 
               {/* Table */}
               <div className="bg-white border border-slate-200/80 rounded-2xl shadow-xs overflow-hidden">
@@ -786,14 +886,16 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredFiles.length === 0 ? (
+                    {filesLoading || filteredFiles.length === 0 ? (
                       <tr>
                         <td colSpan={5} className="p-10 text-center text-slate-400 text-xs">
-                          No files uploaded yet.{" "}
-                          <label className="text-teal-600 font-bold hover:underline cursor-pointer">
-                            Upload one
-                            <input type="file" multiple className="hidden" onChange={handleFileUpload} />
-                          </label>
+                          {filesLoading ? "Loading files..." : "No files uploaded yet."}{" "}
+                          {!filesLoading && canEdit && (
+                            <label className="text-teal-600 font-bold hover:underline cursor-pointer">
+                              Upload one
+                              <input type="file" multiple className="hidden" onChange={handleFileUpload} />
+                            </label>
+                          )}
                         </td>
                       </tr>
                     ) : (
@@ -815,11 +917,28 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
                             </td>
                             <td className="p-4 text-slate-500">{ext}</td>
                             <td className="p-4 text-slate-500">{f.uploadedBy}</td>
-                            <td className="p-4 text-slate-500 font-mono text-[11px]">{f.date}</td>
+                            <td className="p-4 text-slate-500 font-mono text-[11px]">{formatDate(f.date)}</td>
                             <td className="p-4 text-right pr-5">
-                              <button type="button" className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer">
-                                <MoreHorizontal className="w-4 h-4" />
+                              <button
+                                type="button"
+                                title="Download file"
+                                aria-label={`Download ${f.name}`}
+                                onClick={() => handleDownloadFile(f)}
+                                className="p-1.5 rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-700 cursor-pointer"
+                              >
+                                <Download className="w-4 h-4" />
                               </button>
+                              {canEdit && (
+                                <button
+                                  type="button"
+                                  title="Delete file"
+                                  aria-label={`Delete ${f.name}`}
+                                  onClick={() => handleDeleteFile(f)}
+                                  className="p-1.5 rounded-lg hover:bg-rose-50 text-slate-400 hover:text-rose-600 cursor-pointer"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );
@@ -842,14 +961,16 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
                     Manage who can access and collaborate on this project.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setInviteOpen(true)}
-                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer"
-                >
-                  <UserPlus className="w-4 h-4" />
-                  Add Member
-                </button>
+                {canManageTeam && (
+                  <button
+                    type="button"
+                    onClick={() => setInviteOpen(true)}
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold shadow-md shadow-teal-500/20 active:scale-[0.98] transition-all cursor-pointer"
+                  >
+                    <UserPlus className="w-4 h-4" />
+                    Add Member
+                  </button>
+                )}
               </div>
 
               {/* Team Table */}
