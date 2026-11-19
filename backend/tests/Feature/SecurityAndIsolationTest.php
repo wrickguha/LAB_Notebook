@@ -349,4 +349,43 @@ class SecurityAndIsolationTest extends TestCase
             ->assertJsonPath('items.0.title', 'Research project updated')
             ->assertJsonPath('items.0.referenceId', (string) $project->id);
     }
+
+    public function test_project_information_fields_can_be_updated_and_returned(): void
+    {
+        $owner = User::create([
+            'name' => 'Project Information Owner',
+            'email' => 'project_info_' . uniqid() . '@example.com',
+            'password' => bcrypt('password123'),
+        ]);
+        $project = Project::create([
+            'user_id' => $owner->id,
+            'name' => 'Project Information Study',
+            'code' => 'INFO-01',
+            'status' => 'Active',
+        ]);
+
+        $this->actingAs($owner)
+            ->putJson("/api/projects/{$project->id}", [
+                'research_area' => 'Genomics & Proteomics',
+                'description' => 'Evaluate the gene expression response.',
+                'start_date' => '2026-01-15',
+                'end_date' => '2026-12-20',
+                'status' => 'Planning',
+            ])
+            ->assertOk()
+            ->assertJsonPath('researchArea', 'Genomics & Proteomics')
+            ->assertJsonPath('description', 'Evaluate the gene expression response.')
+            ->assertJsonPath('startDate', '2026-01-15')
+            ->assertJsonPath('endDate', '2026-12-20')
+            ->assertJsonPath('status', 'Planning');
+
+        $this->assertDatabaseHas('projects', [
+            'id' => $project->id,
+            'research_area' => 'Genomics & Proteomics',
+            'description' => 'Evaluate the gene expression response.',
+            'start_date' => '2026-01-15',
+            'end_date' => '2026-12-20',
+            'status' => 'Planning',
+        ]);
+    }
 }

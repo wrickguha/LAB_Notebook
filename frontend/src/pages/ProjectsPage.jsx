@@ -118,9 +118,9 @@ export default function ProjectsPage() {
       code: projCode.trim().toUpperCase(),
       description: projDesc.trim(),
       status: projStatus,
-      researchArea: projResearchArea,
-      startDate: projStartDate || null,
-      endDate: projEndDate || null,
+      research_area: projResearchArea,
+      start_date: projStartDate || null,
+      end_date: projEndDate || null,
       milestones: milestonesList,
       banner: projBanner,
       progress: 0,
@@ -152,6 +152,7 @@ export default function ProjectsPage() {
       <ProjectDetailPage
         project={liveProject}
         onBack={() => setSelectedProject(null)}
+        onUpdateProject={(payload) => updateProject(liveProject.id, payload)}
       />
     );
   }

@@ -19,6 +19,9 @@ class Project extends Model
         'name',
         'code',
         'description',
+        'research_area',
+        'start_date',
+        'end_date',
         'content',
         'status',
         'banner',
@@ -31,6 +34,8 @@ class Project extends Model
         'members'       => 'array',
         'last_activity' => 'datetime',
         'progress'      => 'integer',
+        'start_date'    => 'date:Y-m-d',
+        'end_date'      => 'date:Y-m-d',
     ];
 
     public function user(): BelongsTo

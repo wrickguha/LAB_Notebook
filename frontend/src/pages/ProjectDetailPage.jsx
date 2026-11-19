@@ -20,6 +20,8 @@ import {
   File,
   CheckSquare,
   Dna,
+  Edit3,
+  Save,
 } from "lucide-react";
 import { resolveImageUrl } from "../utils/imageUrl";
 import { useApp } from "../context/AppContext";
@@ -40,6 +42,24 @@ const statusPill = {
   Completed: "bg-purple-50 text-purple-800 border-purple-200",
   "On Hold": "bg-amber-50 text-amber-800 border-amber-200",
 };
+
+const researchAreas = [
+  "Molecular Biology",
+  "Cell Biology",
+  "Biochemistry",
+  "Genomics & Proteomics",
+  "Immunology",
+  "Neuroscience",
+  "Pharmacology",
+  "Bioinformatics",
+  "Structural Biology",
+  "Synthetic Biology",
+  "Microbiology",
+  "Cancer Biology",
+  "Developmental Biology",
+  "Ecology & Environmental",
+  "Other",
+];
 
 function InfoRow({ label, value, children }) {
   return (
@@ -71,7 +91,7 @@ const TABS = [
 
 // ─── Main component ─────────────────────────────────────────────────────────
 
-export default function ProjectDetailPage({ project, onBack }) {
+export default function ProjectDetailPage({ project, onBack, onUpdateProject }) {
   const { user } = useApp();
   const [activeTab, setActiveTab] = useState("overview");
 
@@ -117,6 +137,10 @@ export default function ProjectDetailPage({ project, onBack }) {
 
   // ── team / invite state ──
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [isEditingInformation, setIsEditingInformation] = useState(false);
+  const [isSavingInformation, setIsSavingInformation] = useState(false);
+  const [informationError, setInformationError] = useState("");
+  const [informationDraft, setInformationDraft] = useState(null);
 
   // ─── handlers ───────────────────────────────────────────────────────────────
 
@@ -186,6 +210,40 @@ export default function ProjectDetailPage({ project, onBack }) {
 
   const handleRemoveCollaborator = (id) => {
     setTeam((prev) => prev.filter((member) => member.id !== id || member.id === "owner"));
+  };
+
+  const handleEditInformation = () => {
+    setInformationDraft({
+      research_area: project.researchArea || "",
+      description: project.description || "",
+      start_date: project.startDate?.slice(0, 10) || "",
+      end_date: project.endDate?.slice(0, 10) || "",
+      status: project.status || "Active",
+    });
+    setInformationError("");
+    setIsEditingInformation(true);
+  };
+
+  const handleSaveInformation = async (event) => {
+    event.preventDefault();
+    if (!informationDraft || !onUpdateProject) return;
+
+    setIsSavingInformation(true);
+    setInformationError("");
+    try {
+      await onUpdateProject({
+        research_area: informationDraft.research_area || null,
+        description: informationDraft.description.trim(),
+        start_date: informationDraft.start_date || null,
+        end_date: informationDraft.end_date || null,
+        status: informationDraft.status,
+      });
+      setIsEditingInformation(false);
+    } catch (error) {
+      setInformationError(error.message || "Could not save project information. Please try again.");
+    } finally {
+      setIsSavingInformation(false);
+    }
   };
 
   // ─── derived ────────────────────────────────────────────────────────────────
@@ -318,47 +376,158 @@ export default function ProjectDetailPage({ project, onBack }) {
 
                 {/* Project Information Card */}
                 <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs">
-                  <h3 className="font-black text-slate-900 text-sm mb-3">Project Information</h3>
-                  <div className="divide-y divide-slate-100">
-                    <InfoRow label="Research Area" value={project.researchArea} />
-                    <InfoRow label="Objective">
-                      {project.description || (
-                        <span className="text-slate-300 italic">Not set</span>
-                      )}
-                    </InfoRow>
-                    <InfoRow label="Start Date">
-                      {project.startDate
-                        ? new Date(project.startDate).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : <span className="text-slate-300 italic">Not set</span>}
-                    </InfoRow>
-                    <InfoRow label="Expected Completion">
-                      {project.endDate
-                        ? new Date(project.endDate).toLocaleDateString("en-GB", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
-                          })
-                        : <span className="text-slate-300 italic">Not set</span>}
-                    </InfoRow>
-                    <InfoRow label="Status">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold ${
-                          statusPill[project.status] || "bg-slate-50 text-slate-700 border-slate-200"
-                        }`}
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h3 className="font-black text-slate-900 text-sm">Project Information</h3>
+                    {!isEditingInformation && onUpdateProject && (project.accessLevel == null || project.accessLevel >= 2) && (
+                      <button
+                        type="button"
+                        onClick={handleEditInformation}
+                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 px-2.5 py-1.5 text-[11px] font-bold text-slate-600 transition-colors hover:border-teal-200 hover:bg-teal-50 hover:text-teal-700 cursor-pointer"
                       >
-                        <span
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            statusDot[project.status] || "bg-slate-400"
-                          }`}
-                        />
-                        {project.status}
-                      </span>
-                    </InfoRow>
+                        <Edit3 className="h-3.5 w-3.5" />
+                        Edit
+                      </button>
+                    )}
                   </div>
+
+                  {isEditingInformation && informationDraft ? (
+                    <form onSubmit={handleSaveInformation} className="space-y-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <div className="space-y-1">
+                          <label htmlFor="project-research-area" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            Research Area
+                          </label>
+                          <select
+                            id="project-research-area"
+                            value={informationDraft.research_area}
+                            onChange={(event) => setInformationDraft((current) => ({ ...current, research_area: event.target.value }))}
+                            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10"
+                          >
+                            <option value="">Not set</option>
+                            {researchAreas.map((area) => <option key={area} value={area}>{area}</option>)}
+                            {informationDraft.research_area && !researchAreas.includes(informationDraft.research_area) && (
+                              <option value={informationDraft.research_area}>{informationDraft.research_area}</option>
+                            )}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label htmlFor="project-status" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            Status
+                          </label>
+                          <select
+                            id="project-status"
+                            value={informationDraft.status}
+                            onChange={(event) => setInformationDraft((current) => ({ ...current, status: event.target.value }))}
+                            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10"
+                          >
+                            {["Active", "Planning", "On Hold", "Completed"].map((status) => (
+                              <option key={status} value={status}>{status}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <label htmlFor="project-start-date" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            Start Date
+                          </label>
+                          <input
+                            id="project-start-date"
+                            type="date"
+                            value={informationDraft.start_date}
+                            onChange={(event) => setInformationDraft((current) => ({ ...current, start_date: event.target.value }))}
+                            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <label htmlFor="project-end-date" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                            Expected Completion
+                          </label>
+                          <input
+                            id="project-end-date"
+                            type="date"
+                            min={informationDraft.start_date || undefined}
+                            value={informationDraft.end_date}
+                            onChange={(event) => setInformationDraft((current) => ({ ...current, end_date: event.target.value }))}
+                            className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-semibold text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <label htmlFor="project-objective" className="block text-[10px] font-bold uppercase tracking-wider text-slate-500">
+                          Objective
+                        </label>
+                        <textarea
+                          id="project-objective"
+                          rows={3}
+                          value={informationDraft.description}
+                          onChange={(event) => setInformationDraft((current) => ({ ...current, description: event.target.value }))}
+                          placeholder="Describe the research goal, hypothesis, or objective..."
+                          className="w-full resize-y rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium leading-relaxed text-slate-800 outline-none focus:border-teal-500 focus:ring-2 focus:ring-teal-500/10"
+                        />
+                      </div>
+                      {informationError && (
+                        <p role="alert" className="text-xs font-medium text-rose-600">{informationError}</p>
+                      )}
+                      <div className="flex justify-end gap-2 pt-1">
+                        <button
+                          type="button"
+                          disabled={isSavingInformation}
+                          onClick={() => setIsEditingInformation(false)}
+                          className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-bold text-slate-600 transition-colors hover:bg-slate-50 disabled:opacity-50 cursor-pointer"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="submit"
+                          disabled={isSavingInformation}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-teal-700 disabled:opacity-60 cursor-pointer"
+                        >
+                          <Save className="h-3.5 w-3.5" />
+                          {isSavingInformation ? "Saving..." : "Save changes"}
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="divide-y divide-slate-100">
+                      <InfoRow label="Research Area" value={project.researchArea} />
+                      <InfoRow label="Objective">
+                        {project.description || (
+                          <span className="text-slate-300 italic">Not set</span>
+                        )}
+                      </InfoRow>
+                      <InfoRow label="Start Date">
+                        {project.startDate
+                          ? new Date(`${project.startDate.slice(0, 10)}T00:00:00`).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : <span className="text-slate-300 italic">Not set</span>}
+                      </InfoRow>
+                      <InfoRow label="Expected Completion">
+                        {project.endDate
+                          ? new Date(`${project.endDate.slice(0, 10)}T00:00:00`).toLocaleDateString("en-GB", {
+                              day: "2-digit",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : <span className="text-slate-300 italic">Not set</span>}
+                      </InfoRow>
+                      <InfoRow label="Status">
+                        <span
+                          className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full border text-[10px] font-mono font-bold ${
+                            statusPill[project.status] || "bg-slate-50 text-slate-700 border-slate-200"
+                          }`}
+                        >
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              statusDot[project.status] || "bg-slate-400"
+                            }`}
+                          />
+                          {project.status}
+                        </span>
+                      </InfoRow>
+                    </div>
+                  )}
                 </div>
               </div>
 
