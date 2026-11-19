@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ArrowLeft,
@@ -141,6 +142,22 @@ export default function ProjectDetailPage({ project, onBack }) {
     setNewExp({ name: "", notes: "" });
     setAddExpOpen(false);
   };
+
+  useEffect(() => {
+    if (!addExpOpen) return;
+
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") setAddExpOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", closeOnEscape);
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [addExpOpen]);
 
   const handleFileUpload = (e) => {
     const fileList = Array.from(e.target.files || []);
@@ -555,67 +572,6 @@ export default function ProjectDetailPage({ project, onBack }) {
                 </table>
               </div>
 
-              {/* Add Experiment Modal */}
-              <AnimatePresence>
-                {addExpOpen && (
-                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="absolute inset-0 bg-slate-950/40 backdrop-blur-sm"
-                      onClick={() => setAddExpOpen(false)}
-                    />
-                    <motion.div
-                      initial={{ scale: 0.95, opacity: 0, y: 10 }}
-                      animate={{ scale: 1, opacity: 1, y: 0 }}
-                      exit={{ scale: 0.95, opacity: 0, y: 10 }}
-                      className="relative z-10 w-full max-w-md bg-white rounded-2xl border border-slate-200 shadow-2xl p-6"
-                    >
-                      <div className="flex items-center justify-between mb-5">
-                        <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
-                          <FlaskConical className="w-4 h-4 text-teal-600" />
-                          New Experiment
-                        </h3>
-                        <button type="button" onClick={() => setAddExpOpen(false)} className="p-1.5 rounded-xl hover:bg-slate-100 text-slate-400 cursor-pointer">
-                          <X className="w-4 h-4" />
-                        </button>
-                      </div>
-                      <form onSubmit={handleAddExperiment} className="space-y-4">
-                        <div className="space-y-1">
-                          <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Experiment Name *</label>
-                          <input
-                            required
-                            type="text"
-                            value={newExp.name}
-                            onChange={(e) => setNewExp((p) => ({ ...p, name: e.target.value }))}
-                            placeholder="e.g. sgRNA Design"
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-800 focus:outline-none focus:border-teal-500"
-                          />
-                        </div>
-                        <div className="space-y-1">
-                          <label className="block text-[10px] font-mono font-bold text-slate-500 uppercase tracking-wider">Notes</label>
-                          <textarea
-                            rows={3}
-                            value={newExp.notes}
-                            onChange={(e) => setNewExp((p) => ({ ...p, notes: e.target.value }))}
-                            placeholder="Brief description of this experiment..."
-                            className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-semibold text-slate-800 focus:outline-none focus:border-teal-500 resize-none"
-                          />
-                        </div>
-                        <div className="flex justify-end gap-2 pt-2">
-                          <button type="button" onClick={() => setAddExpOpen(false)} className="px-4 py-2.5 border border-slate-200 hover:bg-slate-50 text-slate-600 font-bold rounded-xl text-xs cursor-pointer">
-                            Cancel
-                          </button>
-                          <button type="submit" className="px-5 py-2.5 bg-teal-600 hover:bg-teal-700 text-white font-bold rounded-xl text-xs shadow-md shadow-teal-500/20 cursor-pointer">
-                            Add Experiment
-                          </button>
-                        </div>
-                      </form>
-                    </motion.div>
-                  </div>
-                )}
-              </AnimatePresence>
             </div>
           )}
 
@@ -867,6 +823,107 @@ export default function ProjectDetailPage({ project, onBack }) {
           )}
         </motion.div>
       </AnimatePresence>
+
+      {createPortal(
+        <AnimatePresence>
+          {addExpOpen && (
+            <div className="fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto p-4 sm:p-6">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.18 }}
+                className="fixed inset-0 bg-slate-950/55 backdrop-blur-[3px]"
+                onClick={() => setAddExpOpen(false)}
+              />
+              <motion.div
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="new-experiment-title"
+                initial={{ opacity: 0, scale: 0.96, y: 16 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.96, y: 16 }}
+                transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                className="relative z-10 my-auto w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_24px_70px_-18px_rgba(15,23,42,0.38)]"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-100 bg-teal-50 text-teal-600">
+                      <FlaskConical className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h3 id="new-experiment-title" className="text-base font-black tracking-tight text-slate-900">
+                        New Experiment
+                      </h3>
+                      <p className="mt-0.5 text-xs text-slate-500">Add a record to this project's experiments.</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    aria-label="Close new experiment dialog"
+                    onClick={() => setAddExpOpen(false)}
+                    className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleAddExperiment}>
+                  <div className="space-y-5 px-5 py-5 sm:px-6">
+                    <div className="space-y-2">
+                      <label htmlFor="experiment-name" className="block text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                        Experiment name <span className="text-teal-600">*</span>
+                      </label>
+                      <input
+                        id="experiment-name"
+                        required
+                        autoFocus
+                        type="text"
+                        value={newExp.name}
+                        onChange={(e) => setNewExp((p) => ({ ...p, name: e.target.value }))}
+                        placeholder="e.g. sgRNA Design"
+                        className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <label htmlFor="experiment-notes" className="block text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                        Notes
+                      </label>
+                      <textarea
+                        id="experiment-notes"
+                        rows={4}
+                        value={newExp.notes}
+                        onChange={(e) => setNewExp((p) => ({ ...p, notes: e.target.value }))}
+                        placeholder="Brief description of this experiment..."
+                        className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3 text-sm font-medium leading-relaxed text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col-reverse gap-2 border-t border-slate-100 bg-slate-50/60 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+                    <button
+                      type="button"
+                      onClick={() => setAddExpOpen(false)}
+                      className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 cursor-pointer"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="h-10 inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-600/20 transition-all hover:bg-teal-700 active:scale-[0.98] cursor-pointer"
+                    >
+                      <Plus className="h-4 w-4" />
+                      Add Experiment
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </div>
   );
 }
