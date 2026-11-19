@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -6,13 +6,10 @@ import {
   Share2,
   Copy,
   Check,
-  Users,
   Globe,
   Lock,
-  ShieldCheck,
   Mail,
   Send,
-  UserCheck,
   ExternalLink,
 } from 'lucide-react';
 import { useApp } from '../context/AppContext';
@@ -21,13 +18,19 @@ export default function ShareModal({
   isOpen,
   onClose,
   project,
+  title = 'Share Research Notebook',
+  shareUrl,
+  initialCollaborators,
+  onInvite,
+  onRemove,
+  forceDark = false,
 }) {
   const { user, showToast } = useApp();
   const [copied, setCopied] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('Editor');
   const [accessScope, setAccessScope] = useState('org'); // 'org' | 'restricted'
-  const [collaborators, setCollaborators] = useState([
+  const [localCollaborators, setLocalCollaborators] = useState([
     {
       id: 'owner',
       name: user?.name || 'Dr. Pratik Guha',
@@ -36,23 +39,39 @@ export default function ShareModal({
       isCurrentUser: true,
     },
   ]);
+  const collaborators = initialCollaborators
+    ? initialCollaborators.map((collaborator) => ({
+      id: collaborator.id,
+      name: collaborator.name,
+      email: collaborator.email,
+      role: collaborator.role,
+      isCurrentUser: collaborator.role === 'Owner' || collaborator.id === 'owner',
+    }))
+    : localCollaborators;
 
-  const currentUrl = typeof window !== 'undefined' ? window.location.href : '';
+  const currentUrl = shareUrl || (typeof window !== 'undefined' ? window.location.href : '');
+  const handleClose = () => {
+    setCopied(false);
+    onClose();
+  };
 
   // Close on Escape key
   useEffect(() => {
     if (!isOpen) return;
     const handler = (e) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') {
+        setCopied(false);
+        onClose();
+      }
     };
+    const previousOverflow = document.body.style.overflow;
     document.addEventListener('keydown', handler);
-    return () => document.removeEventListener('keydown', handler);
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', handler);
+      document.body.style.overflow = previousOverflow;
+    };
   }, [isOpen, onClose]);
-
-  // Reset copied state on close
-  useEffect(() => {
-    if (!isOpen) setCopied(false);
-  }, [isOpen]);
 
   const handleCopyLink = async () => {
     try {
@@ -114,13 +133,19 @@ export default function ShareModal({
       isCurrentUser: false,
     };
 
-    setCollaborators((prev) => [...prev, newCollab]);
+    if (!initialCollaborators) {
+      setLocalCollaborators((prev) => [...prev, newCollab]);
+    }
+    onInvite?.(newCollab);
     setInviteEmail('');
     showToast?.(`Invitation sent to ${newCollab.name} (${inviteRole})`, 'success');
   };
 
   const handleRemoveCollaborator = (id) => {
-    setCollaborators((prev) => prev.filter((c) => c.id !== id));
+    if (!initialCollaborators) {
+      setLocalCollaborators((prev) => prev.filter((c) => c.id !== id));
+    }
+    onRemove?.(id);
     showToast?.('Collaborator access removed', 'info');
   };
 
@@ -136,18 +161,18 @@ export default function ShareModal({
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
             className="fixed inset-0 z-[9999] bg-slate-950/60 backdrop-blur-sm"
-            onClick={onClose}
+            onClick={handleClose}
           />
 
           {/* Modal Container */}
-          <div className="fixed inset-0 z-[10000] flex items-center justify-center p-4 pointer-events-none">
+          <div className={`fixed inset-0 z-[10000] flex items-center justify-center overflow-y-auto p-4 pointer-events-none ${forceDark ? 'dark' : ''}`}>
             <motion.div
               key="share-modal"
               initial={{ opacity: 0, scale: 0.94, y: 15 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.94, y: 15 }}
               transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
-              className="pointer-events-auto w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]"
+              className="pointer-events-auto my-auto w-full max-w-lg bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden flex flex-col max-h-[90vh]"
               onClick={(e) => e.stopPropagation()}
             >
               {/* Header */}
@@ -158,7 +183,7 @@ export default function ShareModal({
                   </div>
                   <div>
                     <h3 className="text-base font-bold text-slate-900 dark:text-slate-100">
-                      Share Research Notebook
+                      {title}
                     </h3>
                     <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                       {project?.name || 'Project'} • <span className="font-mono text-teal-600 dark:text-teal-400 font-semibold">{project?.code || 'PRATIK123'}</span>
@@ -168,7 +193,7 @@ export default function ShareModal({
 
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   aria-label="Close dialog"
                 >
@@ -292,6 +317,7 @@ export default function ShareModal({
                     >
                       <option value="Viewer">Viewer</option>
                       <option value="Editor">Editor</option>
+                      {initialCollaborators && <option value="Admin">Admin</option>}
                     </select>
 
                     <button
@@ -373,7 +399,7 @@ export default function ShareModal({
 
                 <button
                   type="button"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="px-4 py-1.5 rounded-xl bg-slate-200/80 hover:bg-slate-300/80 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 font-bold transition-colors cursor-pointer"
                 >
                   Done
