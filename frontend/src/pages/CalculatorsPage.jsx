@@ -91,7 +91,7 @@ import {
   BookOpen
 } from 'lucide-react';
 
-export default function CalculatorsPage() {
+export default function CalculatorsPage({ defaultProjectId = null, embedded = false }) {
   const { calcHistory, addCalcHistory, projects, notebookEntries } = useApp();
 
   // Navigation & Filtering
@@ -109,7 +109,7 @@ export default function CalculatorsPage() {
   const [saveModalOpen, setSaveModalOpen] = useState(false);
   const [saveCalcName, setSaveCalcName] = useState('');
   const [saveCalcNotes, setSaveCalcNotes] = useState('');
-  const [saveProjectId, setSaveProjectId] = useState('');
+  const [saveProjectId, setSaveProjectId] = useState(defaultProjectId || '');
   const [saveEntryId, setSaveEntryId] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -742,43 +742,70 @@ export default function CalculatorsPage() {
   const currentCalcDef = allCalculators.find(c => c.id === selectedCalc) || allCalculators[0];
 
   return (
-    <div className="space-y-6 pb-16">
+    <div className={`space-y-6 ${embedded ? 'pb-4' : 'pb-16'}`}>
       {/* ─────────────────────────────────────────────────────────────────────────────
           TOP BANNER HERO
       ───────────────────────────────────────────────────────────────────────────── */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-slate-850 to-teal-950 p-6 sm:p-8 text-white shadow-xl border border-slate-800">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
+      {!embedded && (
+        <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-slate-900 via-slate-850 to-teal-950 p-6 sm:p-8 text-white shadow-xl border border-slate-800">
+          <div className="absolute top-0 right-0 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="absolute -bottom-10 -left-10 w-72 h-72 bg-blue-500/10 rounded-full blur-2xl pointer-events-none" />
 
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/15 border border-teal-500/30 text-teal-300 text-xs font-mono font-bold tracking-wider">
-              <Calculator className="w-3.5 h-3.5 text-teal-400" />
-              PRECISION BIOMOLECULAR & ANALYTICAL ENGINES
+          <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-500/15 border border-teal-500/30 text-teal-300 text-xs font-mono font-bold tracking-wider">
+                <Calculator className="w-3.5 h-3.5 text-teal-400" />
+                PRECISION BIOMOLECULAR & ANALYTICAL ENGINES
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
+                Scientific Calculators & Laboratory Tools
+              </h1>
+              <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
+                Standardized, verifiable computational modules for molecular biology, cell culture, buffer stoichiometry, cloning, enzymology, and statistics.
+              </p>
             </div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white">
-              Scientific Calculators & Laboratory Tools
-            </h1>
-            <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
-              Standardized, verifiable computational modules for molecular biology, cell culture, buffer stoichiometry, cloning, enzymology, and statistics.
-            </p>
-          </div>
 
-          <div className="flex items-center gap-3 self-start md:self-auto">
-            <button
-              onClick={() => setActiveView(activeView === 'calculator' ? 'ledger' : 'calculator')}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer ${
-                activeView === 'ledger'
-                  ? 'bg-teal-500 text-slate-950 shadow-teal-500/20'
-                  : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
-              }`}
-            >
-              <History className="w-4 h-4" />
-              <span>Calculation Ledger ({calcHistory?.length || 0})</span>
-            </button>
+            <div className="flex items-center gap-3 self-start md:self-auto">
+              <button
+                onClick={() => setActiveView(activeView === 'calculator' ? 'ledger' : 'calculator')}
+                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer ${
+                  activeView === 'ledger'
+                    ? 'bg-teal-500 text-slate-950 shadow-teal-500/20'
+                    : 'bg-white/10 hover:bg-white/20 text-white border border-white/10'
+                }`}
+              >
+                <History className="w-4 h-4" />
+                <span>Calculation Ledger ({calcHistory?.length || 0})</span>
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {embedded && (
+        <div className="flex items-center justify-between bg-white border border-slate-200/80 rounded-2xl p-4 shadow-xs">
+          <div>
+            <h3 className="font-black text-slate-900 text-sm flex items-center gap-2">
+              <Calculator className="w-4 h-4 text-teal-600" />
+              Scientific Calculators & Analytical Engines
+            </h3>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Perform calculations and save results directly to this project's ledger.
+            </p>
+          </div>
+          <button
+            onClick={() => setActiveView(activeView === 'calculator' ? 'ledger' : 'calculator')}
+            className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl font-bold text-xs shadow-xs transition-all cursor-pointer border ${
+              activeView === 'ledger'
+                ? 'bg-teal-600 text-white border-teal-600'
+                : 'bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200'
+            }`}
+          >
+            <History className="w-3.5 h-3.5" />
+            <span>Calculation Ledger ({calcHistory?.filter(h => String(h.project_id) === String(defaultProjectId))?.length || 0})</span>
+          </button>
+        </div>
+      )}
 
       {/* ─────────────────────────────────────────────────────────────────────────────
           GLOBAL SEARCH BAR (SEARCH ALL CALCULATORS)

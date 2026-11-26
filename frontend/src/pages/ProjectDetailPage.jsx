@@ -24,11 +24,13 @@ import {
   Dna,
   Edit3,
   Save,
+  Calculator,
 } from "lucide-react";
 import { resolveImageUrl } from "../utils/imageUrl";
 import { useApp } from "../context/AppContext";
 import { filesApi, projectsApi } from "../api/endpoints";
 import ShareModal from "../components/ShareModal";
+import CalculatorsPage from "./CalculatorsPage";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -97,6 +99,7 @@ const TABS = [
   { id: "overview", label: "Overview", Icon: LayoutDashboard },
   { id: "experiments", label: "Experiments", Icon: FlaskConical },
   { id: "files", label: "Files", Icon: FolderOpen },
+  { id: "calculations", label: "Calculations", Icon: Calculator },
   { id: "team", label: "Team", Icon: Users },
 ];
 
@@ -993,6 +996,13 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
                   </tbody>
                 </table>
               </div>
+            </div>
+          )}
+
+          {/* ════════════ CALCULATIONS ════════════ */}
+          {activeTab === "calculations" && (
+            <div className="space-y-4">
+              <CalculatorsPage defaultProjectId={project.id} embedded={true} />
             </div>
           )}
 
