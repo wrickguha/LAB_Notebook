@@ -148,9 +148,9 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
   const [expSearch, setExpSearch] = useState("");
   const [expFilter, setExpFilter] = useState("All");
   const [addExpOpen, setAddExpOpen] = useState(false);
-  const [newExp, setNewExp] = useState({ name: "", notes: "" });
+  const [newExp, setNewExp] = useState({ name: "", objective: "", notes: "" });
   const [editingExp, setEditingExp] = useState(null); // experiment being edited
-  const [editExpDraft, setEditExpDraft] = useState({ name: "", notes: "" });
+  const [editExpDraft, setEditExpDraft] = useState({ name: "", objective: "", notes: "" });
 
   // ── files state ──
   const [fileSearch, setFileSearch] = useState("");
@@ -173,10 +173,11 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
     try {
       const experiment = await projectsApi.createExperiment(project.id, {
         name: newExp.name.trim(),
+        objective: newExp.objective.trim() || null,
         notes: newExp.notes.trim() || null,
       });
       queryClient.setQueryData(["projectExperiments", project.id], (previous = []) => [...previous, experiment]);
-      setNewExp({ name: "", notes: "" });
+      setNewExp({ name: "", objective: "", notes: "" });
       setAddExpOpen(false);
     } catch (error) {
       showToast(error.message || "Could not save the experiment.", "error");
@@ -278,7 +279,11 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
 
   const handleOpenEditExp = (experiment) => {
     setEditingExp(experiment);
-    setEditExpDraft({ name: experiment.name, notes: experiment.notes || "" });
+    setEditExpDraft({
+      name: experiment.name,
+      objective: experiment.objective || "",
+      notes: experiment.notes || "",
+    });
   };
 
   const handleSaveEditExperiment = async (e) => {
@@ -287,6 +292,7 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
     try {
       const updated = await projectsApi.updateExperiment(project.id, editingExp.id, {
         name: editExpDraft.name.trim(),
+        objective: editExpDraft.objective.trim() || null,
         notes: editExpDraft.notes.trim() || null,
       });
       queryClient.setQueryData(["projectExperiments", project.id], (previous = []) =>
@@ -817,9 +823,16 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
                               <div className="w-7 h-7 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center shrink-0">
                                 <FlaskConical className="w-3.5 h-3.5" />
                               </div>
-                              <span className={`font-bold ${exp.completed ? "text-slate-400 line-through" : "text-slate-900"}`}>
-                                {exp.name}
-                              </span>
+                              <div className="min-w-0">
+                                <span className={`font-bold block ${exp.completed ? "text-slate-400 line-through" : "text-slate-900"}`}>
+                                  {exp.name}
+                                </span>
+                                {exp.objective && (
+                                  <span className="text-[11px] text-slate-500 block truncate max-w-xs mt-0.5">
+                                    {exp.objective}
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </td>
                           <td className="p-4 font-mono text-teal-700 font-bold text-[11px]">{exp.expId}</td>
@@ -1134,6 +1147,19 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
                       />
                     </div>
                     <div className="space-y-2">
+                      <label htmlFor="experiment-objective" className="block text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                        Objective
+                      </label>
+                      <input
+                        id="experiment-objective"
+                        type="text"
+                        value={newExp.objective}
+                        onChange={(e) => setNewExp((p) => ({ ...p, objective: e.target.value }))}
+                        placeholder="e.g. Validate CRISPR cut efficiency in HEK293 cells..."
+                        className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10"
+                      />
+                    </div>
+                    <div className="space-y-2">
                       <label htmlFor="experiment-notes" className="block text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
                         Notes
                       </label>
@@ -1228,6 +1254,19 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
                       value={editExpDraft.name}
                       onChange={(e) => setEditExpDraft((p) => ({ ...p, name: e.target.value }))}
                       placeholder="e.g. sgRNA Design"
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="edit-experiment-objective" className="block text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                      Objective
+                    </label>
+                    <input
+                      id="edit-experiment-objective"
+                      type="text"
+                      value={editExpDraft.objective}
+                      onChange={(e) => setEditExpDraft((p) => ({ ...p, objective: e.target.value }))}
+                      placeholder="e.g. Validate CRISPR cut efficiency in HEK293 cells..."
                       className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10"
                     />
                   </div>

@@ -12,6 +12,7 @@ class ProjectExperiment extends Model
         'created_by',
         'sequence',
         'name',
+        'objective',
         'experiment_date',
         'notes',
         'completed',

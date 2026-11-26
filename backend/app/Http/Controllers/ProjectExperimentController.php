@@ -34,6 +34,7 @@ class ProjectExperimentController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
+            'objective' => ['nullable', 'string', 'max:10000'],
             'date' => ['nullable', 'date'],
             'notes' => ['nullable', 'string', 'max:10000'],
         ]);
@@ -46,6 +47,7 @@ class ProjectExperimentController extends Controller
                 'created_by' => Auth::id(),
                 'sequence' => $sequence,
                 'name' => trim($validated['name']),
+                'objective' => array_key_exists('objective', $validated) ? $validated['objective'] : null,
                 'experiment_date' => $validated['date'] ?? now()->toDateString(),
                 'notes' => $validated['notes'] ?? null,
             ]);
@@ -69,6 +71,7 @@ class ProjectExperimentController extends Controller
 
         $validated = $request->validate([
             'name' => ['sometimes', 'required', 'string', 'max:255'],
+            'objective' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'date' => ['sometimes', 'nullable', 'date'],
             'notes' => ['sometimes', 'nullable', 'string', 'max:10000'],
             'completed' => ['sometimes', 'boolean'],
@@ -76,6 +79,7 @@ class ProjectExperimentController extends Controller
 
         $experiment->fill([
             'name' => array_key_exists('name', $validated) ? trim($validated['name']) : $experiment->name,
+            'objective' => array_key_exists('objective', $validated) ? $validated['objective'] : $experiment->objective,
             'experiment_date' => array_key_exists('date', $validated) ? $validated['date'] : $experiment->experiment_date,
             'notes' => array_key_exists('notes', $validated) ? $validated['notes'] : $experiment->notes,
             'completed' => $validated['completed'] ?? $experiment->completed,
@@ -107,6 +111,7 @@ class ProjectExperimentController extends Controller
             'id' => (string) $experiment->id,
             'expId' => 'EXP-'.str_pad((string) $experiment->sequence, 3, '0', STR_PAD_LEFT),
             'name' => $experiment->name,
+            'objective' => $experiment->objective ?? '',
             'date' => $experiment->experiment_date?->format('Y-m-d'),
             'notes' => $experiment->notes ?? '',
             'completed' => (bool) $experiment->completed,
