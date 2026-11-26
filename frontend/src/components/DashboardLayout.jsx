@@ -35,6 +35,7 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
     notifications,
     markNotificationsAsRead,
     markNotificationAsRead,
+    clearAllNotifications,
     searchQuery,
     setSearchQuery,
     calendarEvents,
@@ -338,7 +339,7 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
                     className="fixed inset-0 z-40"
                     onClick={() => setNotificationsOpen(false)}
                   />
-                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-4 space-y-3">
+                  <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white border border-slate-200 rounded-2xl shadow-xl z-50 p-4 space-y-3" onClick={(e) => e.stopPropagation()}>
                     <div className="flex justify-between items-center border-b border-slate-100 pb-2.5">
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-xs text-slate-900">
@@ -352,7 +353,7 @@ export default function DashboardLayout({ children, activeTab, setActiveTab }) {
                       </div>
                       <button
                         type="button"
-                        onClick={markNotificationsAsRead}
+                        onClick={clearAllNotifications}
                         className="text-[10px] text-teal-600 hover:text-teal-700 font-bold cursor-pointer"
                       >
                         Mark all as read

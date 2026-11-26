@@ -40,6 +40,7 @@ Route::middleware('web')->group(function () {
     // ── Notifications ──
     Route::get('/notifications', [NotificationController::class, 'index']);
     Route::post('/notifications/mark-read', [NotificationController::class, 'markRead']);
+    Route::delete('/notifications', [NotificationController::class, 'destroyAll']);
     Route::post('/notifications/{notification}/read', [NotificationController::class, 'markOneRead']);
     Route::delete('/notifications/{notification}', [NotificationController::class, 'destroy']);
 

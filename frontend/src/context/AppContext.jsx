@@ -250,6 +250,15 @@ export const AppDataProvider = ({ children }) => {
     }
   };
 
+  const clearAllNotifications = async () => {
+    try {
+      await notificationsApi.clearAll();
+      queryClient.invalidateQueries({ queryKey: ['notifications'] });
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
   const markNotificationAsRead = async (id) => {
     try {
       await notificationsApi.markOneRead(id);
@@ -527,6 +536,7 @@ export const AppDataProvider = ({ children }) => {
         notifications,
         markNotificationsAsRead,
         markNotificationAsRead,
+        clearAllNotifications,
         calendarEvents,
         createCalendarEvent,
         updateCalendarEvent,

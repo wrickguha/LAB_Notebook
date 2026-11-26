@@ -50,6 +50,10 @@ export const notificationsApi = {
   markOneRead: async (id) => {
     return await api.post(`/api/notifications/${id}/read`);
   },
+
+  clearAll: async () => {
+    return await api.delete('/api/notifications');
+  },
 };
 
 export const calendarApi = {
