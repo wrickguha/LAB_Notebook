@@ -149,6 +149,8 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
   const [expFilter, setExpFilter] = useState("All");
   const [addExpOpen, setAddExpOpen] = useState(false);
   const [newExp, setNewExp] = useState({ name: "", notes: "" });
+  const [editingExp, setEditingExp] = useState(null); // experiment being edited
+  const [editExpDraft, setEditExpDraft] = useState({ name: "", notes: "" });
 
   // ── files state ──
   const [fileSearch, setFileSearch] = useState("");
@@ -271,6 +273,28 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
       );
     } catch (error) {
       showToast(error.message || "Could not delete the experiment.", "error");
+    }
+  };
+
+  const handleOpenEditExp = (experiment) => {
+    setEditingExp(experiment);
+    setEditExpDraft({ name: experiment.name, notes: experiment.notes || "" });
+  };
+
+  const handleSaveEditExperiment = async (e) => {
+    e.preventDefault();
+    if (!editExpDraft.name.trim() || !editingExp) return;
+    try {
+      const updated = await projectsApi.updateExperiment(project.id, editingExp.id, {
+        name: editExpDraft.name.trim(),
+        notes: editExpDraft.notes.trim() || null,
+      });
+      queryClient.setQueryData(["projectExperiments", project.id], (previous = []) =>
+        previous.map((item) => item.id === updated.id ? updated : item)
+      );
+      setEditingExp(null);
+    } catch (error) {
+      showToast(error.message || "Could not update the experiment.", "error");
     }
   };
 
@@ -806,6 +830,15 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
                               <>
                                 <button
                                   type="button"
+                                  title="Edit experiment"
+                                  aria-label={`Edit ${exp.name}`}
+                                  onClick={() => handleOpenEditExp(exp)}
+                                  className="p-1.5 rounded-lg hover:bg-teal-50 text-slate-400 hover:text-teal-600 cursor-pointer"
+                                >
+                                  <Edit3 className="w-4 h-4" />
+                                </button>
+                                <button
+                                  type="button"
                                   title={exp.completed ? "Mark in progress" : "Mark completed"}
                                   aria-label={exp.completed ? "Mark experiment in progress" : "Mark experiment completed"}
                                   onClick={() => handleToggleExperiment(exp)}
@@ -1135,6 +1168,103 @@ export default function ProjectDetailPage({ project, onBack, onUpdateProject }) 
               </motion.div>
             </div>
           )}
+        </AnimatePresence>,
+        document.body
+      )}
+
+      {/* ── Edit Experiment Modal ── */}
+      {editingExp && createPortal(
+        <AnimatePresence>
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <motion.div
+              className="fixed inset-0 bg-slate-950/55 backdrop-blur-[3px]"
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              onClick={() => setEditingExp(null)}
+            />
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="edit-experiment-title"
+              initial={{ opacity: 0, scale: 0.96, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 16 }}
+              transition={{ type: "spring", stiffness: 380, damping: 32 }}
+              className="relative z-10 my-auto w-full max-w-lg overflow-hidden rounded-2xl border border-slate-200/90 bg-white shadow-[0_24px_70px_-18px_rgba(15,23,42,0.38)]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-start justify-between border-b border-slate-100 px-5 py-4 sm:px-6">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-teal-100 bg-teal-50 text-teal-600">
+                    <Edit3 className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <h3 id="edit-experiment-title" className="text-base font-black tracking-tight text-slate-900">
+                      Edit Experiment
+                    </h3>
+                    <p className="mt-0.5 text-xs text-slate-500">Update the experiment name or notes.</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  aria-label="Close edit experiment dialog"
+                  onClick={() => setEditingExp(null)}
+                  className="ml-3 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveEditExperiment}>
+                <div className="space-y-5 px-5 py-5 sm:px-6">
+                  <div className="space-y-2">
+                    <label htmlFor="edit-experiment-name" className="block text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                      Experiment name <span className="text-teal-600">*</span>
+                    </label>
+                    <input
+                      id="edit-experiment-name"
+                      required
+                      autoFocus
+                      type="text"
+                      value={editExpDraft.name}
+                      onChange={(e) => setEditExpDraft((p) => ({ ...p, name: e.target.value }))}
+                      placeholder="e.g. sgRNA Design"
+                      className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 text-sm font-semibold text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label htmlFor="edit-experiment-notes" className="block text-[11px] font-bold uppercase tracking-[0.12em] text-slate-500">
+                      Notes
+                    </label>
+                    <textarea
+                      id="edit-experiment-notes"
+                      rows={4}
+                      value={editExpDraft.notes}
+                      onChange={(e) => setEditExpDraft((p) => ({ ...p, notes: e.target.value }))}
+                      placeholder="Brief description of this experiment..."
+                      className="w-full resize-none rounded-xl border border-slate-200 bg-slate-50/70 px-3.5 py-3 text-sm font-medium leading-relaxed text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-teal-500 focus:bg-white focus:ring-4 focus:ring-teal-500/10"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex flex-col-reverse gap-2 border-t border-slate-100 bg-slate-50/60 px-5 py-4 sm:flex-row sm:justify-end sm:px-6">
+                  <button
+                    type="button"
+                    onClick={() => setEditingExp(null)}
+                    className="h-10 rounded-xl border border-slate-200 bg-white px-4 text-xs font-bold text-slate-600 transition-colors hover:border-slate-300 hover:bg-slate-50 cursor-pointer"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="h-10 inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 text-xs font-black text-white shadow-lg shadow-teal-600/20 transition-all hover:bg-teal-700 active:scale-[0.98] cursor-pointer"
+                  >
+                    <Save className="h-4 w-4" />
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
         </AnimatePresence>,
         document.body
       )}
