@@ -28,6 +28,7 @@ class ProjectController extends Controller
         }
 
         $projects = Project::with(['milestones', 'accessList.user', 'user'])
+            ->withCount(['experiments', 'files'])
             ->accessibleBy($userId)
             ->orderByDesc('updated_at')
             ->get()
@@ -445,11 +446,14 @@ class ProjectController extends Controller
                 'email'  => $project->user?->email,
                 'avatar' => $project->user?->avatar,
             ],
-            'isOwner'       => $isOwner,
-            'accessLevel'   => $userLevel, // 1=View, 2=Edit, 3=Admin
-            'members'       => $project->members ?? [],
-            'collaborators' => $collaborators,
-            'milestones'    => $milestones,
+            'isOwner'            => $isOwner,
+            'accessLevel'        => $userLevel, // 1=View, 2=Edit, 3=Admin
+            'members'            => $project->members ?? [],
+            'collaborators'      => $collaborators,
+            'milestones'         => $milestones,
+            'experimentsCount'   => $project->experiments_count ?? $project->experiments()->count(),
+            'filesCount'         => $project->files_count ?? $project->files()->count(),
+            'teamCount'          => $collaborators ? count($collaborators) + 1 : 1, // +1 for owner
         ];
     }
 

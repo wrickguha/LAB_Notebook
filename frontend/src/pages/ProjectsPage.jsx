@@ -286,9 +286,15 @@ export default function ProjectsPage() {
                 {/* Scope and Details */}
                 <div className="p-6 space-y-4">
                   <div className="flex justify-between items-start gap-3">
-                    <h3 className="font-extrabold text-slate-900 text-sm leading-snug group-hover:text-teal-700 transition-colors">
-                      {proj.name}
-                    </h3>
+                    <div className="min-w-0">
+                      <h3 className="font-extrabold text-slate-900 text-sm leading-snug group-hover:text-teal-700 transition-colors">
+                        {proj.name}
+                      </h3>
+                      <p className="text-[11px] text-slate-400 font-mono mt-0.5">{proj.code}</p>
+                      {proj.researchArea && (
+                        <p className="text-[11px] text-slate-500 mt-0.5">{proj.researchArea}</p>
+                      )}
+                    </div>
                     <span
                       className={`px-2.5 py-0.5 rounded-full border text-[9px] font-mono font-bold shrink-0 ${getStatusColor(proj.status)}`}
                     >
@@ -296,9 +302,27 @@ export default function ProjectsPage() {
                     </span>
                   </div>
 
-                  <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
-                    {proj.description}
-                  </p>
+                  {/* Start & Expected Dates */}
+                  <div className="space-y-1">
+                    {proj.startDate && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
+                        <Calendar className="w-3.5 h-3.5 text-teal-500 shrink-0" />
+                        <span>
+                          <span className="font-semibold">Start:</span>{" "}
+                          {new Date(proj.startDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                        </span>
+                      </div>
+                    )}
+                    {proj.endDate && (
+                      <div className="flex items-center gap-1.5 text-[11px] text-slate-600">
+                        <Clock className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                        <span>
+                          <span className="font-semibold">Expected:</span>{" "}
+                          {new Date(proj.endDate).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                        </span>
+                      </div>
+                    )}
+                  </div>
 
                   {/* Progress bar */}
                   <div className="space-y-1.5">
@@ -313,6 +337,28 @@ export default function ProjectsPage() {
                         style={{ width: `${proj.progress}%` }}
                         className="bg-teal-600 h-full rounded-full transition-all duration-300"
                       />
+                    </div>
+                  </div>
+
+                  {/* Experiments / Files / Team stats */}
+                  <div className="border-t border-slate-100 pt-3.5 grid grid-cols-3 gap-2 text-center">
+                    <div>
+                      <p className="text-[16px] font-extrabold text-teal-700 leading-none">
+                        {proj.experimentsCount ?? 0}
+                      </p>
+                      <p className="text-[9px] font-mono text-slate-400 mt-1 uppercase tracking-wider">Experiments</p>
+                    </div>
+                    <div>
+                      <p className="text-[16px] font-extrabold text-teal-700 leading-none">
+                        {proj.filesCount ?? 0}
+                      </p>
+                      <p className="text-[9px] font-mono text-slate-400 mt-1 uppercase tracking-wider">Files</p>
+                    </div>
+                    <div>
+                      <p className="text-[16px] font-extrabold text-teal-700 leading-none">
+                        {proj.teamCount ?? 1}
+                      </p>
+                      <p className="text-[9px] font-mono text-slate-400 mt-1 uppercase tracking-wider">Team</p>
                     </div>
                   </div>
 
@@ -363,16 +409,6 @@ export default function ProjectsPage() {
               </div>
 
               {/* Card Footer */}
-              <div className="p-4 px-6 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center text-xs">
-                <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-slate-400 flex items-center gap-1 font-medium font-mono">
-                    <Clock className="w-3 h-3" />
-                    {proj.lastActivity
-                      ? new Date(proj.lastActivity).toLocaleDateString()
-                      : "Active"}
-                  </span>
-                </div>
-              </div>
             </div>
           ))}
         </div>
